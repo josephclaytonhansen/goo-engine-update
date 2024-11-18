@@ -2699,6 +2699,7 @@ void uiTemplateAssetView(uiLayout *layout,
                          PointerRNA *r_drag_op_properties);
 
 void uiTemplateLightLinkingCollection(uiLayout *layout,
+                                      bContext *C,
                                       uiLayout *context_layout,
                                       PointerRNA *ptr,
                                       const char *propname);
@@ -2709,7 +2710,7 @@ void uiTemplateBoneCollectionTree(uiLayout *layout, bContext *C);
 void uiTemplateGreasePencilLayerTree(uiLayout *layout, bContext *C);
 #endif
 
-void uiTemplateNodeTreeInterface(uiLayout *layout, PointerRNA *ptr);
+void uiTemplateNodeTreeInterface(uiLayout *layout, bContext *C, PointerRNA *ptr);
 /**
  * Draw all node buttons and socket default values with the same panel structure used by the node.
  */

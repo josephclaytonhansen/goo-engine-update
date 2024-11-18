@@ -374,6 +374,8 @@ ARegion *BKE_area_region_copy(const SpaceType *st, const ARegion *region)
 
   BLI_listbase_clear(&newar->ui_previews);
   BLI_duplicatelist(&newar->ui_previews, &region->ui_previews);
+  BLI_listbase_clear(&newar->view_states);
+  BLI_duplicatelist(&newar->view_states, &region->view_states);
 
   return newar;
 }
@@ -597,6 +599,7 @@ void BKE_area_region_free(SpaceType *st, ARegion *region)
   BLI_freelistN(&region->ui_previews);
   BLI_freelistN(&region->panels_category);
   BLI_freelistN(&region->panels_category_active);
+  BLI_freelistN(&region->view_states);
 }
 
 void BKE_screen_area_free(ScrArea *area)
@@ -1110,6 +1113,10 @@ static void write_area(BlendWriter *writer, ScrArea *area)
     LISTBASE_FOREACH (uiPreview *, ui_preview, &region->ui_previews) {
       BLO_write_struct(writer, uiPreview, ui_preview);
     }
+
+    LISTBASE_FOREACH (uiViewStateLink *, view_state, &region->view_states) {
+      BLO_write_struct(writer, uiViewStateLink, view_state);
+    }
   }
 
   LISTBASE_FOREACH (SpaceLink *, sl, &area->spacedata) {
@@ -1168,6 +1175,7 @@ static void direct_link_region(BlendDataReader *reader, ARegion *region, int spa
   BLO_read_list(reader, &region->panels_category_active);
 
   BLO_read_list(reader, &region->ui_lists);
+  BLO_read_list(reader, &region->view_states);
 
   /* The area's search filter is runtime only, so we need to clear the active flag on read. */
   /* Clear runtime flags (e.g. search filter is runtime only). */

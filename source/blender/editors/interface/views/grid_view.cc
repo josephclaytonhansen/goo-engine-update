@@ -11,6 +11,7 @@
 #include <limits>
 #include <stdexcept>
 
+#include "BKE_context.hh"
 #include "BKE_icons.h"
 
 #include "BLI_index_range.hh"
@@ -225,12 +226,15 @@ class BuildOnlyVisibleButtonsHelper {
   void add_spacer_button(uiBlock &block, int row_count) const;
 };
 
-BuildOnlyVisibleButtonsHelper::BuildOnlyVisibleButtonsHelper(const View2D &v2d,
-                                                             const AbstractGridView &grid_view,
-                                                             const int cols_per_row)
-    : v2d_(v2d), grid_view_(grid_view), style_(grid_view.get_style()), cols_per_row_(cols_per_row)
+BuildOnlyVisibleButtonsHelper::BuildOnlyVisibleButtonsHelper(
+    const View2D &v2d,
+    const AbstractGridView &grid_view,
+    int cols_per_row)
+    : grid_view_(grid_view), style_(grid_view.get_style()), cols_per_row_(cols_per_row), v2d_(v2d)
 {
-  visible_items_range_ = this->get_visible_range();
+  if (v2d.flag & V2D_IS_INIT && grid_view.get_item_count_filtered()) {
+    visible_items_range_ = this->get_visible_range();
+  }
 }
 
 IndexRange BuildOnlyVisibleButtonsHelper::get_visible_range() const
@@ -385,11 +389,15 @@ uiLayout *GridViewLayoutBuilder::current_layout() const
 
 GridViewBuilder::GridViewBuilder(uiBlock & /*block*/) {}
 
-void GridViewBuilder::build_grid_view(AbstractGridView &grid_view,
-                                      const View2D &v2d,
-                                      uiLayout &layout)
+void GridViewBuilder::build_grid_view(const bContext &C,
+                                      AbstractGridView &grid_view,
+                                      uiLayout &layout,
+                                      std::optional<StringRef> search_string)
 {
   uiBlock &block = *uiLayoutGetBlock(&layout);
+
+  const ARegion *region = CTX_wm_region(&C);
+  ui_block_view_persistent_state_restore(*region, block, grid_view);
 
   grid_view.build_items();
   grid_view.update_from_old(block);
@@ -399,7 +407,7 @@ void GridViewBuilder::build_grid_view(AbstractGridView &grid_view,
   UI_block_layout_set_current(&block, &layout);
 
   GridViewLayoutBuilder builder(layout);
-  builder.build_from_view(grid_view, v2d);
+  builder.build_from_view(grid_view, region->v2d);
 }
 
 /* ---------------------------------------------------------------------- */

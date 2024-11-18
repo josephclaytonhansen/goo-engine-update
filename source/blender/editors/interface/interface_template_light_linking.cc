@@ -355,10 +355,8 @@ class CollectionView : public AbstractTreeView {
 
 }  // namespace blender::ui::light_linking
 
-void uiTemplateLightLinkingCollection(uiLayout *layout,
-                                      uiLayout *context_layout,
-                                      PointerRNA *ptr,
-                                      const char *propname)
+void uiTemplateLightLinkingCollection(
+    uiLayout *layout, bContext *C, uiLayout *context_layout, PointerRNA *ptr, const char *propname)
 {
   if (!ptr->data) {
     return;
@@ -401,5 +399,5 @@ void uiTemplateLightLinkingCollection(uiLayout *layout,
       std::make_unique<blender::ui::light_linking::CollectionView>(*context_layout, *collection));
   tree_view->set_default_rows(3);
 
-  blender::ui::TreeViewBuilder::build_tree_view(*tree_view, *layout);
+  blender::ui::TreeViewBuilder::build_tree_view(*C, *tree_view, *layout);
 }

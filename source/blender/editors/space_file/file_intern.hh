@@ -230,11 +230,11 @@ void file_path_to_ui_path(const char *path, char *r_pathi, int max_size);
 /* C-handle for #ed::asset_browser::AssetCatalogFilterSettings. */
 struct FileAssetCatalogFilterSettingsHandle;
 
-void file_create_asset_catalog_tree_view_in_layout(
-    blender::asset_system::AssetLibrary *asset_library,
-    uiLayout *layout,
-    SpaceFile *space_file,
-    FileAssetSelectParams *params);
+void file_create_asset_catalog_tree_view_in_layout(const bContext *C,
+                                                   blender::asset_system::AssetLibrary *asset_library,
+                                                   uiLayout *layout,
+                                                   SpaceFile *space_file,
+                                                   FileAssetSelectParams *params);
 
 namespace blender::asset_system {
 class AssetLibrary;

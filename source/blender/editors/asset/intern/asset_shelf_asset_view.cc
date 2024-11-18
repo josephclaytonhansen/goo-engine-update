@@ -266,7 +266,7 @@ void build_asset_view(uiLayout &layout,
       *block, "asset shelf asset view", std::move(asset_view));
 
   ui::GridViewBuilder builder(*block);
-  builder.build_grid_view(*grid_view, region.v2d, layout);
+  builder.build_grid_view(C, *grid_view, layout);
 }
 
 /* ---------------------------------------------------------------------- */
