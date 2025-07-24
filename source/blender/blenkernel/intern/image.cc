@@ -2202,6 +2202,30 @@ void BKE_image_stamp_buf(Scene *scene,
     y -= BUFF_MARGIN_Y * 2;
   }
 
+  /* Top left corner, below Frame (goo-engine) */
+  if (TEXT_SIZE_CHECK(stamp_data.time, w, h)) {
+    y -= h;
+
+    /* extra space for background */
+    buf_rectfill_area(rect,
+                      rectf,
+                      width,
+                      height,
+                      scene->r.bg_stamp,
+                      display,
+                      0,
+                      y - BUFF_MARGIN_Y,
+                      w + BUFF_MARGIN_X,
+                      y + h + BUFF_MARGIN_Y);
+
+    /* and pad the text. */
+    BLF_position(mono, x, y + y_ofs, 0.0);
+    BLF_draw_buffer(mono, stamp_data.time, sizeof(stamp_data.time));
+
+    /* the extra pixel for background. */
+    y -= BUFF_MARGIN_Y * 2;
+  }
+
   /* Top left corner, below File, Date, Memory, Rendertime, Hostname */
   BLF_enable(mono, BLF_WORD_WRAP);
   if (TEXT_SIZE_CHECK_WORD_WRAP(stamp_data.note, w, h)) {
@@ -2245,29 +2269,6 @@ void BKE_image_stamp_buf(Scene *scene,
     /* and pad the text. */
     BLF_position(mono, x, y + y_ofs, 0.0);
     BLF_draw_buffer(mono, stamp_data.marker, sizeof(stamp_data.marker));
-
-    /* space width. */
-    x += w + pad;
-  }
-
-  /* Left bottom corner */
-  if (TEXT_SIZE_CHECK(stamp_data.time, w, h)) {
-
-    /* extra space for background */
-    buf_rectfill_area(rect,
-                      rectf,
-                      width,
-                      height,
-                      scene->r.bg_stamp,
-                      display,
-                      x - BUFF_MARGIN_X,
-                      y,
-                      x + w + BUFF_MARGIN_X,
-                      y + h + BUFF_MARGIN_Y);
-
-    /* and pad the text. */
-    BLF_position(mono, x, y + y_ofs, 0.0);
-    BLF_draw_buffer(mono, stamp_data.time, sizeof(stamp_data.time));
 
     /* space width. */
     x += w + pad;
