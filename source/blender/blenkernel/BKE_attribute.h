@@ -92,6 +92,7 @@ int BKE_id_attributes_length(const struct ID *id,
 
 struct CustomDataLayer *BKE_id_attributes_active_get(struct ID *id);
 void BKE_id_attributes_active_set(struct ID *id, const char *name);
+void BKE_id_attributes_active_clear(struct ID *id);
 int *BKE_id_attributes_active_index_p(struct ID *id);
 
 CustomData *BKE_id_attributes_iterator_next_domain(struct ID *id, struct CustomDataLayer *layers);
@@ -109,9 +110,11 @@ int BKE_id_attribute_to_index(const struct ID *id,
 const char *BKE_id_attributes_active_color_name(const struct ID *id);
 const char *BKE_id_attributes_default_color_name(const struct ID *id);
 void BKE_id_attributes_active_color_set(struct ID *id, const char *name);
+void BKE_id_attributes_active_color_clear(struct ID *id);
 void BKE_id_attributes_default_color_set(struct ID *id, const char *name);
 
 const struct CustomDataLayer *BKE_id_attributes_color_find(const struct ID *id, const char *name);
+bool BKE_color_attribute_supported(const struct Mesh &mesh, const blender::StringRef name);
 
 std::string BKE_id_attribute_calc_unique_name(const struct ID &id, const blender::StringRef name);
 
