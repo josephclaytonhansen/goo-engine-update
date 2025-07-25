@@ -55,7 +55,8 @@ void BKE_cryptomatte_matte_id_to_entries(struct NodeCryptomatte *node_storage,
                                          const char *matte_id);
 
 void BKE_cryptomatte_store_metadata(const struct CryptomatteSession *session,
-                                    struct RenderResult *render_result);
+                                    struct RenderResult *render_result,
+                                    const ViewLayer *view_layer);
 
 #ifdef __cplusplus
 }

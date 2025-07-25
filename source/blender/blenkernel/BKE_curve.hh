@@ -19,6 +19,7 @@
 struct BezTriple;
 struct BezTriple;
 struct BMEditMesh;
+struct BoundBox;
 struct BPoint;
 struct Curve;
 struct Depsgraph;
@@ -31,7 +32,7 @@ struct Object;
 struct rctf;
 struct TextBox;
 
-using eBezTriple_Flag__Alias = int;
+typedef int eBezTriple_Flag__Alias;
 
 struct CurveCache {
   ListBase disp;
@@ -423,7 +424,7 @@ void BKE_curve_deform_coords_with_editmesh(const Object *ob_curve,
                                            int defgrp_index,
                                            short flag,
                                            short defaxis,
-                                           const BMEditMesh *em_target);
+                                           BMEditMesh *em_target);
 
 /**
  * \param orco: Input vec and orco = local coord in curve space
