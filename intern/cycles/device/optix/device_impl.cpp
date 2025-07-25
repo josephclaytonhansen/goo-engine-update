@@ -50,8 +50,8 @@ static void execute_optix_task(TaskPool &pool, OptixTask task, OptixResult &fail
 }
 #  endif
 
-OptiXDevice::OptiXDevice(const DeviceInfo &info, Stats &stats, Profiler &profiler)
-    : CUDADevice(info, stats, profiler),
+OptiXDevice::OptiXDevice(const DeviceInfo &info, Stats &stats, Profiler &profiler, bool headless)
+    : CUDADevice(info, stats, profiler, headless),
       sbt_data(this, "__sbt", MEM_READ_ONLY),
       launch_params(this, "kernel_params", false)
 {
@@ -216,7 +216,7 @@ bool OptiXDevice::load_kernels(const uint kernel_features)
                             "";
   string ptx_filename;
   if (need_optix_kernels) {
-    ptx_filename = path_get("lib/kernel_optix" + suffix + ".ptx");
+    ptx_filename = path_get("lib/kernel_optix" + suffix + ".ptx.zst");
     if (use_adaptive_compilation() || path_file_size(ptx_filename) == -1) {
       std::string optix_include_dir = get_optix_include_dir();
       if (optix_include_dir.empty()) {
@@ -348,7 +348,7 @@ bool OptiXDevice::load_kernels(const uint kernel_features)
       string cflags = compile_kernel_get_common_cflags(kernel_features);
       ptx_filename = compile_kernel(cflags, ("kernel" + suffix).c_str(), "optix", true);
     }
-    if (ptx_filename.empty() || !path_read_text(ptx_filename, ptx_data)) {
+    if (ptx_filename.empty() || !path_read_compressed_text(ptx_filename, ptx_data)) {
       set_error(string_printf("Failed to load OptiX kernel from '%s'", ptx_filename.c_str()));
       return false;
     }
@@ -450,7 +450,8 @@ bool OptiXDevice::load_kernels(const uint kernel_features)
 #  if OPTIX_ABI_VERSION >= 55
       builtin_options.builtinISModuleType = OPTIX_PRIMITIVE_TYPE_ROUND_CATMULLROM;
       builtin_options.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE |
-                                   OPTIX_BUILD_FLAG_ALLOW_COMPACTION;
+                                   OPTIX_BUILD_FLAG_ALLOW_COMPACTION |
+                                   OPTIX_BUILD_FLAG_ALLOW_UPDATE;
       builtin_options.curveEndcapFlags = OPTIX_CURVE_ENDCAP_DEFAULT; /* Disable end-caps. */
 #  else
       builtin_options.builtinISModuleType = OPTIX_PRIMITIVE_TYPE_ROUND_CUBIC_BSPLINE;
@@ -798,8 +799,8 @@ bool OptiXDevice::load_osl_kernels()
   osl_modules.resize(osl_kernels.size() + 1);
 
   { /* Load and compile PTX module with OSL services. */
-    string ptx_data, ptx_filename = path_get("lib/kernel_optix_osl_services.ptx");
-    if (!path_read_text(ptx_filename, ptx_data)) {
+    string ptx_data, ptx_filename = path_get("lib/kernel_optix_osl_services.ptx.zst");
+    if (!path_read_compressed_text(ptx_filename, ptx_data)) {
       set_error(string_printf("Failed to load OptiX OSL services kernel from '%s'",
                               ptx_filename.c_str()));
       return false;
@@ -916,27 +917,14 @@ bool OptiXDevice::load_osl_kernels()
         context, group_descs, 2, &group_options, nullptr, 0, &osl_groups[i * 2]));
   }
 
-  OptixStackSizes stack_size[NUM_PROGRAM_GROUPS] = {};
-  vector<OptixStackSizes> osl_stack_size(osl_groups.size());
-
   /* Update SBT with new entries. */
   sbt_data.alloc(NUM_PROGRAM_GROUPS + osl_groups.size());
   for (int i = 0; i < NUM_PROGRAM_GROUPS; ++i) {
     optix_assert(optixSbtRecordPackHeader(groups[i], &sbt_data[i]));
-#    if OPTIX_ABI_VERSION >= 84
-    optix_assert(optixProgramGroupGetStackSize(groups[i], &stack_size[i], nullptr));
-#    else
-    optix_assert(optixProgramGroupGetStackSize(groups[i], &stack_size[i]));
-#    endif
   }
   for (size_t i = 0; i < osl_groups.size(); ++i) {
     if (osl_groups[i] != NULL) {
       optix_assert(optixSbtRecordPackHeader(osl_groups[i], &sbt_data[NUM_PROGRAM_GROUPS + i]));
-#    if OPTIX_ABI_VERSION >= 84
-      optix_assert(optixProgramGroupGetStackSize(osl_groups[i], &osl_stack_size[i], nullptr));
-#    else
-      optix_assert(optixProgramGroupGetStackSize(osl_groups[i], &osl_stack_size[i]));
-#    endif
     }
     else {
       /* Default to "__direct_callable__dummy_services", so that OSL evaluation for empty
@@ -982,6 +970,28 @@ bool OptiXDevice::load_osl_kernels()
                                      0,
                                      &pipelines[PIP_SHADE]));
 
+    /* Get program stack sizes. */
+    OptixStackSizes stack_size[NUM_PROGRAM_GROUPS] = {};
+    vector<OptixStackSizes> osl_stack_size(osl_groups.size());
+
+    for (int i = 0; i < NUM_PROGRAM_GROUPS; ++i) {
+#    if OPTIX_ABI_VERSION >= 84
+      optix_assert(optixProgramGroupGetStackSize(groups[i], &stack_size[i], nullptr));
+#    else
+      optix_assert(optixProgramGroupGetStackSize(groups[i], &stack_size[i]));
+#    endif
+    }
+    for (size_t i = 0; i < osl_groups.size(); ++i) {
+      if (osl_groups[i] != NULL) {
+#    if OPTIX_ABI_VERSION >= 84
+        optix_assert(optixProgramGroupGetStackSize(
+            osl_groups[i], &osl_stack_size[i], pipelines[PIP_SHADE]));
+#    else
+        optix_assert(optixProgramGroupGetStackSize(osl_groups[i], &osl_stack_size[i]));
+#    endif
+      }
+    }
+
     const unsigned int css = std::max(stack_size[PG_RGEN_SHADE_SURFACE_RAYTRACE].cssRG,
                                       stack_size[PG_RGEN_SHADE_SURFACE_MNEE].cssRG);
     unsigned int dss = 0;
@@ -1022,17 +1032,20 @@ bool OptiXDevice::build_optix_bvh(BVHOptiX *bvh,
 
   const CUDAContextScope scope(this);
 
-  const bool use_fast_trace_bvh = (bvh->params.bvh_type == BVH_TYPE_STATIC);
+  bool use_fast_trace_bvh = (bvh->params.bvh_type == BVH_TYPE_STATIC);
 
   /* Compute memory usage. */
   OptixAccelBufferSizes sizes = {};
   OptixAccelBuildOptions options = {};
   options.operation = operation;
-  if (use_fast_trace_bvh ||
-      /* The build flags have to match the ones used to query the built-in curve intersection
-       * program (see optixBuiltinISModuleGet above) */
-      build_input.type == OPTIX_BUILD_INPUT_TYPE_CURVES)
-  {
+  if (build_input.type == OPTIX_BUILD_INPUT_TYPE_CURVES) {
+    /* The build flags have to match the ones used to query the built-in curve intersection
+     * program (see optixBuiltinISModuleGet above) */
+    options.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE | OPTIX_BUILD_FLAG_ALLOW_COMPACTION |
+                         OPTIX_BUILD_FLAG_ALLOW_UPDATE;
+    use_fast_trace_bvh = true;
+  }
+  else if (use_fast_trace_bvh) {
     VLOG_INFO << "Using fast to trace OptiX BVH";
     options.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE | OPTIX_BUILD_FLAG_ALLOW_COMPACTION;
   }
