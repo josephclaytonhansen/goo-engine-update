@@ -79,11 +79,7 @@ void device_optix_info(const vector<DeviceInfo> &cuda_devices, vector<DeviceInfo
 #  endif
     info.denoisers |= DENOISER_OPTIX;
 #  if defined(WITH_OPENIMAGEDENOISE)
-#    if OIDN_VERSION >= 20300
-    if (oidnIsCUDADeviceSupported(info.num)) {
-#    else
     if (OIDNDenoiserGPU::is_device_supported(info)) {
-#    endif
       info.denoisers |= DENOISER_OPENIMAGEDENOISE;
     }
 #  endif
@@ -96,18 +92,14 @@ void device_optix_info(const vector<DeviceInfo> &cuda_devices, vector<DeviceInfo
 #endif
 }
 
-Device *device_optix_create(const DeviceInfo &info,
-                            Stats &stats,
-                            Profiler &profiler,
-                            bool headless)
+Device *device_optix_create(const DeviceInfo &info, Stats &stats, Profiler &profiler)
 {
 #ifdef WITH_OPTIX
-  return new OptiXDevice(info, stats, profiler, headless);
+  return new OptiXDevice(info, stats, profiler);
 #else
   (void)info;
   (void)stats;
   (void)profiler;
-  (void)headless;
 
   LOG(FATAL) << "Request to create OptiX device without compiled-in support. Should never happen.";
 

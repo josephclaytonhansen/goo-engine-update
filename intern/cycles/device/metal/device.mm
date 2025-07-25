@@ -18,12 +18,9 @@ CCL_NAMESPACE_BEGIN
 
 #ifdef WITH_METAL
 
-Device *device_metal_create(const DeviceInfo &info,
-                            Stats &stats,
-                            Profiler &profiler,
-                            bool headless)
+Device *device_metal_create(const DeviceInfo &info, Stats &stats, Profiler &profiler)
 {
-  return new MetalDevice(info, stats, profiler, headless);
+  return new MetalDevice(info, stats, profiler);
 }
 
 bool device_metal_init()
@@ -60,11 +57,7 @@ void device_metal_info(vector<DeviceInfo> &devices)
     info.denoisers = DENOISER_NONE;
     info.id = id;
 #  if defined(WITH_OPENIMAGEDENOISE)
-#    if OIDN_VERSION >= 20300
-    if (oidnIsMetalDeviceSupported(device)) {
-#    else
     if (OIDNDenoiserGPU::is_device_supported(info)) {
-#    endif
       info.denoisers |= DENOISER_OPENIMAGEDENOISE;
     }
 #  endif
@@ -73,13 +66,7 @@ void device_metal_info(vector<DeviceInfo> &devices)
 
     info.has_nanovdb = vendor == METAL_GPU_APPLE;
     info.has_light_tree = vendor != METAL_GPU_AMD;
-
-    /* MNEE caused "Compute function exceeds available temporary registers" in macOS < 13 due to a
-     * bug in spill buffer allocation sizing. */
-    info.has_mnee = false;
-    if (@available(macos 13.0, *)) {
-      info.has_mnee = vendor != METAL_GPU_AMD;
-    }
+    info.has_mnee = vendor != METAL_GPU_AMD;
 
     info.use_hardware_raytracing = false;
 

@@ -134,14 +134,6 @@ ccl_device_intersect bool scene_intersect(KernelGlobals kg,
   return false;
 }
 
-ccl_device_intersect bool scene_intersect_shadow(KernelGlobals kg,
-                                                 ccl_private const Ray *ray,
-                                                 const uint visibility)
-{
-  Intersection isect;
-  return scene_intersect(kg, ray, visibility, &isect);
-}
-
 /* Single object BVH traversal, for SSS/AO/bevel. */
 
 #  ifdef __BVH_LOCAL__
@@ -156,7 +148,6 @@ ccl_device_intersect bool scene_intersect_shadow(KernelGlobals kg,
 #      include "kernel/bvh/local.h"
 #    endif
 
-template<bool single_hit = false>
 ccl_device_intersect bool scene_intersect_local(KernelGlobals kg,
                                                 ccl_private const Ray *ray,
                                                 ccl_private LocalIntersection *local_isect,

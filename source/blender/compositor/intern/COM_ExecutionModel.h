@@ -17,7 +17,6 @@ namespace blender::compositor {
 class CompositorContext;
 class ExecutionSystem;
 class NodeOperation;
-class ProfilerData;
 
 /**
  * Base class for execution models. Contains shared implementation.

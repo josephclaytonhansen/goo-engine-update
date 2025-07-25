@@ -19,7 +19,8 @@ class StencilTable;
 }  // namespace OPENSUBDIV_VERSION
 }  // namespace OpenSubdiv
 
-namespace blender::opensubdiv {
+namespace blender {
+namespace opensubdiv {
 
 /// \brief GL stencil table (Shader Storage buffer)
 ///
@@ -2439,7 +2440,7 @@ class GLComputeEvaluator {
 
   void DispatchCompute(int totalDispatchSize) const;
 };
-
-}  // namespace blender::opensubdiv
+}  // namespace opensubdiv
+}  // namespace blender
 
 #endif  // OPENSUBDIV_GL_COMPUTE_EVALUATOR_H_

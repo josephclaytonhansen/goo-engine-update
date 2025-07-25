@@ -19,6 +19,8 @@
 #include "util/task.h"
 #include "util/texture.h"
 #include "util/unique_ptr.h"
+#include <cmath>
+
 
 #ifdef WITH_OSL
 #  include <OSL/oslexec.h>
@@ -27,6 +29,15 @@
 CCL_NAMESPACE_BEGIN
 
 namespace {
+
+// Do NOT add 'using std::isfinite;' here!
+
+// Only keep the overloads that are needed and the template for integrals.
+bool isfinite(half /*value*/) { return true; }
+inline bool isfinite(float value) { return std::isfinite(value); }
+inline bool isfinite(double value) { return std::isfinite(value); }
+template<typename T>
+inline std::enable_if_t<std::is_integral_v<T>, bool> isfinite(T) { return true; }
 
 const char *name_from_type(ImageDataType type)
 {
@@ -70,10 +81,10 @@ const char *name_from_type(ImageDataType type)
 ImageHandle::ImageHandle() : manager(NULL) {}
 
 ImageHandle::ImageHandle(const ImageHandle &other)
-    : slots(other.slots), is_tiled(other.is_tiled), manager(other.manager)
+    : tile_slots(other.tile_slots), manager(other.manager)
 {
   /* Increase image user count. */
-  for (const size_t slot : slots) {
+  foreach (const size_t slot, tile_slots) {
     manager->add_image_user(slot);
   }
 }
@@ -82,10 +93,9 @@ ImageHandle &ImageHandle::operator=(const ImageHandle &other)
 {
   clear();
   manager = other.manager;
-  is_tiled = other.is_tiled;
-  slots = other.slots;
+  tile_slots = other.tile_slots;
 
-  for (const size_t slot : slots) {
+  foreach (const size_t slot, tile_slots) {
     manager->add_image_user(slot);
   }
 
@@ -99,72 +109,67 @@ ImageHandle::~ImageHandle()
 
 void ImageHandle::clear()
 {
-  for (const size_t slot : slots) {
+  foreach (const size_t slot, tile_slots) {
     manager->remove_image_user(slot);
   }
 
-  slots.clear();
-  manager = nullptr;
+  tile_slots.clear();
+  manager = NULL;
 }
 
 bool ImageHandle::empty() const
 {
-  return slots.empty();
+  return tile_slots.empty();
 }
 
 int ImageHandle::num_tiles() const
 {
-  return (is_tiled) ? slots.size() : 0;
-}
-
-int ImageHandle::num_svm_slots() const
-{
-  return slots.size();
+  return tile_slots.size();
 }
 
 ImageMetaData ImageHandle::metadata()
 {
-  if (slots.empty()) {
+  if (tile_slots.empty()) {
     return ImageMetaData();
   }
 
-  ImageManager::Image *img = manager->get_image_slot(slots.front());
+  ImageManager::Image *img = manager->images[tile_slots.front()];
   manager->load_image_metadata(img);
   return img->metadata;
 }
 
-int ImageHandle::svm_slot(const int slot_index) const
+int ImageHandle::svm_slot(const int tile_index) const
 {
-  if (slot_index >= slots.size()) {
+  if (tile_index >= tile_slots.size()) {
     return -1;
   }
 
   if (manager->osl_texture_system) {
-    ImageManager::Image *img = manager->get_image_slot(slots[slot_index]);
+    ImageManager::Image *img = manager->images[tile_slots[tile_index]];
     if (!img->loader->osl_filepath().empty()) {
       return -1;
     }
   }
 
-  return slots[slot_index];
+  return tile_slots[tile_index];
 }
 
 vector<int4> ImageHandle::get_svm_slots() const
 {
-  const size_t num_nodes = divide_up(slots.size(), 2);
+  const size_t num_nodes = divide_up(tile_slots.size(), 2);
 
   vector<int4> svm_slots;
   svm_slots.reserve(num_nodes);
   for (size_t i = 0; i < num_nodes; i++) {
     int4 node;
 
-    size_t slot = slots[2 * i];
-    node.x = manager->get_image_slot(slot)->loader->get_tile_number();
+    size_t slot = tile_slots[2 * i];
+    node.x = manager->images[slot]->loader->get_tile_number();
     node.y = slot;
 
-    if ((2 * i + 1) < slots.size()) {
-      slot = slots[2 * i + 1];
-      node.z = manager->get_image_slot(slot)->loader->get_tile_number();
+    if ((2 * i + 1) < tile_slots.size()) {
+      slot = tile_slots[2 * i + 1];
+      node.z = manager->images[slot]->loader->get_tile_number();
       node.w = slot;
     }
     else {
@@ -178,23 +183,23 @@ vector<int4> ImageHandle::get_svm_slots() const
   return svm_slots;
 }
 
-device_texture *ImageHandle::image_memory() const
+device_texture *ImageHandle::image_memory(const int tile_index) const
 {
-  if (slots.empty()) {
-    return nullptr;
+  if (tile_index >= tile_slots.size()) {
+    return NULL;
   }
 
-  ImageManager::Image *img = manager->get_image_slot(slots[0]);
-  return img ? img->mem : nullptr;
+  ImageManager::Image *img = manager->images[tile_slots[tile_index]];
+  return img ? img->mem : NULL;
 }
 
-VDBImageLoader *ImageHandle::vdb_loader() const
+VDBImageLoader *ImageHandle::vdb_loader(const int tile_index) const
 {
-  if (slots.empty()) {
-    return nullptr;
+  if (tile_index >= tile_slots.size()) {
+    return NULL;
   }
 
-  ImageManager::Image *img = manager->get_image_slot(slots[0]);
+  ImageManager::Image *img = manager->images[tile_slots[tile_index]];
 
   if (img == NULL) {
     return NULL;
@@ -220,7 +225,7 @@ ImageManager *ImageHandle::get_manager() const
 
 bool ImageHandle::operator==(const ImageHandle &other) const
 {
-  return manager == other.manager && is_tiled == other.is_tiled && slots == other.slots;
+  return manager == other.manager && tile_slots == other.tile_slots;
 }
 
 /* Image MetaData */
@@ -385,7 +390,7 @@ ImageHandle ImageManager::add_image(const string &filename, const ImageParams &p
   const size_t slot = add_image_slot(new OIIOImageLoader(filename), params, false);
 
   ImageHandle handle;
-  handle.slots.push_back(slot);
+  handle.tile_slots.push_back(slot);
   handle.manager = this;
   return handle;
 }
@@ -396,13 +401,6 @@ ImageHandle ImageManager::add_image(const string &filename,
 {
   ImageHandle handle;
   handle.manager = this;
-  handle.is_tiled = !tiles.empty();
-
-  if (!handle.is_tiled) {
-    const size_t slot = add_image_slot(new OIIOImageLoader(filename), params, false);
-    handle.slots.push_back(slot);
-    return handle;
-  }
 
   foreach (int tile, tiles) {
     string tile_filename = filename;
@@ -410,14 +408,14 @@ ImageHandle ImageManager::add_image(const string &filename,
     /* Since we don't have information about the exact tile format used in this code location,
      * just attempt all replacement patterns that Blender supports. */
     if (tile != 0) {
-      string_replace(tile_filename, "<UDIM>", string_printf("%04d", tile));
+      string_replace(tile_filename, "<UDIM>", string_printf("%04d", (int)tile));
 
       int u = ((tile - 1001) % 10);
       int v = ((tile - 1001) / 10);
       string_replace(tile_filename, "<UVTILE>", string_printf("u%d_v%d", u + 1, v + 1));
     }
     const size_t slot = add_image_slot(new OIIOImageLoader(tile_filename), params, false);
-    handle.slots.push_back(slot);
+    handle.tile_slots.push_back(slot);
   }
 
   return handle;
@@ -430,7 +428,7 @@ ImageHandle ImageManager::add_image(ImageLoader *loader,
   const size_t slot = add_image_slot(loader, params, builtin);
 
   ImageHandle handle;
-  handle.slots.push_back(slot);
+  handle.tile_slots.push_back(slot);
   handle.manager = this;
   return handle;
 }
@@ -439,11 +437,9 @@ ImageHandle ImageManager::add_image(const vector<ImageLoader *> &loaders,
                                     const ImageParams &params)
 {
   ImageHandle handle;
-  handle.is_tiled = true;
-
   for (ImageLoader *loader : loaders) {
     const size_t slot = add_image_slot(loader, params, true);
-    handle.slots.push_back(slot);
+    handle.tile_slots.push_back(slot);
   }
 
   handle.manager = this;
@@ -521,13 +517,6 @@ void ImageManager::remove_image_user(size_t slot)
   if (image->users == 0) {
     need_update_ = true;
   }
-}
-
-ImageManager::Image *ImageManager::get_image_slot(const size_t slot)
-{
-  /* Need mutex lock, images vector might get resized by another thread. */
-  const thread_scoped_lock device_lock(images_mutex);
-  return images[slot];
 }
 
 static bool image_associate_alpha(ImageManager::Image *img)
@@ -636,7 +625,7 @@ bool ImageManager::file_load_image(Image *img, int texture_limit)
   }
 
   /* Make sure we don't have buggy values. */
-  if constexpr (FileFormat == TypeDesc::FLOAT) {
+  if (FileFormat == TypeDesc::FLOAT) {
     /* For RGBA buffers we put all channels to 0 if either of them is not
      * finite. This way we avoid possible artifacts caused by fully changed
      * hue. */

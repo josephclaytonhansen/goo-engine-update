@@ -16,10 +16,7 @@ class Stats;
 
 bool device_metal_init();
 
-Device *device_metal_create(const DeviceInfo &info,
-                            Stats &stats,
-                            Profiler &profiler,
-                            bool headless);
+Device *device_metal_create(const DeviceInfo &info, Stats &stats, Profiler &profiler);
 
 void device_metal_info(vector<DeviceInfo> &devices);
 

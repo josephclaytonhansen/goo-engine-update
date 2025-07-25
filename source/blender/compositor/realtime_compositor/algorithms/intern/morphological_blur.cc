@@ -5,7 +5,7 @@
 #include "BLI_assert.h"
 #include "BLI_math_vector_types.hh"
 
-#include "GPU_shader.hh"
+#include "GPU_shader.h"
 
 #include "COM_context.hh"
 #include "COM_result.hh"

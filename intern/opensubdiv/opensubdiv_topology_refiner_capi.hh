@@ -25,11 +25,10 @@ struct OpenSubdiv_TopologyRefinerSettings {
 //
 // The only purpose is to allow C-only code to access C++ implementation of the
 // topology refiner.
-class OpenSubdiv_TopologyRefiner {
- public:
+struct OpenSubdiv_TopologyRefiner {
   // Query subdivision level the refiner is created for.
-  int getSubdivisionLevel() const;
-  bool getIsAdaptive() const;
+  int (*getSubdivisionLevel)(const OpenSubdiv_TopologyRefiner *topology_refiner);
+  bool (*getIsAdaptive)(const OpenSubdiv_TopologyRefiner *topology_refiner);
 
   // NOTE: All queries are querying base level.
   //
@@ -41,19 +40,29 @@ class OpenSubdiv_TopologyRefiner {
   //////////////////////////////////////////////////////////////////////////////
   // Query basic topology information from base level.
 
-  int getNumVertices() const;
-  int getNumEdges() const;
-  int getNumFaces() const;
+  int (*getNumVertices)(const OpenSubdiv_TopologyRefiner *topology_refiner);
+  int (*getNumEdges)(const OpenSubdiv_TopologyRefiner *topology_refiner);
+  int (*getNumFaces)(const OpenSubdiv_TopologyRefiner *topology_refiner);
 
-  int getNumFaceVertices(int face_index) const;
-  void getFaceVertices(int face_index, int *face_vertices_indices) const;
+  int (*getNumFaceVertices)(const OpenSubdiv_TopologyRefiner *topology_refiner,
+                            const int face_index);
+  void (*getFaceVertices)(const OpenSubdiv_TopologyRefiner *topology_refiner,
+                          const int face_index,
+                          int *face_vertices_indices);
 
-  int getNumFaceEdges(int face_index) const;
-  void getFaceEdges(int face_index, int *face_edges_indices) const;
-  void getEdgeVertices(int edge_index, int edge_vertices_indices[2]) const;
+  int (*getNumFaceEdges)(const OpenSubdiv_TopologyRefiner *topology_refiner, const int face_index);
+  void (*getFaceEdges)(const OpenSubdiv_TopologyRefiner *topology_refiner,
+                       const int face_index,
+                       int *face_edges_indices);
+  void (*getEdgeVertices)(const OpenSubdiv_TopologyRefiner *topology_refiner,
+                          const int edge_index,
+                          int edge_vertices_indices[2]);
 
-  int getNumVertexEdges(int vertex_index) const;
-  void getVertexEdges(int vertex_index, int *vertex_edges_indices) const;
+  int (*getNumVertexEdges)(const OpenSubdiv_TopologyRefiner *topology_refiner,
+                           const int vertex_index);
+  void (*getVertexEdges)(const OpenSubdiv_TopologyRefiner *topology_refiner,
+                         const int vertex_index,
+                         int *vertex_edges_indices);
 
   //////////////////////////////////////////////////////////////////////////////
   // PTex face geometry queries.
@@ -65,8 +74,9 @@ class OpenSubdiv_TopologyRefiner {
   // - Quad face consists of a single ptex face.
   // - N-gons (similar to triangle) consists of N ptex faces, ordered same
   //   way as for triangle.
-  int getNumFacePtexFaces(int face_index) const;
-  int getNumPtexFaces() const;
+  int (*getNumFacePtexFaces)(const OpenSubdiv_TopologyRefiner *topology_refiner,
+                             const int face_index);
+  int (*getNumPtexFaces)(const OpenSubdiv_TopologyRefiner *topology_refiner);
 
   // Initialize a per-base-face offset measured in ptex face indices.
   //
@@ -74,22 +84,26 @@ class OpenSubdiv_TopologyRefiner {
   // faces created for bases faces [0 .. base_face_index - 1].
   //
   // The array must contain at least total number of ptex faces elements.
-  void fillFacePtexIndexOffset(int *face_ptex_index_offset) const;
+  void (*fillFacePtexIndexOffset)(const OpenSubdiv_TopologyRefiner *topology_refiner,
+                                  int *face_ptex_index_offset);
 
   //////////////////////////////////////////////////////////////////////////////
   // Face-varying data.
 
   // Number of face-varying channels (or how they are called in Blender layers).
-  int getNumFVarChannels() const;
+  int (*getNumFVarChannels)(const OpenSubdiv_TopologyRefiner *topology_refiner);
   // Get face-varying interpolation type.
-  OpenSubdiv_FVarLinearInterpolation getFVarLinearInterpolation() const;
+  OpenSubdiv_FVarLinearInterpolation (*getFVarLinearInterpolation)(
+      const OpenSubdiv_TopologyRefiner *topology_refiner);
   // Get total number of face-varying values in a particular channel.
-  int getNumFVarValues(int channel) const;
+  int (*getNumFVarValues)(const OpenSubdiv_TopologyRefiner *topology_refiner, const int channel);
   // Get face-varying value indices associated with a particular face.
   //
   // This is an array of indices inside of face-varying array, array elements
   // are aligned with face corners (or loops in Blender terminology).
-  const int *getFaceFVarValueIndices(int face_index, int channel) const;
+  const int *(*getFaceFVarValueIndices)(const OpenSubdiv_TopologyRefiner *topology_refiner,
+                                        const int face_index,
+                                        const int channel);
 
   //////////////////////////////////////////////////////////////////////////////
   // Internal use.

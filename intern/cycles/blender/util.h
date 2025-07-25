@@ -64,20 +64,13 @@ BlenderAttributeType blender_attribute_name_split_type(ustring name, string *r_r
 void python_thread_state_save(void **python_thread_state);
 void python_thread_state_restore(void **python_thread_state);
 
-static bool mesh_use_corner_normals(BL::Mesh &mesh, Mesh::SubdivisionType subdivision_type)
-{
-  return mesh && (subdivision_type == Mesh::SUBDIVISION_NONE) &&
-         (static_cast<const ::Mesh *>(mesh.ptr.data)->normals_domain(true) ==
-          blender::bke::MeshNormalDomain::Corner);
-}
-
 static inline BL::Mesh object_to_mesh(BL::BlendData & /*data*/,
                                       BObjectInfo &b_ob_info,
                                       BL::Depsgraph & /*depsgraph*/,
                                       bool /*calc_undeformed*/,
                                       Mesh::SubdivisionType subdivision_type)
 {
-  /* TODO: make this work with copy-on-evaluation, modifiers are already evaluated. */
+  /* TODO: make this work with copy-on-write, modifiers are already evaluated. */
 #if 0
   bool subsurf_mod_show_render = false;
   bool subsurf_mod_show_viewport = false;
@@ -95,33 +88,27 @@ static inline BL::Mesh object_to_mesh(BL::BlendData & /*data*/,
 
   BL::Mesh mesh = (b_ob_info.object_data.is_a(&RNA_Mesh)) ? BL::Mesh(b_ob_info.object_data) :
                                                             BL::Mesh(PointerRNA_NULL);
-
-  bool use_corner_normals = false;
+  const bool split_faces = (mesh) && (subdivision_type == Mesh::SUBDIVISION_NONE) &&
+                           (static_cast<const ::Mesh *>(mesh.ptr.data)->normals_domain(true) ==
+                            blender::bke::MeshNormalDomain::Corner);
 
   if (b_ob_info.is_real_object_data()) {
     if (mesh) {
-      if (mesh.is_editmode()) {
-        /* Flush edit-mesh to mesh, including all data layers. */
+      /* Make a copy to split faces if we use auto-smooth, otherwise not needed.
+       * Also in edit mode do we need to make a copy, to ensure data layers like
+       * UV are not empty. */
+      if (mesh.is_editmode() || split_faces) {
         BL::Depsgraph depsgraph(PointerRNA_NULL);
         mesh = b_ob_info.real_object.to_mesh(false, depsgraph);
-        use_corner_normals = mesh_use_corner_normals(mesh, subdivision_type);
-      }
-      else if (mesh_use_corner_normals(mesh, subdivision_type)) {
-        /* Make a copy to split faces. */
-        BL::Depsgraph depsgraph(PointerRNA_NULL);
-        mesh = b_ob_info.real_object.to_mesh(false, depsgraph);
-        use_corner_normals = true;
       }
     }
     else {
       BL::Depsgraph depsgraph(PointerRNA_NULL);
       mesh = b_ob_info.real_object.to_mesh(false, depsgraph);
-      use_corner_normals = mesh_use_corner_normals(mesh, subdivision_type);
     }
   }
   else {
     /* TODO: what to do about non-mesh geometry instances? */
-    use_corner_normals = mesh_use_corner_normals(mesh, subdivision_type);
   }
 
 #if 0
@@ -134,7 +121,7 @@ static inline BL::Mesh object_to_mesh(BL::BlendData & /*data*/,
 #endif
 
   if (mesh) {
-    if (use_corner_normals) {
+    if (split_faces) {
       mesh.split_faces();
     }
 

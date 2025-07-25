@@ -613,9 +613,7 @@ void GeometryManager::device_update_displacement_images(Device *device,
   TaskPool pool;
   ImageManager *image_manager = scene->image_manager;
   set<int> bump_images;
-#ifdef WITH_OSL
   bool has_osl_node = false;
-#endif
   foreach (Geometry *geom, scene->geometry) {
     if (geom->is_modified()) {
       /* Geometry-level check for hair shadow transparency.
@@ -635,17 +633,15 @@ void GeometryManager::device_update_displacement_images(Device *device,
           continue;
         }
         foreach (ShaderNode *node, shader->graph->nodes) {
-#ifdef WITH_OSL
           if (node->special_type == SHADER_SPECIAL_TYPE_OSL) {
             has_osl_node = true;
           }
-#endif
           if (node->special_type != SHADER_SPECIAL_TYPE_IMAGE_SLOT) {
             continue;
           }
 
           ImageSlotTextureNode *image_node = static_cast<ImageSlotTextureNode *>(node);
-          for (int i = 0; i < image_node->handle.num_svm_slots(); i++) {
+          for (int i = 0; i < image_node->handle.num_tiles(); i++) {
             const int slot = image_node->handle.svm_slot(i);
             if (slot != -1) {
               bump_images.insert(slot);
@@ -821,6 +817,7 @@ void GeometryManager::device_update(Device *device,
   }
 
   /* Update images needed for true displacement. */
+  bool old_need_object_flags_update = false;
   if (true_displacement_used || curve_shadow_transparency_used) {
     scoped_callback_timer timer([scene](double time) {
       if (scene->update_stats) {
@@ -829,6 +826,7 @@ void GeometryManager::device_update(Device *device,
       }
     });
     device_update_displacement_images(device, scene, progress);
+    old_need_object_flags_update = scene->object_manager->need_flags_update;
     scene->object_manager->device_update_flags(device, dscene, scene, progress, false);
   }
 
@@ -941,28 +939,12 @@ void GeometryManager::device_update(Device *device,
     });
     TaskPool pool;
 
-    /* Work around Embree/oneAPI bug #129596 with BVH updates. */
-    const bool use_multithreaded_build = first_bvh_build ||
-                                         !device->info.contains_device_type(DEVICE_ONEAPI);
-    first_bvh_build = false;
-
     size_t i = 0;
     foreach (Geometry *geom, scene->geometry) {
       if (geom->is_modified() || geom->need_update_bvh_for_offset) {
         need_update_scene_bvh = true;
-        if (use_multithreaded_build) {
-          pool.push(function_bind(&Geometry::compute_bvh,
-                                  geom,
-                                  device,
-                                  dscene,
-                                  &scene->params,
-                                  &progress,
-                                  i,
-                                  num_bvh));
-        }
-        else {
-          geom->compute_bvh(device, dscene, &scene->params, &progress, i, num_bvh);
-        }
+        pool.push(function_bind(
+            &Geometry::compute_bvh, geom, device, dscene, &scene->params, &progress, i, num_bvh));
         if (geom->need_build_bvh(bvh_layout)) {
           i++;
         }
@@ -1027,6 +1009,16 @@ void GeometryManager::device_update(Device *device,
     if (progress.get_cancel()) {
       return;
     }
+  }
+
+  if (true_displacement_used) {
+    /* Re-tag flags for update, so they're re-evaluated
+     * for meshes with correct bounding boxes.
+     *
+     * This wouldn't cause wrong results, just true
+     * displacement might be less optimal to calculate.
+     */
+    scene->object_manager->need_flags_update = old_need_object_flags_update;
   }
 
   /* unset flags */

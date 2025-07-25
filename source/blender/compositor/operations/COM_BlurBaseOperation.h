@@ -5,14 +5,15 @@
 #pragma once
 
 #include "COM_MultiThreadedOperation.h"
+#include "COM_QualityStepHelper.h"
 
 #define MAX_GAUSSTAB_RADIUS 30000
 
-#include "BLI_simd.hh"
+#include "BLI_simd.h"
 
 namespace blender::compositor {
 
-class BlurBaseOperation : public MultiThreadedOperation {
+class BlurBaseOperation : public MultiThreadedOperation, public QualityStepHelper {
  private:
   bool extend_bounds_;
 
@@ -34,6 +35,11 @@ class BlurBaseOperation : public MultiThreadedOperation {
 
   void update_size();
 
+  /**
+   * Cached reference to the input_program
+   */
+  SocketReader *input_program_;
+  SocketReader *input_size_;
   NodeBlurData data_;
 
   float size_;
@@ -44,6 +50,15 @@ class BlurBaseOperation : public MultiThreadedOperation {
 
  public:
   virtual void init_data() override;
+  /**
+   * Initialize the execution
+   */
+  void init_execution() override;
+
+  /**
+   * Deinitialize the execution
+   */
+  void deinit_execution() override;
 
   void set_data(const NodeBlurData *data);
 

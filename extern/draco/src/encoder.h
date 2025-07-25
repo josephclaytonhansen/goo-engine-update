@@ -53,7 +53,7 @@ API(void)
 encoderSetIndices(Encoder *encoder, size_t indexComponentType, uint32_t indexCount, void *indices);
 
 API(uint32_t)
-encoderSetAttribute(Encoder *encoder, char *attributeName, size_t componentType, char *dataType, void *data, bool normalized);
+encoderSetAttribute(Encoder *encoder, char *attributeName, size_t componentType, char *dataType, void *data);
 
 API(uint32_t)
 encoderGetEncodedVertexCount(Encoder *encoder);

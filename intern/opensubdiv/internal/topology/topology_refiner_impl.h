@@ -19,7 +19,8 @@
 
 struct OpenSubdiv_Converter;
 
-namespace blender::opensubdiv {
+namespace blender {
+namespace opensubdiv {
 
 class TopologyRefinerImpl {
  public:
@@ -60,7 +61,8 @@ class TopologyRefinerImpl {
   MEM_CXX_CLASS_ALLOC_FUNCS("TopologyRefinerImpl");
 };
 
-}  // namespace blender::opensubdiv
+}  // namespace opensubdiv
+}  // namespace blender
 
 struct OpenSubdiv_TopologyRefinerImpl : public blender::opensubdiv::TopologyRefinerImpl {};
 

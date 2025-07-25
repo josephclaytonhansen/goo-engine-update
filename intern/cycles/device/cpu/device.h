@@ -14,7 +14,7 @@ class DeviceInfo;
 class Profiler;
 class Stats;
 
-Device *device_cpu_create(const DeviceInfo &info, Stats &stats, Profiler &profiler, bool headless);
+Device *device_cpu_create(const DeviceInfo &info, Stats &stats, Profiler &profiler);
 
 void device_cpu_info(vector<DeviceInfo> &devices);
 

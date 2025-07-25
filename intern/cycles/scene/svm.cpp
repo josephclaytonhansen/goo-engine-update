@@ -294,14 +294,9 @@ int SVMCompiler::stack_assign(ShaderOutput *output)
   return output->stack_offset;
 }
 
-bool SVMCompiler::is_linked(ShaderInput *input)
-{
-  return (input->link || input->constant_folded_in);
-}
-
 int SVMCompiler::stack_assign_if_linked(ShaderInput *input)
 {
-  if (is_linked(input)) {
+  if (input->link || input->constant_folded_in) {
     return stack_assign(input);
   }
 

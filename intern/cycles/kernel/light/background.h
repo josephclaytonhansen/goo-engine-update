@@ -437,27 +437,11 @@ ccl_device float background_light_pdf(KernelGlobals kg, float3 P, float3 directi
   return pdf;
 }
 
-template<bool in_volume_segment>
 ccl_device_forceinline bool background_light_tree_parameters(const float3 centroid,
-                                                             const float t,
                                                              ccl_private float &cos_theta_u,
                                                              ccl_private float2 &distance,
-                                                             ccl_private float3 &point_to_centroid,
-                                                             ccl_private float &theta_d)
+                                                             ccl_private float3 &point_to_centroid)
 {
-  if (in_volume_segment) {
-    if (t == FLT_MAX) {
-      /* In world volumes, distant lights can contribute to the lighting of the volume with
-       * specific configurations of procedurally generated volumes. Use a ray length of 1.0 in this
-       * case to give the distant light some weight, but one that isn't too high for a typical
-       * world volume use case. */
-      theta_d = 1.0f;
-    }
-    else {
-      theta_d = t;
-    }
-  }
-
   /* Cover the whole sphere */
   cos_theta_u = -1.0f;
 

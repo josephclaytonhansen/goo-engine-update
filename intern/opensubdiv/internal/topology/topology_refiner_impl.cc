@@ -6,7 +6,8 @@
 
 #include "internal/topology/topology_refiner_impl.h"
 
-namespace blender::opensubdiv {
+namespace blender {
+namespace opensubdiv {
 
 TopologyRefinerImpl::TopologyRefinerImpl() : topology_refiner(nullptr) {}
 
@@ -15,4 +16,5 @@ TopologyRefinerImpl::~TopologyRefinerImpl()
   delete topology_refiner;
 }
 
-}  // namespace blender::opensubdiv
+}  // namespace opensubdiv
+}  // namespace blender

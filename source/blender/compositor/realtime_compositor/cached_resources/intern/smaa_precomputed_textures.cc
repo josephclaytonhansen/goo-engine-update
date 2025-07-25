@@ -6,8 +6,8 @@
 
 #include "BLI_smaa_textures.h"
 
-#include "GPU_shader.hh"
-#include "GPU_texture.hh"
+#include "GPU_shader.h"
+#include "GPU_texture.h"
 
 #include "COM_smaa_precomputed_textures.hh"
 

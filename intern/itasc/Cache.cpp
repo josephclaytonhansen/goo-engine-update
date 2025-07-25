@@ -214,10 +214,8 @@ int Cache::addChannel(const void *device, const char *name, unsigned int maxItem
 		entry = new CacheEntry();
 		if (entry == NULL)
 			return -1;
-		if (!m_cache.insert(CacheMap::value_type(device,entry)).second) {
-			delete entry;
+		if (!m_cache.insert(CacheMap::value_type(device,entry)).second)
 			return -1;
-		}
 	} else {
 		entry = it->second;
 	}

@@ -105,8 +105,6 @@ class GHOST_WindowWayland : public GHOST_Window {
 
   GHOST_TSuccess getCursorBitmap(GHOST_CursorBitmapRef *bitmap) override;
 
-  bool getValid() const override;
-
   void setTitle(const char *title) override;
 
   std::string getTitle() const override;
@@ -180,15 +178,6 @@ class GHOST_WindowWayland : public GHOST_Window {
 
   /* WAYLAND utility functions. */
 
-  /**
-   * Refresh the cursor using the cursor assigned to this window.
-   *
-   * \note This is needed because in GHOST the cursor is per window,
-   * where as in WAYLAND the cursor is set per-seat (and per input device).
-   * When an input device enters a window, this function must run.
-   */
-  GHOST_TSuccess cursor_shape_refresh();
-
   bool outputs_enter(GWL_Output *output);
   bool outputs_leave(GWL_Output *output);
 
@@ -205,7 +194,6 @@ class GHOST_WindowWayland : public GHOST_Window {
  private:
   GHOST_SystemWayland *system_;
   struct GWL_Window *window_;
-  bool valid_setup_;
   bool is_debug_context_;
 
   /**

@@ -6,21 +6,24 @@
 
 #include "internal/topology/topology_refiner_impl.h"
 
+#include "internal/base/type.h"
 #include "internal/base/type_convert.h"
 #include "internal/topology/mesh_topology.h"
 #include "internal/topology/topology_refiner_impl.h"
 
 #include "opensubdiv_converter_capi.hh"
 
-namespace blender::opensubdiv {
+namespace blender {
+namespace opensubdiv {
+namespace {
 
-static const OpenSubdiv::Far::TopologyRefiner *getOSDTopologyRefiner(
+const OpenSubdiv::Far::TopologyRefiner *getOSDTopologyRefiner(
     const TopologyRefinerImpl *topology_refiner_impl)
 {
   return topology_refiner_impl->topology_refiner;
 }
 
-static const OpenSubdiv::Far::TopologyLevel &getOSDTopologyBaseLevel(
+const OpenSubdiv::Far::TopologyLevel &getOSDTopologyBaseLevel(
     const TopologyRefinerImpl *topology_refiner_impl)
 {
   return getOSDTopologyRefiner(topology_refiner_impl)->GetLevel(0);
@@ -29,16 +32,16 @@ static const OpenSubdiv::Far::TopologyLevel &getOSDTopologyBaseLevel(
 ////////////////////////////////////////////////////////////////////////////////
 // Quick preliminary checks.
 
-static bool checkSchemeTypeMatches(const TopologyRefinerImpl *topology_refiner_impl,
-                                   const OpenSubdiv_Converter *converter)
+bool checkSchemeTypeMatches(const TopologyRefinerImpl *topology_refiner_impl,
+                            const OpenSubdiv_Converter *converter)
 {
   const OpenSubdiv::Sdc::SchemeType converter_scheme_type =
       blender::opensubdiv::getSchemeTypeFromCAPI(converter->getSchemeType(converter));
   return (converter_scheme_type == getOSDTopologyRefiner(topology_refiner_impl)->GetSchemeType());
 }
 
-static bool checkOptionsMatches(const TopologyRefinerImpl *topology_refiner_impl,
-                                const OpenSubdiv_Converter *converter)
+bool checkOptionsMatches(const TopologyRefinerImpl *topology_refiner_impl,
+                         const OpenSubdiv_Converter *converter)
 {
   typedef OpenSubdiv::Sdc::Options Options;
   const Options options = getOSDTopologyRefiner(topology_refiner_impl)->GetSchemeOptions();
@@ -52,8 +55,8 @@ static bool checkOptionsMatches(const TopologyRefinerImpl *topology_refiner_impl
   return true;
 }
 
-static bool checkPreliminaryMatches(const TopologyRefinerImpl *topology_refiner_impl,
-                                    const OpenSubdiv_Converter *converter)
+bool checkPreliminaryMatches(const TopologyRefinerImpl *topology_refiner_impl,
+                             const OpenSubdiv_Converter *converter)
 {
   return checkSchemeTypeMatches(topology_refiner_impl, converter) &&
          checkOptionsMatches(topology_refiner_impl, converter);
@@ -66,9 +69,9 @@ static bool checkPreliminaryMatches(const TopologyRefinerImpl *topology_refiner_
 // indexing and, possibly, move to mesh topology as well if winding affects
 // face-varyign as well.
 
-static bool checkSingleUVLayerMatch(const OpenSubdiv::Far::TopologyLevel &base_level,
-                                    const OpenSubdiv_Converter *converter,
-                                    const int layer_index)
+bool checkSingleUVLayerMatch(const OpenSubdiv::Far::TopologyLevel &base_level,
+                             const OpenSubdiv_Converter *converter,
+                             const int layer_index)
 {
   converter->precalcUVLayer(converter, layer_index);
   const int num_faces = base_level.GetNumFaces();
@@ -89,8 +92,8 @@ static bool checkSingleUVLayerMatch(const OpenSubdiv::Far::TopologyLevel &base_l
   return true;
 }
 
-static bool checkUVLayersMatch(const TopologyRefinerImpl *topology_refiner_impl,
-                               const OpenSubdiv_Converter *converter)
+bool checkUVLayersMatch(const TopologyRefinerImpl *topology_refiner_impl,
+                        const OpenSubdiv_Converter *converter)
 {
   using OpenSubdiv::Far::TopologyLevel;
   const int num_layers = converter->getNumUVLayers(converter);
@@ -107,11 +110,13 @@ static bool checkUVLayersMatch(const TopologyRefinerImpl *topology_refiner_impl,
   return true;
 }
 
-static bool checkTopologyAttributesMatch(const TopologyRefinerImpl *topology_refiner_impl,
-                                         const OpenSubdiv_Converter *converter)
+bool checkTopologyAttributesMatch(const TopologyRefinerImpl *topology_refiner_impl,
+                                  const OpenSubdiv_Converter *converter)
 {
   return checkUVLayersMatch(topology_refiner_impl, converter);
 }
+
+}  // namespace
 
 bool TopologyRefinerImpl::isEqualToConverter(const OpenSubdiv_Converter *converter) const
 {
@@ -132,4 +137,5 @@ bool TopologyRefinerImpl::isEqualToConverter(const OpenSubdiv_Converter *convert
   return true;
 }
 
-}  // namespace blender::opensubdiv
+}  // namespace opensubdiv
+}  // namespace blender

@@ -1542,22 +1542,17 @@ uint16_t GHOST_WindowX11::getDPIHint()
   if (resMan) {
     XrmDatabase xrdb = XrmGetStringDatabase(resMan);
     if (xrdb) {
-      int dpi = -1;
       char *type = nullptr;
       XrmValue val;
 
       int success = XrmGetResource(xrdb, "Xft.dpi", "Xft.Dpi", &type, &val);
       if (success && type) {
         if (STREQ(type, "String")) {
-          dpi = atoi((const char *)val.addr);
+          return atoi((char *)val.addr);
         }
       }
-      XrmDestroyDatabase(xrdb);
-
-      if (dpi != -1) {
-        return dpi;
-      }
     }
+    XrmDestroyDatabase(xrdb);
   }
 
   /* Fallback to calculating DPI using X reported DPI, set using `xrandr --dpi`. */

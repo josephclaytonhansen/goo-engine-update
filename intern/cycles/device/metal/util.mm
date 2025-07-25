@@ -49,10 +49,6 @@ int MetalInfo::get_apple_gpu_core_count(id<MTLDevice> device)
 
 AppleGPUArchitecture MetalInfo::get_apple_gpu_architecture(id<MTLDevice> device)
 {
-  if (MetalInfo::get_device_vendor(device) != METAL_GPU_APPLE) {
-    return NOT_APPLE_GPU;
-  }
-
   const char *device_name = [device.name UTF8String];
   if (strstr(device_name, "M1")) {
     return APPLE_M1;
@@ -166,42 +162,53 @@ id<MTLBuffer> MetalBufferPool::get_buffer(id<MTLDevice> device,
                                           const void *pointer,
                                           Stats &stats)
 {
-  id<MTLBuffer> buffer = nil;
+  id<MTLBuffer> buffer;
 
   MTLStorageMode storageMode = MTLStorageMode((options & MTLResourceStorageModeMask) >>
                                               MTLResourceStorageModeShift);
   MTLCPUCacheMode cpuCacheMode = MTLCPUCacheMode((options & MTLResourceCPUCacheModeMask) >>
                                                  MTLResourceCPUCacheModeShift);
 
-  {
-    thread_scoped_lock lock(buffer_mutex);
-    /* Find an unused buffer with matching size and storage mode. */
-    for (MetalBufferListEntry &bufferEntry : temp_buffers) {
-      if (bufferEntry.buffer.length == length && storageMode == bufferEntry.buffer.storageMode &&
-          cpuCacheMode == bufferEntry.buffer.cpuCacheMode && bufferEntry.command_buffer == nil)
-      {
-        buffer = bufferEntry.buffer;
-        bufferEntry.command_buffer = command_buffer;
-        break;
+  buffer_mutex.lock();
+  for (auto entry = buffer_free_list.begin(); entry != buffer_free_list.end(); entry++) {
+    MetalBufferListEntry bufferEntry = *entry;
+
+    /* Check if buffer matches size and storage mode and is old enough to reuse */
+    if (bufferEntry.buffer.length == length && storageMode == bufferEntry.buffer.storageMode &&
+        cpuCacheMode == bufferEntry.buffer.cpuCacheMode)
+    {
+      buffer = bufferEntry.buffer;
+      buffer_free_list.erase(entry);
+      bufferEntry.command_buffer = command_buffer;
+      buffer_in_use_list.push_back(bufferEntry);
+      buffer_mutex.unlock();
+
+      /* Copy over data */
+      if (pointer) {
+        memcpy(buffer.contents, pointer, length);
+        if (bufferEntry.buffer.storageMode == MTLStorageModeManaged) {
+          [buffer didModifyRange:NSMakeRange(0, length)];
+        }
       }
+
+      return buffer;
     }
-    if (!buffer) {
-      /* Create a new buffer and add it to the pool. Typically this pool will only grow to a
-       * handful of entries. */
-      buffer = [device newBufferWithLength:length options:options];
-      stats.mem_alloc(buffer.allocatedSize);
-      total_temp_mem_size += buffer.allocatedSize;
-      temp_buffers.push_back(MetalBufferListEntry{buffer, command_buffer});
-    }
+  }
+  // NSLog(@"Creating buffer of length %lu (%lu)", length, frameCount);
+  if (pointer) {
+    buffer = [device newBufferWithBytes:pointer length:length options:options];
+  }
+  else {
+    buffer = [device newBufferWithLength:length options:options];
   }
 
-  /* Copy over data */
-  if (pointer) {
-    memcpy(buffer.contents, pointer, length);
-    if (buffer.storageMode == MTLStorageModeManaged) {
-      [buffer didModifyRange:NSMakeRange(0, length)];
-    }
-  }
+  MetalBufferListEntry buffer_entry(buffer, command_buffer);
+
+  stats.mem_alloc(buffer.allocatedSize);
+
+  total_temp_mem_size += buffer.allocatedSize;
+  buffer_in_use_list.push_back(buffer_entry);
+  buffer_mutex.unlock();
 
   return buffer;
 }
@@ -210,10 +217,16 @@ void MetalBufferPool::process_command_buffer_completion(id<MTLCommandBuffer> com
 {
   assert(command_buffer);
   thread_scoped_lock lock(buffer_mutex);
-  /* Mark any temp buffers associated with command_buffer as unused. */
-  for (MetalBufferListEntry &buffer_entry : temp_buffers) {
+  /* Release all buffers that have not been recently reused back into the free pool */
+  for (auto entry = buffer_in_use_list.begin(); entry != buffer_in_use_list.end();) {
+    MetalBufferListEntry buffer_entry = *entry;
     if (buffer_entry.command_buffer == command_buffer) {
+      entry = buffer_in_use_list.erase(entry);
       buffer_entry.command_buffer = nil;
+      buffer_free_list.push_back(buffer_entry);
+    }
+    else {
+      entry++;
     }
   }
 }
@@ -222,12 +235,16 @@ MetalBufferPool::~MetalBufferPool()
 {
   thread_scoped_lock lock(buffer_mutex);
   /* Release all buffers that have not been recently reused */
-  for (MetalBufferListEntry &buffer_entry : temp_buffers) {
-    total_temp_mem_size -= buffer_entry.buffer.allocatedSize;
-    [buffer_entry.buffer release];
-    buffer_entry.buffer = nil;
+  for (auto entry = buffer_free_list.begin(); entry != buffer_free_list.end();) {
+    MetalBufferListEntry buffer_entry = *entry;
+
+    id<MTLBuffer> buffer = buffer_entry.buffer;
+    // NSLog(@"Releasing buffer of length %lu (%lu) (%lu outstanding)", buffer.length, frameCount,
+    // bufferFreeList.size());
+    total_temp_mem_size -= buffer.allocatedSize;
+    [buffer release];
+    entry = buffer_free_list.erase(entry);
   }
-  temp_buffers.clear();
 }
 
 CCL_NAMESPACE_END

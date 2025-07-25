@@ -60,15 +60,14 @@ bool device_cuda_init()
 #endif /* WITH_CUDA_DYNLOAD */
 }
 
-Device *device_cuda_create(const DeviceInfo &info, Stats &stats, Profiler &profiler, bool headless)
+Device *device_cuda_create(const DeviceInfo &info, Stats &stats, Profiler &profiler)
 {
 #ifdef WITH_CUDA
-  return new CUDADevice(info, stats, profiler, headless);
+  return new CUDADevice(info, stats, profiler);
 #else
   (void)info;
   (void)stats;
   (void)profiler;
-  (void)headless;
 
   LOG(FATAL) << "Request to create CUDA device without compiled-in support. Should never happen.";
 
@@ -166,11 +165,7 @@ void device_cuda_info(vector<DeviceInfo> &devices)
                             (unsigned int)pci_location[2]);
 
 #  if defined(WITH_OPENIMAGEDENOISE)
-#    if OIDN_VERSION >= 20300
-    if (oidnIsCUDADeviceSupported(num)) {
-#    else
     if (OIDNDenoiserGPU::is_device_supported(info)) {
-#    endif
       info.denoisers |= DENOISER_OPENIMAGEDENOISE;
     }
 #  endif

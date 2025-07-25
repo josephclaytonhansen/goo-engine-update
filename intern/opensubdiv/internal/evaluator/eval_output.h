@@ -12,6 +12,7 @@
 #include <opensubdiv/osd/mesh.h>
 #include <opensubdiv/osd/types.h>
 
+#include "internal/base/type.h"
 #include "internal/evaluator/evaluator_impl.h"
 
 #include "opensubdiv_evaluator_capi.hh"
@@ -23,7 +24,8 @@ using OpenSubdiv::Osd::CpuPatchTable;
 using OpenSubdiv::Osd::GLPatchTable;
 using OpenSubdiv::Osd::PatchCoord;
 
-namespace blender::opensubdiv {
+namespace blender {
+namespace opensubdiv {
 
 // Base class for the implementation of the evaluators.
 class EvalOutputAPI::EvalOutput {
@@ -113,6 +115,8 @@ class EvalOutputAPI::EvalOutput {
   }
 };
 
+namespace {
+
 // Buffer which implements API required by OpenSubdiv and uses an existing memory as an underlying
 // storage.
 template<typename T> class RawDataWrapperBuffer {
@@ -158,6 +162,7 @@ class ConstPatchCoordWrapperBuffer : public RawDataWrapperVertexBuffer<const Pat
   {
   }
 };
+}  // namespace
 
 // Discriminators used in FaceVaryingVolatileEval in order to detect whether we are using adaptive
 // patches as the CPU and OpenGL PatchTable have different APIs.
@@ -320,7 +325,7 @@ class VolatileEvalOutput : public EvalOutputAPI::EvalOutput {
 
   VolatileEvalOutput(const StencilTable *vertex_stencils,
                      const StencilTable *varying_stencils,
-                     const std::vector<const StencilTable *> &all_face_varying_stencils,
+                     const vector<const StencilTable *> &all_face_varying_stencils,
                      const int face_varying_width,
                      const PatchTable *patch_table,
                      EvaluatorCache *evaluator_cache = NULL,
@@ -636,12 +641,13 @@ class VolatileEvalOutput : public EvalOutputAPI::EvalOutput {
   const STENCIL_TABLE *varying_stencils_;
 
   int face_varying_width_;
-  std::vector<FaceVaryingEval *> face_varying_evaluators_;
+  vector<FaceVaryingEval *> face_varying_evaluators_;
 
   EvaluatorCache *evaluator_cache_;
   DEVICE_CONTEXT *device_context_;
 };
 
-}  // namespace blender::opensubdiv
+}  // namespace opensubdiv
+}  // namespace blender
 
 #endif  // OPENSUBDIV_EVAL_OUTPUT_H_

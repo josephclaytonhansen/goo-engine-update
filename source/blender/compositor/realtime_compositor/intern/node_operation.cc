@@ -10,18 +10,17 @@
 #include "BLI_math_base.hh"
 #include "BLI_math_vector_types.hh"
 #include "BLI_string_ref.hh"
-#include "BLI_timeit.hh"
 #include "BLI_vector.hh"
 
-#include "GPU_shader.hh"
-#include "GPU_texture.hh"
+#include "GPU_shader.h"
+#include "GPU_texture.h"
 
 #include "DNA_node_types.h"
 
 #include "NOD_derived_node_tree.hh"
 #include "NOD_node_declaration.hh"
 
-#include "BKE_node.hh"
+#include "BKE_node.h"
 
 #include "COM_context.hh"
 #include "COM_input_descriptor.hh"
@@ -45,16 +44,6 @@ NodeOperation::NodeOperation(Context &context, DNode node) : Operation(context),
   for (const bNodeSocket *input : node->input_sockets()) {
     const InputDescriptor input_descriptor = input_descriptor_from_input_socket(input);
     declare_input_descriptor(input->identifier, input_descriptor);
-  }
-}
-
-void NodeOperation::evaluate()
-{
-  const timeit::TimePoint before_time = timeit::Clock::now();
-  Operation::evaluate();
-  const timeit::TimePoint after_time = timeit::Clock::now();
-  if (context().profiler()) {
-    context().profiler()->set_node_evaluation_time(node_.instance_key(), after_time - before_time);
   }
 }
 

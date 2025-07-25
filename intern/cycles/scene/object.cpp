@@ -95,8 +95,6 @@ NODE_DEFINE(Object)
   SOCKET_BOOLEAN(is_caustics_caster, "Cast Shadow Caustics", false);
   SOCKET_BOOLEAN(is_caustics_receiver, "Receive Shadow Caustics", false);
 
-  SOCKET_BOOLEAN(is_bake_target, "Bake Target", false);
-
   SOCKET_NODE(particle_system, "Particle System", ParticleSystem::get_node_type());
   SOCKET_INT(particle_index, "Particle Index", 0);
 
@@ -368,7 +366,6 @@ float Object::compute_volume_step_size() const
 
   if (step_size == FLT_MAX) {
     /* Fall back to 1/10th of bounds for procedural volumes. */
-    assert(bounds.valid());
     step_size = 0.1f * average(bounds.size());
   }
 
@@ -576,8 +573,8 @@ void ObjectManager::device_update_object_transform(UpdateObjectTransformState *s
   kobject.dupli_generated[2] = ob->dupli_generated[2];
   kobject.dupli_uv[0] = ob->dupli_uv[0];
   kobject.dupli_uv[1] = ob->dupli_uv[1];
-  kobject.num_geom_steps = (geom->get_motion_steps() - 1) / 2;
-  kobject.num_tfm_steps = ob->motion.size();
+  int totalsteps = geom->get_motion_steps();
+  kobject.numsteps = (totalsteps - 1) / 2;
   kobject.numverts = (geom->geometry_type == Geometry::MESH ||
                       geom->geometry_type == Geometry::VOLUME) ?
                          static_cast<Mesh *>(geom)->get_verts().size() :
@@ -861,15 +858,8 @@ void ObjectManager::device_update_flags(
     }
   });
 
-  if (bounds_valid) {
-    /* Object flags and calculations related to volume depend on proper bounds calculated, which
-     * might not be available yet when object flags are updated for displacement or hair
-     * transparency calculation. In this case do not clear the need_flags_update, so that these
-     * values which depend on bounds are re-calculated when the device_update process comes back
-     * here from the "Updating Objects Flags" stage. */
-    update_flags = UPDATE_NONE;
-    need_flags_update = false;
-  }
+  update_flags = UPDATE_NONE;
+  need_flags_update = false;
 
   if (scene->objects.size() == 0) {
     return;
@@ -884,17 +874,11 @@ void ObjectManager::device_update_flags(
   bool has_volume_objects = false;
   foreach (Object *object, scene->objects) {
     if (object->geometry->has_volume) {
-      /* If the bounds are not valid it is not always possible to calculate the volume step, and
-       * the step size is not needed for the displacement. So, delay calculation of the volume
-       * step size until the final bounds are known. */
       if (bounds_valid) {
         volume_objects.push_back(object);
-        object_volume_step[object->index] = object->compute_volume_step_size();
-      }
-      else {
-        object_volume_step[object->index] = FLT_MAX;
       }
       has_volume_objects = true;
+      object_volume_step[object->index] = object->compute_volume_step_size();
     }
     else {
       object_volume_step[object->index] = FLT_MAX;
@@ -1051,11 +1035,9 @@ void ObjectManager::apply_static_transforms(DeviceScene *dscene, Scene *scene, P
       Mesh *mesh = static_cast<Mesh *>(geom);
       apply = apply && mesh->get_subdivision_type() == Mesh::SUBDIVISION_NONE;
     }
-    else if ((geom->geometry_type == Geometry::HAIR) ||
-             (geom->geometry_type == Geometry::POINTCLOUD))
-    {
-      /* Can't apply non-uniform scale to curves and points, this can't be
-       * represented by control points and radius alone. */
+    else if (geom->geometry_type == Geometry::HAIR) {
+      /* Can't apply non-uniform scale to curves, this can't be represented by
+       * control points and radius alone. */
       float scale;
       apply = apply && transform_uniform_scale(object->tfm, scale);
     }

@@ -32,12 +32,8 @@ class Denoiser {
    * Notes:
    * - The denoiser must be configured. This means that `params.use` must be true.
    *   This is checked in debug builds.
-   * - The device might be MultiDevice.
-   * - If Denoiser from params is not supported by provided denoise device, then Blender will
-       fallback on the OIDN CPU denoising and use provided cpu_fallback_device. */
-  static unique_ptr<Denoiser> create(Device *denoise_device,
-                                     Device *cpu_fallback_device,
-                                     const DenoiseParams &params);
+   * - The device might be MultiDevice. */
+  static unique_ptr<Denoiser> create(Device *path_trace_device, const DenoiseParams &params);
 
   virtual ~Denoiser() = default;
 
@@ -45,7 +41,7 @@ class Denoiser {
   const DenoiseParams &get_params() const;
 
   /* Recommended type for viewport denoising. */
-  static DenoiserType automatic_viewport_denoiser_type(const DeviceInfo &denoise_device_info);
+  static DenoiserType automatic_viewport_denoiser_type(const DeviceInfo &path_trace_device_info);
 
   /* Create devices and load kernels needed for denoising.
    * The progress is used to communicate state when kernels actually needs to be loaded.
@@ -84,6 +80,8 @@ class Denoiser {
    *
    * Notes:
    *
+   * - The device is lazily initialized via `load_kernels()`, so it will be nullptr until then,
+   *
    * - The device can be different from the path tracing device. This happens, for example, when
    *   using OptiX denoiser and rendering on CPU.
    *
@@ -104,19 +102,30 @@ class Denoiser {
 
   void set_error(const string &error)
   {
-    denoiser_device_->set_error(error);
+    path_trace_device_->set_error(error);
   }
 
  protected:
-  Denoiser(Device *denoiser_device, const DenoiseParams &params);
+  Denoiser(Device *path_trace_device, const DenoiseParams &params);
+
+  /* Make sure denoising device is initialized. */
+  virtual Device *ensure_denoiser_device(Progress *progress);
 
   /* Get device type mask which is used to filter available devices when new device needs to be
    * created. */
   virtual uint get_device_type_mask() const = 0;
 
-  Device *denoiser_device_;
-  bool denoise_kernels_are_loaded_;
+  Device *path_trace_device_;
   DenoiseParams params_;
+
+  /* Cached pointer to the device on which denoising will happen.
+   * Used to avoid lookup of a device for every denoising request. */
+  Device *denoiser_device_ = nullptr;
+
+  /* Denoiser device which was created to perform denoising in the case the none of the rendering
+   * devices are capable of denoising. */
+  unique_ptr<Device> local_denoiser_device_;
+  bool device_creation_attempted_ = false;
 };
 
 CCL_NAMESPACE_END

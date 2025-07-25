@@ -97,9 +97,8 @@ static int add_vertex(int3 v,
                       int3 res,
                       unordered_map<size_t, int> &used_verts)
 {
-  const size_t vert_key = v.x + v.y * size_t(res.x + 1) +
-                          v.z * size_t(res.x + 1) * size_t(res.y + 1);
-  const unordered_map<size_t, int>::iterator it = used_verts.find(vert_key);
+  size_t vert_key = v.x + v.y * (res.x + 1) + v.z * (res.x + 1) * (res.y + 1);
+  unordered_map<size_t, int>::iterator it = used_verts.find(vert_key);
 
   if (it != used_verts.end()) {
     return it->second;
@@ -507,8 +506,7 @@ static int estimate_required_velocity_padding(openvdb::GridBase::ConstPtr grid,
   openvdb::math::Extrema extrema;
   openvdb::Vec3d voxel_size;
 
-  /* External `.vdb` files have a vec3 type for velocity,
-   * but the Blender exporter creates a vec4. */
+  /* External .vdb files have a vec3 type for velocity, but the Blender exporter creates a vec4. */
   if (grid->isType<openvdb::Vec3fGrid>()) {
     openvdb::Vec3fGrid::ConstPtr vel_grid = openvdb::gridConstPtrCast<openvdb::Vec3fGrid>(grid);
     extrema = openvdb::tools::extrema(vel_grid->cbeginValueOn());

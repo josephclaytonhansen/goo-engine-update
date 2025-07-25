@@ -9,8 +9,8 @@
 
 #include "BLI_map.hh"
 
-#include "GPU_shader.hh"
-#include "GPU_texture.hh"
+#include "GPU_shader.h"
+#include "GPU_texture.h"
 
 #include "COM_cached_resource.hh"
 

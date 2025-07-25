@@ -405,22 +405,16 @@ void BlenderSession::render(BL::Depsgraph &b_depsgraph_)
                     width,
                     height,
                     &python_thread_state,
-                    session_params.denoise_device);
-
-    /* At the moment we only free if we are not doing multi-view
-     * (or if we are rendering the last view). See #58142/D4239 for discussion.
-     */
-    const bool can_free_cache = (view_index == num_views - 1);
-    if (can_free_cache) {
-      sync->free_data_after_sync(b_depsgraph);
-    }
-
+                    session_params.device);
     builtin_images_load();
 
     /* Attempt to free all data which is held by Blender side, since at this
      * point we know that we've got everything to render current view layer.
      */
-    if (can_free_cache) {
+    /* At the moment we only free if we are not doing multi-view
+     * (or if we are rendering the last view). See #58142/D4239 for discussion.
+     */
+    if (view_index == num_views - 1) {
       free_blender_memory_if_possible();
     }
 
@@ -686,7 +680,7 @@ void BlenderSession::bake(BL::Depsgraph &b_depsgraph_,
       b_engine, b_userpref, b_scene, background);
 
   /* Initialize bake manager, before we load the baking kernels. */
-  scene->bake_manager->set_baking(scene, true);
+  scene->bake_manager->set(scene, b_object.name());
 
   session->set_display_driver(nullptr);
   session->set_output_driver(make_unique<BlenderOutputDriver>(b_engine));
@@ -694,7 +688,6 @@ void BlenderSession::bake(BL::Depsgraph &b_depsgraph_,
 
   /* Sync scene. */
   BL::Object b_camera_override(b_engine.camera_override());
-  sync->set_bake_target(b_object);
   sync->sync_camera(b_render, b_camera_override, width, height, "");
   sync->sync_data(b_render,
                   b_depsgraph,
@@ -703,7 +696,7 @@ void BlenderSession::bake(BL::Depsgraph &b_depsgraph_,
                   width,
                   height,
                   &python_thread_state,
-                  session_params.denoise_device);
+                  session_params.device);
 
   /* Save the current state of the denoiser, as it might be disabled by the pass configuration (for
    * passed which do not support denoising). */
@@ -728,8 +721,8 @@ void BlenderSession::bake(BL::Depsgraph &b_depsgraph_,
    * other way, in that case Blender will report a warning afterwards. */
   Object *bake_object = nullptr;
   if (!session->progress.get_cancel()) {
-    for (Object *ob : scene->objects) {
-      if (ob->get_is_bake_target()) {
+    foreach (Object *ob, scene->objects) {
+      if (ob->name == b_object.name()) {
         bake_object = ob;
         break;
       }
@@ -828,7 +821,7 @@ void BlenderSession::synchronize(BL::Depsgraph &b_depsgraph_)
                   width,
                   height,
                   &python_thread_state,
-                  session_params.denoise_device);
+                  session_params.device);
 
   if (b_rv3d) {
     sync->sync_view(b_v3d, b_rv3d, width, height);

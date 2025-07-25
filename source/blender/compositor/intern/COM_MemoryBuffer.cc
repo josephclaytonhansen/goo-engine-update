@@ -4,6 +4,8 @@
 
 #include "COM_MemoryBuffer.h"
 
+#include "COM_MemoryProxy.h"
+
 #include "IMB_colormanagement.hh"
 #include "IMB_imbuf_types.hh"
 
@@ -28,15 +30,17 @@ static rcti create_rect(const int width, const int height)
   return rect;
 }
 
-MemoryBuffer::MemoryBuffer(DataType data_type, int width, int height)
+MemoryBuffer::MemoryBuffer(MemoryProxy *memory_proxy, const rcti &rect, MemoryBufferState state)
 {
-  BLI_rcti_init(&rect_, 0, width, 0, height);
+  rect_ = rect;
   is_a_single_elem_ = false;
-  num_channels_ = COM_data_type_num_channels(data_type);
+  memory_proxy_ = memory_proxy;
+  num_channels_ = COM_data_type_num_channels(memory_proxy->get_data_type());
   buffer_ = (float *)MEM_mallocN_aligned(
       sizeof(float) * buffer_len() * num_channels_, 16, "COM_MemoryBuffer");
   owns_data_ = true;
-  datatype_ = data_type;
+  state_ = state;
+  datatype_ = memory_proxy->get_data_type();
 
   set_strides();
 }
@@ -45,10 +49,12 @@ MemoryBuffer::MemoryBuffer(DataType data_type, const rcti &rect, bool is_a_singl
 {
   rect_ = rect;
   is_a_single_elem_ = is_a_single_elem;
+  memory_proxy_ = nullptr;
   num_channels_ = COM_data_type_num_channels(data_type);
   buffer_ = (float *)MEM_mallocN_aligned(
       sizeof(float) * buffer_len() * num_channels_, 16, "COM_MemoryBuffer");
   owns_data_ = true;
+  state_ = MemoryBufferState::Temporary;
   datatype_ = data_type;
 
   set_strides();
@@ -67,16 +73,19 @@ MemoryBuffer::MemoryBuffer(float *buffer,
 {
   rect_ = rect;
   is_a_single_elem_ = is_a_single_elem;
+  memory_proxy_ = nullptr;
   num_channels_ = num_channels;
   datatype_ = COM_num_channels_data_type(num_channels);
   buffer_ = buffer;
   owns_data_ = false;
+  state_ = MemoryBufferState::Temporary;
 
   set_strides();
 }
 
 MemoryBuffer::MemoryBuffer(const MemoryBuffer &src) : MemoryBuffer(src.datatype_, src.rect_, false)
 {
+  memory_proxy_ = src.memory_proxy_;
   /* src may be single elem buffer */
   fill_from(src);
 }
@@ -125,8 +134,8 @@ MemoryBuffer *MemoryBuffer::inflate() const
 float MemoryBuffer::get_max_value() const
 {
   float result = buffer_[0];
-  const int64_t size = this->buffer_len();
-  int64_t i;
+  const uint size = this->buffer_len();
+  uint i;
 
   const float *fp_src = buffer_;
 
@@ -408,7 +417,7 @@ void MemoryBuffer::fill_from(const MemoryBuffer &src)
 void MemoryBuffer::write_pixel(int x, int y, const float color[4])
 {
   if (x >= rect_.xmin && x < rect_.xmax && y >= rect_.ymin && y < rect_.ymax) {
-    const intptr_t offset = get_coords_offset(x, y);
+    const int offset = get_coords_offset(x, y);
     memcpy(&buffer_[offset], color, sizeof(float) * num_channels_);
   }
 }
@@ -416,7 +425,7 @@ void MemoryBuffer::write_pixel(int x, int y, const float color[4])
 void MemoryBuffer::add_pixel(int x, int y, const float color[4])
 {
   if (x >= rect_.xmin && x < rect_.xmax && y >= rect_.ymin && y < rect_.ymax) {
-    const intptr_t offset = get_coords_offset(x, y);
+    const int offset = get_coords_offset(x, y);
     float *dst = &buffer_[offset];
     const float *src = color;
     for (int i = 0; i < num_channels_; i++, dst++, src++) {
@@ -425,20 +434,14 @@ void MemoryBuffer::add_pixel(int x, int y, const float color[4])
   }
 }
 
-static void read_ewa_elem_checked(void *userdata, int x, int y, float result[4])
+static void read_ewa_elem(void *userdata, int x, int y, float result[4])
 {
   const MemoryBuffer *buffer = static_cast<const MemoryBuffer *>(userdata);
   buffer->read_elem_checked(x, y, result);
 }
 
-static void read_ewa_elem_clamped(void *userdata, int x, int y, float result[4])
-{
-  const MemoryBuffer *buffer = static_cast<const MemoryBuffer *>(userdata);
-  buffer->read_elem_clamped(x, y, result);
-}
-
 void MemoryBuffer::read_elem_filtered(
-    const float x, const float y, float dx[2], float dy[2], bool extend_boundary, float *out) const
+    const float x, const float y, float dx[2], float dy[2], float *out) const
 {
   BLI_assert(datatype_ == DataType::Color);
 
@@ -460,9 +463,47 @@ void MemoryBuffer::read_elem_filtered(
                  uv_normal,
                  du_normal,
                  dv_normal,
-                 extend_boundary ? read_ewa_elem_clamped : read_ewa_elem_checked,
+                 read_ewa_elem,
                  const_cast<MemoryBuffer *>(this),
                  out);
+}
+
+/* TODO(manzanilla): to be removed with tiled implementation. */
+static void read_ewa_pixel_sampled(void *userdata, int x, int y, float result[4])
+{
+  MemoryBuffer *buffer = (MemoryBuffer *)userdata;
+  buffer->read(result, x, y);
+}
+
+/* TODO(manzanilla): to be removed with tiled implementation. */
+void MemoryBuffer::readEWA(float *result, const float uv[2], const float derivatives[2][2])
+{
+  if (is_a_single_elem_) {
+    memcpy(result, buffer_, sizeof(float) * num_channels_);
+  }
+  else {
+    BLI_assert(datatype_ == DataType::Color);
+    float inv_width = 1.0f / float(this->get_width()),
+          inv_height = 1.0f / float(this->get_height());
+    /* TODO(sergey): Render pipeline uses normalized coordinates and derivatives,
+     * but compositor uses pixel space. For now let's just divide the values and
+     * switch compositor to normalized space for EWA later.
+     */
+    float uv_normal[2] = {uv[0] * inv_width, uv[1] * inv_height};
+    float du_normal[2] = {derivatives[0][0] * inv_width, derivatives[0][1] * inv_height};
+    float dv_normal[2] = {derivatives[1][0] * inv_width, derivatives[1][1] * inv_height};
+
+    BLI_ewa_filter(this->get_width(),
+                   this->get_height(),
+                   false,
+                   true,
+                   uv_normal,
+                   du_normal,
+                   dv_normal,
+                   read_ewa_pixel_sampled,
+                   this,
+                   result);
+  }
 }
 
 void MemoryBuffer::copy_single_elem_from(const MemoryBuffer *src,

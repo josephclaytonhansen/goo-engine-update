@@ -39,24 +39,15 @@ class MetalDevice : public Device {
   KernelParamsMetal launch_params = {0};
 
   /* MetalRT members ----------------------------------*/
-  bool use_metalrt = false;
+  BVHMetal *bvhMetalRT = nullptr;
   bool motion_blur = false;
   id<MTLArgumentEncoder> mtlASArgEncoder =
       nil; /* encoder used for fetching device pointers from MTLAccelerationStructure */
-
-  id<MTLArgumentEncoder> mtlBlasArgEncoder = nil;
-  id<MTLBuffer> blas_buffer = nil;
-
-  API_AVAILABLE(macos(11.0))
-  vector<id<MTLAccelerationStructure>> unique_blas_array;
-
-  API_AVAILABLE(macos(11.0))
-  id<MTLAccelerationStructure> accel_struct = nil;
   /*---------------------------------------------------*/
 
   MetalGPUVendor device_vendor;
 
-  uint kernel_features = 0;
+  uint kernel_features;
   bool using_nanovdb = false;
   MTLResourceOptions default_storage_mode;
   int max_threads_per_threadgroup;
@@ -90,6 +81,11 @@ class MetalDevice : public Device {
   id<MTLBuffer> texture_bindings_3d = nil;
   std::vector<id<MTLTexture>> texture_slot_map;
 
+  /* BLAS encoding & lookup */
+  id<MTLArgumentEncoder> mtlBlasArgEncoder = nil;
+  id<MTLBuffer> blas_buffer = nil;
+
+  bool use_metalrt = false;
   MetalPipelineType kernel_specialization_level = PSO_GENERIC;
 
   int device_id = 0;
@@ -110,7 +106,7 @@ class MetalDevice : public Device {
 
   void set_error(const string &error) override;
 
-  MetalDevice(const DeviceInfo &info, Stats &stats, Profiler &profiler, bool headless);
+  MetalDevice(const DeviceInfo &info, Stats &stats, Profiler &profiler);
 
   virtual ~MetalDevice();
 
@@ -143,6 +139,8 @@ class MetalDevice : public Device {
   virtual unique_ptr<DeviceQueue> gpu_queue_create() override;
 
   virtual void build_bvh(BVH *bvh, Progress &progress, bool refit) override;
+
+  virtual void release_bvh(BVH *bvh) override;
 
   virtual void optimize_for_scene(Scene *scene) override;
 
@@ -188,10 +186,6 @@ class MetalDevice : public Device {
   void tex_free(device_texture &mem);
 
   void flush_delayed_free_list();
-
-  void free_bvh();
-
-  void update_bvh(BVHMetal *bvh_metal);
 };
 
 CCL_NAMESPACE_END

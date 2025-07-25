@@ -4,6 +4,7 @@
 
 #include "COM_DisplaceNode.h"
 #include "COM_DisplaceOperation.h"
+#include "COM_DisplaceSimpleOperation.h"
 
 namespace blender::compositor {
 
@@ -13,9 +14,15 @@ DisplaceNode::DisplaceNode(bNode *editor_node) : Node(editor_node)
 }
 
 void DisplaceNode::convert_to_operations(NodeConverter &converter,
-                                         const CompositorContext & /*context*/) const
+                                         const CompositorContext &context) const
 {
-  NodeOperation *operation = new DisplaceOperation();
+  NodeOperation *operation;
+  if (context.get_quality() == eCompositorQuality::Low) {
+    operation = new DisplaceSimpleOperation();
+  }
+  else {
+    operation = new DisplaceOperation();
+  }
   converter.add_operation(operation);
 
   converter.map_input_socket(get_input_socket(0), operation->get_input_socket(0));

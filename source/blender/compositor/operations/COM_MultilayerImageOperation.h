@@ -4,32 +4,25 @@
 
 #pragma once
 
-#include <string>
-
 #include "COM_ImageOperation.h"
 
 namespace blender::compositor {
 
 class MultilayerBaseOperation : public BaseImageOperation {
- protected:
-  /* NOTE: The layer name is only used for meta-data. The image user's layer index defines which
-   * layer will be actually accessed for the image buffer. */
-  std::string layer_name_;
-  std::string pass_name_;
+ private:
+  int pass_id_;
+  int view_;
 
+ protected:
+  RenderLayer *render_layer_;
+  RenderPass *render_pass_;
   ImBuf *get_im_buf() override;
 
  public:
-  MultilayerBaseOperation() = default;
-
-  void set_layer_name(std::string layer_name)
-  {
-    layer_name_ = std::move(layer_name);
-  }
-  void set_pass_name(std::string pass_name)
-  {
-    pass_name_ = std::move(pass_name);
-  }
+  /**
+   * Constructor
+   */
+  MultilayerBaseOperation(RenderLayer *render_layer, RenderPass *render_pass, int view);
 
   void update_memory_buffer_partial(MemoryBuffer *output,
                                     const rcti &area,
@@ -38,27 +31,33 @@ class MultilayerBaseOperation : public BaseImageOperation {
 
 class MultilayerColorOperation : public MultilayerBaseOperation {
  public:
-  MultilayerColorOperation()
+  MultilayerColorOperation(RenderLayer *render_layer, RenderPass *render_pass, int view)
+      : MultilayerBaseOperation(render_layer, render_pass, view)
   {
     this->add_output_socket(DataType::Color);
   }
+  void execute_pixel_sampled(float output[4], float x, float y, PixelSampler sampler) override;
   std::unique_ptr<MetaData> get_meta_data() override;
 };
 
 class MultilayerValueOperation : public MultilayerBaseOperation {
  public:
-  MultilayerValueOperation()
+  MultilayerValueOperation(RenderLayer *render_layer, RenderPass *render_pass, int view)
+      : MultilayerBaseOperation(render_layer, render_pass, view)
   {
     this->add_output_socket(DataType::Value);
   }
+  void execute_pixel_sampled(float output[4], float x, float y, PixelSampler sampler) override;
 };
 
 class MultilayerVectorOperation : public MultilayerBaseOperation {
  public:
-  MultilayerVectorOperation()
+  MultilayerVectorOperation(RenderLayer *render_layer, RenderPass *render_pass, int view)
+      : MultilayerBaseOperation(render_layer, render_pass, view)
   {
     this->add_output_socket(DataType::Vector);
   }
+  void execute_pixel_sampled(float output[4], float x, float y, PixelSampler sampler) override;
 };
 
 }  // namespace blender::compositor

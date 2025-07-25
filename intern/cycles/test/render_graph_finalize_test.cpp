@@ -172,7 +172,7 @@ class RenderGraph : public testing::Test {
      * the same raw configuration. */
     ColorSpaceManager::init_fallback_config();
 
-    device_cpu = Device::create(device_info, stats, profiler, true);
+    device_cpu = Device::create(device_info, stats, profiler);
     scene = new Scene(scene_params, device_cpu);
 
     /* Initialize logging after the creation of the essential resources. This way the logging

@@ -17,7 +17,8 @@ using OpenSubdiv::Far::StencilTable;
 using OpenSubdiv::Osd::CpuEvaluator;
 using OpenSubdiv::Osd::CpuVertexBuffer;
 
-namespace blender::opensubdiv {
+namespace blender {
+namespace opensubdiv {
 
 // NOTE: Define as a class instead of typedef to make it possible
 // to have anonymous class in opensubdiv_evaluator_internal.h
@@ -29,7 +30,7 @@ class CpuEvalOutput : public VolatileEvalOutput<CpuVertexBuffer,
  public:
   CpuEvalOutput(const StencilTable *vertex_stencils,
                 const StencilTable *varying_stencils,
-                const std::vector<const StencilTable *> &all_face_varying_stencils,
+                const vector<const StencilTable *> &all_face_varying_stencils,
                 const int face_varying_width,
                 const PatchTable *patch_table,
                 EvaluatorCache *evaluator_cache = NULL)
@@ -47,6 +48,7 @@ class CpuEvalOutput : public VolatileEvalOutput<CpuVertexBuffer,
   }
 };
 
-}  // namespace blender::opensubdiv
+}  // namespace opensubdiv
+}  // namespace blender
 
 #endif  // OPENSUBDIV_EVAL_OUTPUT_CPU_H_

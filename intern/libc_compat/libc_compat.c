@@ -26,7 +26,6 @@ double __log2_finite(double x);
 double __log10_finite(double x);
 double __log_finite(double x);
 double __pow_finite(double x, double y);
-double __atan2_finite(double x, double y);
 float __expf_finite(float x);
 float __exp2f_finite(float x);
 float __acosf_finite(float x);
@@ -35,7 +34,6 @@ float __log2f_finite(float x);
 float __log10f_finite(float x);
 float __logf_finite(float x);
 float __powf_finite(float x, float y);
-float __atan2f_finite(float x, float y);
 
 double __exp_finite(double x)
 {
@@ -77,11 +75,6 @@ double __pow_finite(double x, double y)
   return pow(x, y);
 }
 
-double __atan2_finite(double x, double y)
-{
-  return atan2(x, y);
-}
-
 float __expf_finite(float x)
 {
   return expf(x);
@@ -120,11 +113,6 @@ float __logf_finite(float x)
 float __powf_finite(float x, float y)
 {
   return powf(x, y);
-}
-
-float __atan2f_finite(float x, float y)
-{
-  return atan2f(x, y);
 }
 
 #    endif /* __GLIBC_PREREQ(2, 31) */

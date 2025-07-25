@@ -10,7 +10,7 @@
 #include "BLI_math_vector_types.hh"
 #include "BLI_vector.hh"
 
-#include "GPU_texture.hh"
+#include "GPU_texture.h"
 
 namespace blender::realtime_compositor {
 

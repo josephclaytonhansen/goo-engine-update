@@ -9,7 +9,7 @@
 #include "DNA_node_types.h"
 
 #include "COM_CompositorContext.h"
-#include "COM_NodeOperation.h"
+#include "COM_MultiThreadedOperation.h"
 
 struct StampData;
 
@@ -29,7 +29,7 @@ struct FileOutputInput {
   SocketReader *image_input = nullptr;
 };
 
-class FileOutputOperation : public NodeOperation {
+class FileOutputOperation : public MultiThreadedOperation {
  private:
   const CompositorContext *context_;
   const NodeImageMultiFile *node_data_;
@@ -40,6 +40,7 @@ class FileOutputOperation : public NodeOperation {
                       const NodeImageMultiFile *node_data,
                       Vector<FileOutputInput> inputs);
 
+  void execute_region(rcti *rect, unsigned int tile_number) override;
   bool is_output_operation(bool /*rendering*/) const override
   {
     return true;
@@ -51,9 +52,9 @@ class FileOutputOperation : public NodeOperation {
     return eCompositorPriority::Low;
   }
 
-  void update_memory_buffer(MemoryBuffer *output,
-                            const rcti &area,
-                            Span<MemoryBuffer *> inputs) override;
+  void update_memory_buffer_partial(MemoryBuffer *output,
+                                    const rcti &area,
+                                    Span<MemoryBuffer *> inputs) override;
 
  private:
   void execute_single_layer();

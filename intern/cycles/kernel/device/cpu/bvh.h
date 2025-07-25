@@ -33,8 +33,8 @@
 
 CCL_NAMESPACE_BEGIN
 
-#ifdef __KERNEL_ONEAPI__
-using numhit_t = uint16_t;
+#if INTEGRATOR_SHADOW_ISECT_SIZE < 256
+using numhit_t = uint8_t;
 #else
 using numhit_t = uint32_t;
 #endif
@@ -802,11 +802,7 @@ ccl_device_intersect bool kernel_embree_intersect_local(KernelGlobals kg,
     float3 P = ray->P;
     float3 dir = ray->D;
     float3 idir = ray->D;
-#  ifdef __OBJECT_MOTION__
     bvh_instance_motion_push(kg, local_object, ray, &P, &dir, &idir);
-#  else
-    bvh_instance_push(kg, local_object, ray, &P, &dir, &idir);
-#  endif
 
     rtc_ray.org_x = P.x;
     rtc_ray.org_y = P.y;

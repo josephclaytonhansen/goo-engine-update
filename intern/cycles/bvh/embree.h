@@ -18,7 +18,6 @@
 #  include "bvh/bvh.h"
 #  include "bvh/params.h"
 
-#  include "util/string.h"
 #  include "util/thread.h"
 #  include "util/types.h"
 #  include "util/vector.h"
@@ -36,12 +35,6 @@ class BVHEmbree : public BVH {
              RTCDevice rtc_device,
              const bool isSyclEmbreeDevice = false);
   void refit(Progress &progress);
-
-#  if defined(WITH_EMBREE_GPU) && RTC_VERSION >= 40302
-  bool offload_scenes_to_gpu(const vector<RTCScene> &scenes);
-#  endif
-
-  const char *get_last_error_message();
 
   RTCScene scene;
 

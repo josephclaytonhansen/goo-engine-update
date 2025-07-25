@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "GPU_shader.hh"
+#include "GPU_shader.h"
 
 #include "COM_context.hh"
 #include "COM_domain.hh"

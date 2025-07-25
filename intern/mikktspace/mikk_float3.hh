@@ -64,7 +64,7 @@ struct float3 {
 
   float length() const
   {
-    return sqrtf(length_squared());
+    return sqrt(length_squared());
   }
 
   static float distance(const float3 &a, const float3 &b)

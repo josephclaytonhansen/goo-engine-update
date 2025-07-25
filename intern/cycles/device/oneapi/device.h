@@ -16,10 +16,7 @@ class Stats;
 
 bool device_oneapi_init();
 
-Device *device_oneapi_create(const DeviceInfo &info,
-                             Stats &stats,
-                             Profiler &profiler,
-                             bool headless);
+Device *device_oneapi_create(const DeviceInfo &info, Stats &stats, Profiler &profiler);
 
 void device_oneapi_info(vector<DeviceInfo> &devices);
 

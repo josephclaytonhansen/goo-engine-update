@@ -49,10 +49,7 @@ class FileOutput {
  public:
   /* Allocate and initialize the internal render result of the file output using the give
    * parameters. See the implementation for more information. */
-  FileOutput(const std::string &path,
-             const ImageFormatData &format,
-             int2 size,
-             bool save_as_render);
+  FileOutput(std::string path, ImageFormatData format, int2 size, bool save_as_render);
 
   /* Free the internal render result. */
   ~FileOutput();

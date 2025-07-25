@@ -51,7 +51,6 @@ class PointCloud : public Geometry {
   ~PointCloud();
 
   /* Geometry */
-  void clear_non_sockets();
   void clear(const bool preserver_shaders = false) override;
 
   void resize(int numpoints);

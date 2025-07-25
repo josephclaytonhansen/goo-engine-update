@@ -16,7 +16,7 @@ class Stats;
 
 bool device_hip_init();
 
-Device *device_hip_create(const DeviceInfo &info, Stats &stats, Profiler &profiler, bool headless);
+Device *device_hip_create(const DeviceInfo &info, Stats &stats, Profiler &profiler);
 
 void device_hip_info(vector<DeviceInfo> &devices);
 

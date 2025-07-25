@@ -43,7 +43,7 @@ class HIPDevice : public GPUDevice {
 
   void set_error(const string &error) override;
 
-  HIPDevice(const DeviceInfo &info, Stats &stats, Profiler &profiler, bool headless);
+  HIPDevice(const DeviceInfo &info, Stats &stats, Profiler &profiler);
 
   virtual ~HIPDevice();
 

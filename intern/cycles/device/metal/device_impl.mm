@@ -14,7 +14,6 @@
 #  include "util/path.h"
 #  include "util/time.h"
 
-#  include <TargetConditionals.h>
 #  include <crt_externs.h>
 
 CCL_NAMESPACE_BEGIN
@@ -62,8 +61,8 @@ void MetalDevice::set_error(const string &error)
   }
 }
 
-MetalDevice::MetalDevice(const DeviceInfo &info, Stats &stats, Profiler &profiler, bool headless)
-    : Device(info, stats, profiler, headless), texture_info(this, "texture_info", MEM_GLOBAL)
+MetalDevice::MetalDevice(const DeviceInfo &info, Stats &stats, Profiler &profiler)
+    : Device(info, stats, profiler), texture_info(this, "texture_info", MEM_GLOBAL)
 {
   @autoreleasepool {
     {
@@ -218,27 +217,20 @@ MetalDevice::MetalDevice(const DeviceInfo &info, Stats &stats, Profiler &profile
 
           arg_desc_as.index = index++;
           [ancillary_desc addObject:[arg_desc_as copy]]; /* accel_struct */
-
-          /* Intersection function tables */
           arg_desc_ift.index = index++;
           [ancillary_desc addObject:[arg_desc_ift copy]]; /* ift_default */
           arg_desc_ift.index = index++;
           [ancillary_desc addObject:[arg_desc_ift copy]]; /* ift_shadow */
           arg_desc_ift.index = index++;
-          [ancillary_desc addObject:[arg_desc_ift copy]]; /* ift_shadow_all */
-          arg_desc_ift.index = index++;
           [ancillary_desc addObject:[arg_desc_ift copy]]; /* ift_volume */
           arg_desc_ift.index = index++;
           [ancillary_desc addObject:[arg_desc_ift copy]]; /* ift_local */
           arg_desc_ift.index = index++;
-          [ancillary_desc addObject:[arg_desc_ift copy]]; /* ift_local_mblur */
-          arg_desc_ift.index = index++;
-          [ancillary_desc addObject:[arg_desc_ift copy]]; /* ift_local_single_hit */
-          arg_desc_ift.index = index++;
-          [ancillary_desc addObject:[arg_desc_ift copy]]; /* ift_local_single_hit_mblur */
-
+          [ancillary_desc addObject:[arg_desc_ift copy]]; /* ift_local_prim */
           arg_desc_ptrs.index = index++;
-          [ancillary_desc addObject:[arg_desc_ptrs copy]]; /* blas_accel_structs */
+          [ancillary_desc addObject:[arg_desc_ptrs copy]]; /* blas array */
+          arg_desc_ptrs.index = index++;
+          [ancillary_desc addObject:[arg_desc_ptrs copy]]; /* look up table for blas */
 
           [arg_desc_ift release];
           [arg_desc_as release];
@@ -285,7 +277,6 @@ MetalDevice::~MetalDevice()
     }
   }
 
-  free_bvh();
   flush_delayed_free_list();
 
   if (texture_bindings_2d) {
@@ -350,7 +341,7 @@ string MetalDevice::preprocess_source(MetalPipelineType pso_type,
   }
 
 #  ifdef WITH_CYCLES_DEBUG
-  global_defines += "#define WITH_CYCLES_DEBUG\n";
+  global_defines += "#define __KERNEL_DEBUG__\n";
 #  endif
 
   switch (device_vendor) {
@@ -392,10 +383,6 @@ string MetalDevice::preprocess_source(MetalPipelineType pso_type,
   NSProcessInfo *processInfo = [NSProcessInfo processInfo];
   NSOperatingSystemVersion macos_ver = [processInfo operatingSystemVersion];
   global_defines += "#define __KERNEL_METAL_MACOS__ " + to_string(macos_ver.majorVersion) + "\n";
-
-#  if TARGET_CPU_ARM64
-  global_defines += "#define __KERNEL_METAL_TARGET_CPU_ARM64__\n";
-#  endif
 
   /* Replace specific KernelData "dot" dereferences with a Metal function_constant identifier of
    * the same character length. Build a string of all active constant values which is then hashed
@@ -466,7 +453,7 @@ void MetalDevice::make_source(MetalPipelineType pso_type, const uint kernel_feat
 bool MetalDevice::load_kernels(const uint _kernel_features)
 {
   @autoreleasepool {
-    kernel_features |= _kernel_features;
+    kernel_features = _kernel_features;
 
     /* check if GPU is supported */
     if (!support_device(kernel_features))
@@ -476,7 +463,7 @@ bool MetalDevice::load_kernels(const uint _kernel_features)
      * This is necessary since objects may be reported to have motion if the Vector pass is
      * active, but may still need to be rendered without motion blur if that isn't active as well.
      */
-    motion_blur |= kernel_features & KERNEL_FEATURE_OBJECT_MOTION;
+    motion_blur = kernel_features & KERNEL_FEATURE_OBJECT_MOTION;
 
     /* Only request generic kernels if they aren't cached in memory. */
     refresh_source_and_kernels_md5(PSO_GENERIC);
@@ -1429,7 +1416,24 @@ void MetalDevice::build_bvh(BVH *bvh, Progress &progress, bool refit)
     if (bvh_metal->build(progress, mtlDevice, mtlGeneralCommandQueue, refit)) {
 
       if (bvh->params.top_level) {
-        update_bvh(bvh_metal);
+        bvhMetalRT = bvh_metal;
+
+        // allocate required buffers for BLAS array
+        uint64_t count = bvhMetalRT->blas_array.size();
+        uint64_t bufferSize = mtlBlasArgEncoder.encodedLength * count;
+        blas_buffer = [mtlDevice newBufferWithLength:bufferSize options:default_storage_mode];
+        stats.mem_alloc(blas_buffer.allocatedSize);
+
+        for (uint64_t i = 0; i < count; ++i) {
+          if (bvhMetalRT->blas_array[i]) {
+            [mtlBlasArgEncoder setArgumentBuffer:blas_buffer
+                                          offset:i * mtlBlasArgEncoder.encodedLength];
+            [mtlBlasArgEncoder setAccelerationStructure:bvhMetalRT->blas_array[i] atIndex:0];
+          }
+        }
+        if (default_storage_mode == MTLResourceStorageModeManaged) {
+          [blas_buffer didModifyRange:NSMakeRange(0, blas_buffer.length)];
+        }
       }
     }
 
@@ -1439,54 +1443,10 @@ void MetalDevice::build_bvh(BVH *bvh, Progress &progress, bool refit)
   }
 }
 
-void MetalDevice::free_bvh()
+void MetalDevice::release_bvh(BVH *bvh)
 {
-  for (id<MTLAccelerationStructure> &blas : unique_blas_array) {
-    [blas release];
-  }
-  unique_blas_array.clear();
-
-  if (blas_buffer) {
-    [blas_buffer release];
-    blas_buffer = nil;
-  }
-
-  if (accel_struct) {
-    [accel_struct release];
-    accel_struct = nil;
-  }
-}
-
-void MetalDevice::update_bvh(BVHMetal *bvh_metal)
-{
-  free_bvh();
-
-  if (!bvh_metal) {
-    return;
-  }
-
-  accel_struct = bvh_metal->accel_struct;
-  unique_blas_array = bvh_metal->unique_blas_array;
-
-  [accel_struct retain];
-  for (id<MTLAccelerationStructure> &blas : unique_blas_array) {
-    [blas retain];
-  }
-
-  // Allocate required buffers for BLAS array.
-  uint64_t count = bvh_metal->blas_array.size();
-  uint64_t buffer_size = mtlBlasArgEncoder.encodedLength * count;
-  blas_buffer = [mtlDevice newBufferWithLength:buffer_size options:default_storage_mode];
-  stats.mem_alloc(blas_buffer.allocatedSize);
-
-  for (uint64_t i = 0; i < count; ++i) {
-    if (bvh_metal->blas_array[i]) {
-      [mtlBlasArgEncoder setArgumentBuffer:blas_buffer offset:i * mtlBlasArgEncoder.encodedLength];
-      [mtlBlasArgEncoder setAccelerationStructure:bvh_metal->blas_array[i] atIndex:0];
-    }
-  }
-  if (default_storage_mode == MTLResourceStorageModeManaged) {
-    [blas_buffer didModifyRange:NSMakeRange(0, blas_buffer.length)];
+  if (bvhMetalRT == bvh) {
+    bvhMetalRT = nullptr;
   }
 }
 

@@ -9,7 +9,7 @@ CCL_NAMESPACE_BEGIN
 
 /* Device Memory */
 
-device_memory::device_memory(Device *device, const char *_name, MemoryType type)
+device_memory::device_memory(Device *device, const char *name, MemoryType type)
     : data_type(device_type_traits<uchar>::data_type),
       data_elements(device_type_traits<uchar>::num_elements),
       data_size(0),
@@ -18,7 +18,7 @@ device_memory::device_memory(Device *device, const char *_name, MemoryType type)
       data_height(0),
       data_depth(0),
       type(type),
-      name_storage(_name),
+      name(name),
       device(device),
       device_pointer(0),
       host_pointer(0),
@@ -30,7 +30,6 @@ device_memory::device_memory(Device *device, const char *_name, MemoryType type)
       need_realloc_(false),
       modified(false)
 {
-  name = name_storage.c_str();
 }
 
 device_memory::~device_memory()

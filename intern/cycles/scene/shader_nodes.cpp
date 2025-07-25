@@ -263,6 +263,7 @@ ImageTextureNode::ImageTextureNode() : ImageSlotTextureNode(get_node_type())
 {
   colorspace = u_colorspace_raw;
   animated = false;
+  tiles.push_back_slow(1001);
 }
 
 ShaderNode *ImageTextureNode::clone(ShaderGraph *graph) const
@@ -288,10 +289,8 @@ void ImageTextureNode::cull_tiles(Scene *scene, ShaderGraph *graph)
   /* Box projection computes its own UVs that always lie in the
    * 1001 tile, so there's no point in loading any others. */
   if (projection == NODE_IMAGE_PROJ_BOX) {
-    if (tiles.size()) {
-      tiles.clear();
-      tiles.push_back_slow(1001);
-    }
+    tiles.clear();
+    tiles.push_back_slow(1001);
     return;
   }
 
@@ -302,8 +301,8 @@ void ImageTextureNode::cull_tiles(Scene *scene, ShaderGraph *graph)
     return;
   }
 
-  /* Only check UVs for tile culling when using tiles. */
-  if (tiles.size() == 0) {
+  /* Only check UVs for tile culling if there are multiple tiles. */
+  if (tiles.size() < 2) {
     return;
   }
 
@@ -398,7 +397,7 @@ void ImageTextureNode::compile(SVMCompiler &compiler)
   if (projection != NODE_IMAGE_PROJ_BOX) {
     /* If there only is one image (a very common case), we encode it as a negative value. */
     int num_nodes;
-    if (handle.num_tiles() == 0) {
+    if (handle.num_tiles() == 1) {
       num_nodes = -handle.svm_slot();
     }
     else {
@@ -431,7 +430,7 @@ void ImageTextureNode::compile(SVMCompiler &compiler)
     }
   }
   else {
-    assert(handle.num_svm_slots() == 1);
+    assert(handle.num_tiles() == 1);
     compiler.add_node(NODE_TEX_IMAGE_BOX,
                       handle.svm_slot(),
                       compiler.encode_uchar4(vector_offset,
@@ -473,7 +472,7 @@ void ImageTextureNode::compile(OSLCompiler &compiler)
                                    alpha_type == IMAGE_ALPHA_IGNORE);
   const bool is_tiled = (filename.find("<UDIM>") != string::npos ||
                          filename.find("<UVTILE>") != string::npos) ||
-                        handle.num_tiles() > 0;
+                        handle.num_tiles() > 1;
 
   compiler.parameter(this, "projection");
   compiler.parameter(this, "projection_blend");
@@ -2124,38 +2123,24 @@ void ConvertNode::constant_fold(const ConstantFolder &folder)
   /* proxy nodes should have been removed at this point */
   assert(special_type != SHADER_SPECIAL_TYPE_PROXY);
 
+  /* TODO(DingTo): conversion from/to int is not supported yet, don't fold in that case */
+
   if (folder.all_inputs_constant()) {
-    if (from == SocketType::FLOAT || from == SocketType::INT) {
-      float val = value_float;
-      if (from == SocketType::INT) {
-        val = value_int;
-      }
+    if (from == SocketType::FLOAT) {
       if (SocketType::is_float3(to)) {
-        folder.make_constant(make_float3(val, val, val));
-      }
-      else if (to == SocketType::INT) {
-        folder.make_constant((int)val);
-      }
-      else if (to == SocketType::FLOAT) {
-        folder.make_constant(val);
+        folder.make_constant(make_float3(value_float, value_float, value_float));
       }
     }
     else if (SocketType::is_float3(from)) {
-      if (to == SocketType::FLOAT || to == SocketType::INT) {
-        float val;
+      if (to == SocketType::FLOAT) {
         if (from == SocketType::COLOR) {
-          /* color to scalar */
-          val = folder.scene->shader_manager->linear_rgb_to_gray(value_color);
+          /* color to float */
+          float val = folder.scene->shader_manager->linear_rgb_to_gray(value_color);
+          folder.make_constant(val);
         }
         else {
-          /* vector/point/normal to scalar */
-          val = average(value_vector);
-        }
-        if (to == SocketType::INT) {
-          folder.make_constant((int)val);
-        }
-        else if (to == SocketType::FLOAT) {
-          folder.make_constant(val);
+          /* vector/point/normal to float */
+          folder.make_constant(average(value_vector));
         }
       }
       else if (SocketType::is_float3(to)) {
@@ -2298,14 +2283,14 @@ bool BsdfBaseNode::has_bump()
 BsdfNode::BsdfNode(const NodeType *node_type) : BsdfBaseNode(node_type) {}
 
 void BsdfNode::compile(SVMCompiler &compiler,
-                       ShaderInput *bsdf_y,
-                       ShaderInput *bsdf_z,
-                       ShaderInput *data_y,
-                       ShaderInput *data_z,
-                       ShaderInput *data_w)
+                       ShaderInput *param1,
+                       ShaderInput *param2,
+                       ShaderInput *param3,
+                       ShaderInput *param4)
 {
   ShaderInput *color_in = input("Color");
   ShaderInput *normal_in = input("Normal");
+  ShaderInput *tangent_in = input("Tangent");
 
   if (color_in->link) {
     compiler.add_node(NODE_CLOSURE_WEIGHT, compiler.stack_assign(color_in));
@@ -2315,20 +2300,21 @@ void BsdfNode::compile(SVMCompiler &compiler,
   }
 
   int normal_offset = (normal_in) ? compiler.stack_assign_if_linked(normal_in) : SVM_STACK_INVALID;
-  int data_y_offset = (data_y) ? compiler.stack_assign(data_y) : SVM_STACK_INVALID;
-  int data_z_offset = (data_z) ? compiler.stack_assign(data_z) : SVM_STACK_INVALID;
-  int data_w_offset = (data_w) ? compiler.stack_assign(data_w) : SVM_STACK_INVALID;
+  int tangent_offset = (tangent_in) ? compiler.stack_assign_if_linked(tangent_in) :
+                                      SVM_STACK_INVALID;
+  int param3_offset = (param3) ? compiler.stack_assign(param3) : SVM_STACK_INVALID;
+  int param4_offset = (param4) ? compiler.stack_assign(param4) : SVM_STACK_INVALID;
 
   compiler.add_node(
       NODE_CLOSURE_BSDF,
       compiler.encode_uchar4(closure,
-                             (bsdf_y) ? compiler.stack_assign(bsdf_y) : SVM_STACK_INVALID,
-                             (bsdf_z) ? compiler.stack_assign(bsdf_z) : SVM_STACK_INVALID,
+                             (param1) ? compiler.stack_assign(param1) : SVM_STACK_INVALID,
+                             (param2) ? compiler.stack_assign(param2) : SVM_STACK_INVALID,
                              compiler.closure_mix_weight_offset()),
-      __float_as_int((bsdf_y) ? get_float(bsdf_y->socket_type) : 0.0f),
-      __float_as_int((bsdf_z) ? get_float(bsdf_z->socket_type) : 0.0f));
+      __float_as_int((param1) ? get_float(param1->socket_type) : 0.0f),
+      __float_as_int((param2) ? get_float(param2->socket_type) : 0.0f));
 
-  compiler.add_node(normal_offset, data_y_offset, data_z_offset, data_w_offset);
+  compiler.add_node(normal_offset, tangent_offset, param3_offset, param4_offset);
 }
 
 void BsdfNode::compile(SVMCompiler &compiler)
@@ -2406,21 +2392,13 @@ void GlossyBsdfNode::compile(SVMCompiler &compiler)
 {
   closure = distribution;
 
-  ShaderInput *tangent = input("Tangent");
-  tangent = compiler.is_linked(tangent) ? tangent : nullptr;
-
   /* TODO: Just use weight for legacy MultiGGX? Would also simplify OSL. */
   if (closure == CLOSURE_BSDF_MICROFACET_MULTI_GGX_ID) {
-    BsdfNode::compile(compiler,
-                      input("Roughness"),
-                      input("Anisotropy"),
-                      input("Rotation"),
-                      input("Color"),
-                      tangent);
+    BsdfNode::compile(
+        compiler, input("Roughness"), input("Anisotropy"), input("Rotation"), input("Color"));
   }
   else {
-    BsdfNode::compile(
-        compiler, input("Roughness"), input("Anisotropy"), input("Rotation"), nullptr, tangent);
+    BsdfNode::compile(compiler, input("Roughness"), input("Anisotropy"), input("Rotation"));
   }
 }
 
@@ -2676,9 +2654,6 @@ NODE_DEFINE(PrincipledBsdfNode)
   SOCKET_IN_COLOR(emission_color, "Emission Color", one_float3());
   SOCKET_IN_FLOAT(emission_strength, "Emission Strength", 0.0f);
 
-  SOCKET_IN_FLOAT(thin_film_thickness, "Thin Film Thickness", 0.0f);
-  SOCKET_IN_FLOAT(thin_film_ior, "Thin Film IOR", 1.3f);
-
   SOCKET_IN_FLOAT(surface_mix_weight, "SurfaceMixWeight", 0.0f, SocketType::SVM_INTERNAL);
 
   SOCKET_OUT_CLOSURE(BSDF, "BSDF");
@@ -2780,8 +2755,6 @@ void PrincipledBsdfNode::compile(SVMCompiler &compiler)
   int alpha_offset = compiler.stack_assign_if_linked(alpha_in);
   int emission_strength_offset = compiler.stack_assign_if_linked(emission_strength_in);
   int emission_color_offset = compiler.stack_assign(input("Emission Color"));
-  int thin_film_thickness_offset = compiler.stack_assign(input("Thin Film Thickness"));
-  int thin_film_ior_offset = compiler.stack_assign(input("Thin Film IOR"));
 
   compiler.add_node(
       NODE_CLOSURE_BSDF,
@@ -2820,13 +2793,12 @@ void PrincipledBsdfNode::compile(SVMCompiler &compiler)
                     subsurface_scale_offset,
                     subsurface_anisotropy_offset);
 
-  compiler.add_node(compiler.encode_uchar4(alpha_offset,
-                                           emission_strength_offset,
-                                           emission_color_offset,
-                                           thin_film_thickness_offset),
-                    __float_as_int(get_float(alpha_in->socket_type)),
-                    __float_as_int(get_float(emission_strength_in->socket_type)),
-                    thin_film_ior_offset);
+  compiler.add_node(
+      compiler.encode_uchar4(
+          alpha_offset, emission_strength_offset, emission_color_offset, SVM_STACK_INVALID),
+      __float_as_int(get_float(alpha_in->socket_type)),
+      __float_as_int(get_float(emission_strength_in->socket_type)),
+      SVM_STACK_INVALID);
 }
 
 void PrincipledBsdfNode::compile(OSLCompiler &compiler)
@@ -2900,38 +2872,6 @@ void TransparentBsdfNode::compile(OSLCompiler &compiler)
   compiler.add(this, "node_transparent_bsdf");
 }
 
-/* Ray Portal BSDF Closure */
-
-NODE_DEFINE(RayPortalBsdfNode)
-{
-  NodeType *type = NodeType::add("ray_portal_bsdf", create, NodeType::SHADER);
-
-  SOCKET_IN_COLOR(color, "Color", one_float3());
-  SOCKET_IN_FLOAT(surface_mix_weight, "SurfaceMixWeight", 0.0f, SocketType::SVM_INTERNAL);
-
-  SOCKET_IN_VECTOR(position, "Position", zero_float3(), SocketType::LINK_POSITION);
-  SOCKET_IN_VECTOR(direction, "Direction", zero_float3());
-
-  SOCKET_OUT_CLOSURE(BSDF, "BSDF");
-
-  return type;
-}
-
-RayPortalBsdfNode::RayPortalBsdfNode() : BsdfNode(get_node_type())
-{
-  closure = CLOSURE_BSDF_RAY_PORTAL_ID;
-}
-
-void RayPortalBsdfNode::compile(SVMCompiler &compiler)
-{
-  BsdfNode::compile(compiler, NULL, NULL, input("Position"), input("Direction"));
-}
-
-void RayPortalBsdfNode::compile(OSLCompiler &compiler)
-{
-  compiler.add(this, "node_ray_portal_bsdf");
-}
-
 /* Subsurface Scattering Closure */
 
 NODE_DEFINE(SubsurfaceScatteringNode)
@@ -2952,7 +2892,6 @@ NODE_DEFINE(SubsurfaceScatteringNode)
   SOCKET_IN_VECTOR(radius, "Radius", make_float3(0.1f, 0.1f, 0.1f));
 
   SOCKET_IN_FLOAT(subsurface_ior, "IOR", 1.4f);
-  SOCKET_IN_FLOAT(subsurface_roughness, "Roughness", 1.0f);
   SOCKET_IN_FLOAT(subsurface_anisotropy, "Anisotropy", 0.0f);
 
   SOCKET_OUT_CLOSURE(BSSRDF, "BSSRDF");
@@ -2968,12 +2907,7 @@ SubsurfaceScatteringNode::SubsurfaceScatteringNode() : BsdfNode(get_node_type())
 void SubsurfaceScatteringNode::compile(SVMCompiler &compiler)
 {
   closure = method;
-  BsdfNode::compile(compiler,
-                    input("Scale"),
-                    input("IOR"),
-                    input("Radius"),
-                    input("Anisotropy"),
-                    input("Roughness"));
+  BsdfNode::compile(compiler, input("Scale"), input("IOR"), input("Radius"), input("Anisotropy"));
 }
 
 void SubsurfaceScatteringNode::compile(OSLCompiler &compiler)
@@ -3601,11 +3535,7 @@ void HairBsdfNode::compile(SVMCompiler &compiler)
 {
   closure = component;
 
-  ShaderInput *tangent = input("Tangent");
-  tangent = compiler.is_linked(tangent) ? tangent : nullptr;
-
-  BsdfNode::compile(
-      compiler, input("RoughnessU"), input("RoughnessV"), input("Offset"), nullptr, tangent);
+  BsdfNode::compile(compiler, input("RoughnessU"), input("RoughnessV"), input("Offset"));
 }
 
 void HairBsdfNode::compile(OSLCompiler &compiler)

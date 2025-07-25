@@ -13,8 +13,8 @@ CCL_NAMESPACE_BEGIN
 
 class DummyDevice : public Device {
  public:
-  DummyDevice(const DeviceInfo &info_, Stats &stats_, Profiler &profiler_, bool headless_)
-      : Device(info_, stats_, profiler_, headless_)
+  DummyDevice(const DeviceInfo &info_, Stats &stats_, Profiler &profiler_)
+      : Device(info_, stats_, profiler_)
   {
     error_msg = info.error_msg;
   }
@@ -39,12 +39,9 @@ class DummyDevice : public Device {
   virtual void const_copy_to(const char *, void *, size_t) override {}
 };
 
-Device *device_dummy_create(const DeviceInfo &info,
-                            Stats &stats,
-                            Profiler &profiler,
-                            bool headless)
+Device *device_dummy_create(const DeviceInfo &info, Stats &stats, Profiler &profiler)
 {
-  return new DummyDevice(info, stats, profiler, headless);
+  return new DummyDevice(info, stats, profiler);
 }
 
 CCL_NAMESPACE_END

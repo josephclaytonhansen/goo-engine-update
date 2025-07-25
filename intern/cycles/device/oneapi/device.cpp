@@ -50,9 +50,11 @@ bool device_oneapi_init()
       _putenv_s("ONEAPI_DEVICE_SELECTOR", "!opencl:*");
     }
   }
-  /* SYSMAN is needed for free_memory queries. */
-  if (getenv("ZES_ENABLE_SYSMAN") == nullptr) {
-    _putenv_s("ZES_ENABLE_SYSMAN", "1");
+  if (getenv("SYCL_ENABLE_PCI") == nullptr) {
+    _putenv_s("SYCL_ENABLE_PCI", "1");
+  }
+  if (getenv("SYCL_PI_LEVEL_ZERO_USE_COPY_ENGINE_FOR_IN_ORDER_QUEUE") == nullptr) {
+    _putenv_s("SYCL_PI_LEVEL_ZERO_USE_COPY_ENGINE_FOR_IN_ORDER_QUEUE", "0");
   }
   if (getenv("SYCL_PI_LEVEL_ZERO_USE_COPY_ENGINE") == nullptr) {
     _putenv_s("SYCL_PI_LEVEL_ZERO_USE_COPY_ENGINE", "0");
@@ -66,9 +68,8 @@ bool device_oneapi_init()
   else {
     setenv("ONEAPI_DEVICE_SELECTOR", "!opencl:*", false);
   }
-  /* SYSMAN is needed for free_memory queries. However, it leads to runtime driver issues on Linux
-   * when using it with JEMALLOC, so we set it to 0 by default until it's fixed. */
-  setenv("ZES_ENABLE_SYSMAN", "0", false);
+  setenv("SYCL_ENABLE_PCI", "1", false);
+  setenv("SYCL_PI_LEVEL_ZERO_USE_COPY_ENGINE_FOR_IN_ORDER_QUEUE", "0", false);
   setenv("SYCL_PI_LEVEL_ZERO_USE_COPY_ENGINE", "0", false);
 #  endif
 
@@ -76,13 +77,10 @@ bool device_oneapi_init()
 #endif
 }
 
-Device *device_oneapi_create(const DeviceInfo &info,
-                             Stats &stats,
-                             Profiler &profiler,
-                             bool headless)
+Device *device_oneapi_create(const DeviceInfo &info, Stats &stats, Profiler &profiler)
 {
 #ifdef WITH_ONEAPI
-  return new OneapiDevice(info, stats, profiler, headless);
+  return new OneapiDevice(info, stats, profiler);
 #else
   (void)info;
   (void)stats;
@@ -95,12 +93,8 @@ Device *device_oneapi_create(const DeviceInfo &info,
 }
 
 #ifdef WITH_ONEAPI
-static void device_iterator_cb(const char *id,
-                               const char *name,
-                               int num,
-                               bool hwrt_support,
-                               bool oidn_support,
-                               void *user_ptr)
+static void device_iterator_cb(
+    const char *id, const char *name, int num, bool hwrt_support, void *user_ptr)
 {
   vector<DeviceInfo> *devices = (vector<DeviceInfo> *)user_ptr;
 
@@ -115,15 +109,10 @@ static void device_iterator_cb(const char *id,
 
   info.has_nanovdb = true;
 #  if defined(WITH_OPENIMAGEDENOISE)
-#    if OIDN_VERSION >= 20300
-  if (oidn_support) {
-#    else
   if (OIDNDenoiserGPU::is_device_supported(info)) {
-#    endif
     info.denoisers |= DENOISER_OPENIMAGEDENOISE;
   }
 #  endif
-  (void)oidn_support;
 
   info.has_gpu_queue = true;
 

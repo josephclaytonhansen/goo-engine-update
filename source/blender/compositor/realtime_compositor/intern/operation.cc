@@ -39,8 +39,6 @@ void Operation::evaluate()
   release_inputs();
 
   release_unneeded_results();
-
-  context().evaluate_operation_post();
 }
 
 Result &Operation::get_result(StringRef identifier)

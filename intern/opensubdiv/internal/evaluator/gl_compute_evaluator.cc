@@ -39,7 +39,8 @@ using OpenSubdiv::Osd::PatchArrayVector;
 
 extern "C" char datatoc_glsl_compute_kernel_glsl[];
 
-namespace blender::opensubdiv {
+namespace blender {
+namespace opensubdiv {
 
 template<class T> GLuint createSSBO(std::vector<T> const &src)
 {
@@ -656,4 +657,5 @@ bool GLComputeEvaluator::_PatchKernel::Compile(BufferDescriptor const &srcDesc,
   return true;
 }
 
-}  // namespace blender::opensubdiv
+}  // namespace opensubdiv
+}  // namespace blender
