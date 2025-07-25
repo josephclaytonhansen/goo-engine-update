@@ -27,3 +27,5 @@
 	path = tests/data
 	url = https://projects.blender.org/blender/blender-test-data.git
 	branch = blender-v4.1-release
+[submodule "scripts/addons"]
+	url = https://projects.blender.org/blender/blender-addons.git
