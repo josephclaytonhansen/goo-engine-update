@@ -6,7 +6,7 @@
 if(NOT WITH_BLENDER)
   set(CYCLES_INSTALL_PATH ${CMAKE_INSTALL_PREFIX})
 else()
-  set(WITH_CYCLES_BLENDER ON)
+  set(WITH_CYCLES_BLENDER OFF)
   # WINDOWS_PYTHON_DEBUG needs to write into the user addons folder since it will
   # be started with --env-system-scripts pointing to the release folder, which will
   # lack the cycles addon, and we don't want to write into it.
