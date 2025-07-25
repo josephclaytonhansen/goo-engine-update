@@ -47,6 +47,9 @@
 #include "WM_types.hh"
 #include "wm_event_types.hh"
 
+/* Removed user interface flag */
+#define USER_UIFLAG_UNUSED_3 (1 << 10)
+
 /* Don't use translation strings in versioning!
  * These depend on the preferences already being read.
  * If this is important we can set the translations as part of versioning preferences,
@@ -729,7 +732,7 @@ void blo_do_versions_userdef(UserDef *userdef)
       userdef->pixelsize = 1.0f;
     }
     /* Clear old userdef flag for "Camera Parent Lock". */
-    userdef->uiflag &= ~USER_ACCUMULATE_TRACKBALL;
+    userdef->uiflag &= ~USER_UIFLAG_UNUSED_3;
   }
 
   if (!USER_VERSION_ATLEAST(292, 9)) {

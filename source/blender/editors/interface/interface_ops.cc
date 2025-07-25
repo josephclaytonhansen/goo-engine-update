@@ -7,10 +7,13 @@
  */
 
 #include <cstring>
+#include <optional>
 
 #include <fmt/format.h>
 
 #include "MEM_guardedalloc.h"
+
+#include "UI_abstract_view.hh"
 
 #include "DNA_armature_types.h"
 #include "DNA_material_types.h"
@@ -52,14 +55,12 @@
 #include "RNA_types.hh"
 
 #include "UI_interface.hh"
-#include "UI_abstract_view.hh"
 
 #include "interface_intern.hh"
 
 #include "WM_api.hh"
 #include "WM_types.hh"
 
-#include "ED_anim_api.hh"
 #include "ED_object.hh"
 #include "ED_paint.hh"
 #include "ED_undo.hh"
