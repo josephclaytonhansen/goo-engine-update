@@ -2317,7 +2317,7 @@ static void WM_OT_quit_blender(wmOperatorType *ot)
 {
   ot->name = "Quit Blender";
   ot->idname = "WM_OT_quit_blender";
-  ot->description = "Quit Blender";
+  ot->description = "Quit Fruitbat";
 
   ot->invoke = wm_exit_blender_invoke;
   ot->exec = wm_exit_blender_exec;

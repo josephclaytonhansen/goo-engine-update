@@ -3043,7 +3043,7 @@ void WM_OT_open_mainfile(wmOperatorType *ot)
 {
   ot->name = "Open";
   ot->idname = "WM_OT_open_mainfile";
-  ot->description = "Open a Blender file";
+  ot->description = "Open a Fruitbat file";
   ot->get_description = wm_open_mainfile_description;
 
   ot->invoke = wm_open_mainfile_invoke;
@@ -3544,9 +3544,9 @@ static std::string wm_save_mainfile_get_description(bContext * /*C*/,
 
 void WM_OT_save_mainfile(wmOperatorType *ot)
 {
-  ot->name = "Save Blender File";
+  ot->name = "Save Fruitbat File";
   ot->idname = "WM_OT_save_mainfile";
-  ot->description = "Save the current Blender file";
+  ot->description = "Save the current Fruitbat file";
 
   ot->invoke = wm_save_mainfile_invoke;
   ot->exec = wm_save_as_mainfile_exec;
@@ -3569,14 +3569,14 @@ void WM_OT_save_mainfile(wmOperatorType *ot)
                   "Remap Relative",
                   "Remap relative paths when saving to a different directory");
 
-  prop = RNA_def_boolean(ot->srna, "exit", false, "Exit", "Exit Blender after saving");
+  prop = RNA_def_boolean(ot->srna, "exit", false, "Exit", "Exit Fruitbat after saving");
   RNA_def_property_flag(prop, PropertyFlag(PROP_HIDDEN | PROP_SKIP_SAVE));
 
   prop = RNA_def_boolean(ot->srna,
                          "incremental",
                          false,
                          "Incremental",
-                         "Save the current Blender file with a numerically incremented name that "
+                         "Save the current Fruitbat file with a numerically incremented name that "
                          "does not overwrite any existing files");
   RNA_def_property_flag(prop, PropertyFlag(PROP_HIDDEN | PROP_SKIP_SAVE));
 }
@@ -3900,10 +3900,10 @@ static void file_forwardcompat_detailed_info_show(uiLayout *parent_layout, Main 
   char message_line1[256];
   char message_line2[256];
   SNPRINTF(message_line1,
-           RPT_("This file was saved by a newer version of Blender (%s)"),
+           RPT_("This file was saved by a newer version of Fruitbat (%s)"),
            writer_ver_str);
   SNPRINTF(message_line2,
-           RPT_("Saving it with this Blender (%s) may cause loss of data"),
+           RPT_("Saving it with this Fruitbat (%s) may cause loss of data"),
            current_ver_str);
   uiItemL(layout, message_line1, ICON_NONE);
   uiItemL(layout, message_line2, ICON_NONE);
@@ -4028,7 +4028,7 @@ static uiBlock *block_create_save_file_forwardcompat_dialog(bContext *C,
 
   /* Title. */
   uiItemL_ex(
-      layout, RPT_("Overwrite file with an older Blender version?"), ICON_NONE, true, false);
+      layout, RPT_("Overwrite file with an older Fruitbat version?"), ICON_NONE, true, false);
 
   /* Filename. */
   const char *blendfile_path = BKE_main_blendfile_path(CTX_data_main(C));
