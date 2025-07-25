@@ -571,11 +571,11 @@ option(WITH_CPU_SIMD "Enable SIMD instruction if they're detected on the host ma
 mark_as_advanced(WITH_CPU_SIMD)
 
 # Cycles
-option(WITH_CYCLES "Enable Cycles Render Engine" OFF)
-option(WITH_CYCLES_OSL "Build Cycles with OpenShadingLanguage support" OFF)
-option(WITH_CYCLES_PATH_GUIDING "Build Cycles with path guiding support" OFF)
-option(WITH_CYCLES_EMBREE "Build Cycles with Embree support" OFF)
-option(WITH_CYCLES_LOGGING "Build Cycles with logging support" OFF)
+option(WITH_CYCLES "Enable Cycles Render Engine" ON)
+option(WITH_CYCLES_OSL "Build Cycles with OpenShadingLanguage support" ON)
+option(WITH_CYCLES_PATH_GUIDING "Build Cycles with path guiding support" ON)
+option(WITH_CYCLES_EMBREE "Build Cycles with Embree support" ON)
+option(WITH_CYCLES_LOGGING "Build Cycles with logging support" ON)
 option(WITH_CYCLES_DEBUG "Build Cycles with options useful for debugging (e.g., MIS)" OFF)
 
 option(WITH_CYCLES_STANDALONE "Build Cycles standalone application" OFF)
