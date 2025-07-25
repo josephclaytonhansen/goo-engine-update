@@ -13,12 +13,9 @@
 #include "BLI_sys_types.h"
 
 struct Mesh;
-
-namespace blender::bke::subdiv {
-
 struct Subdiv;
 
-struct ToMeshSettings {
+struct SubdivToMeshSettings {
   /**
    * Resolution at which regular PTEX (created for quad face) are being
    * evaluated. This defines how many vertices final mesh will have: every
@@ -32,18 +29,19 @@ struct ToMeshSettings {
 };
 
 /** Create real hi-res mesh from subdivision, all geometry is "real". */
-Mesh *subdiv_to_mesh(Subdiv *subdiv, const ToMeshSettings *settings, const Mesh *coarse_mesh);
+Mesh *BKE_subdiv_to_mesh(Subdiv *subdiv,
+                         const SubdivToMeshSettings *settings,
+                         const Mesh *coarse_mesh);
 
 /**
  * Interpolate a position along the `coarse_edge` at the relative `u` coordinate.
  * If `is_simple` is false, this will perform a B-Spline interpolation using the edge neighbors,
  * otherwise a linear interpolation will be done base on the edge vertices.
  */
-float3 mesh_interpolate_position_on_edge(Span<float3> coarse_positions,
-                                         Span<int2> coarse_edges,
-                                         GroupedSpan<int> vert_to_edge_map,
-                                         int coarse_edge_index,
-                                         bool is_simple,
-                                         float u);
-
-}  // namespace blender::bke::subdiv
+void BKE_subdiv_mesh_interpolate_position_on_edge(const float (*coarse_positions)[3],
+                                                  const blender::int2 *coarse_edges,
+                                                  blender::GroupedSpan<int> vert_to_edge_map,
+                                                  int coarse_edge_index,
+                                                  bool is_simple,
+                                                  float u,
+                                                  float pos_r[3]);

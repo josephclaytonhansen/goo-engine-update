@@ -7,8 +7,6 @@
  * \ingroup bke
  */
 
-#include <memory>
-
 #include "BLI_math_vector_types.hh"
 #include "BLI_span.hh"
 
@@ -16,7 +14,7 @@ struct BMEditMesh;
 struct CustomData_MeshMasks;
 struct Mesh;
 
-Mesh *BKE_mesh_wrapper_from_editmesh(std::shared_ptr<BMEditMesh> em,
+Mesh *BKE_mesh_wrapper_from_editmesh(BMEditMesh *em,
                                      const CustomData_MeshMasks *cd_mask_extra,
                                      const Mesh *me_settings);
 void BKE_mesh_wrapper_ensure_mdata(Mesh *mesh);
@@ -28,15 +26,15 @@ int BKE_mesh_wrapper_face_len(const Mesh *mesh);
 
 /**
  * Return a contiguous array of vertex position values, if available.
- * Otherwise, vertex positions are stored in BMesh vertices and this returns null.
+ * Otherwise, vertex positions are stored in BMesh vertices.
  */
-blender::Span<blender::float3> BKE_mesh_wrapper_vert_coords(const Mesh *mesh);
+const float (*BKE_mesh_wrapper_vert_coords(const Mesh *mesh))[3];
 
 /**
  * Return a contiguous array of face normal values, if available.
- * Otherwise, normals are stored in BMesh faces and this returns null.
+ * Otherwise, normals are stored in BMesh faces.
  */
-blender::Span<blender::float3> BKE_mesh_wrapper_face_normals(Mesh *mesh);
+const float (*BKE_mesh_wrapper_face_normals(Mesh *mesh))[3];
 
 void BKE_mesh_wrapper_tag_positions_changed(Mesh *mesh);
 

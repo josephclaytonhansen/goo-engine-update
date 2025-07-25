@@ -57,6 +57,7 @@ void BKE_object_material_from_eval_data(struct Main *bmain,
 struct Material *BKE_material_add(struct Main *bmain, const char *name);
 struct Material *BKE_gpencil_material_add(struct Main *bmain, const char *name);
 void BKE_gpencil_material_attr_init(struct Material *ma);
+bool BKE_material_use_custom_holdout(struct Material* ma);
 void BKE_material_make_node_previews_dirty(struct Material *ma);
 
 /* UNUSED */
@@ -114,15 +115,7 @@ bool BKE_object_material_slot_add(struct Main *bmain, struct Object *ob);
 bool BKE_object_material_slot_remove(struct Main *bmain, struct Object *ob);
 bool BKE_object_material_slot_used(struct Object *object, short actcol);
 
-int BKE_object_material_index_get(Object *ob, const Material *ma);
-/**
- * A version of #BKE_object_material_index_get that takes an index to test first.
- *
- * \param hint_index: When this index is in a valid range, test it first.
- * Useful when an active-index is preferred but may not match the material.
- */
-int BKE_object_material_index_get_with_hint(Object *ob, const Material *ma, int hint_index);
-
+int BKE_object_material_index_get(Object *ob, Material *ma);
 int BKE_object_material_ensure(Main *bmain, Object *ob, Material *material);
 
 struct Material *BKE_gpencil_material(struct Object *ob, short act);

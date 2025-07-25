@@ -9,7 +9,6 @@
  */
 
 #include <variant>
-#include <optional>
 
 /* XXX temporary, until AssetHandle is designed properly and queries can return a pointer to it. */
 #include "DNA_asset_types.h"

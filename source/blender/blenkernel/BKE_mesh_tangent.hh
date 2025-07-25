@@ -9,7 +9,6 @@
 
 #include "DNA_customdata_types.h"
 
-#include "BLI_math_vector_types.hh"
 #include "BLI_offset_indices.hh"
 #include "BLI_sys_types.h"
 
@@ -46,7 +45,7 @@ void BKE_mesh_calc_loop_tangent_single(Mesh *mesh,
 /**
  * See: #BKE_editmesh_loop_tangent_calc (matching logic).
  */
-void BKE_mesh_calc_loop_tangent_ex(blender::Span<blender::float3> vert_positions,
+void BKE_mesh_calc_loop_tangent_ex(const float (*vert_positions)[3],
                                    blender::OffsetIndices<int> faces,
                                    const int *corner_verts,
                                    const blender::int3 *corner_tris,
@@ -54,26 +53,26 @@ void BKE_mesh_calc_loop_tangent_ex(blender::Span<blender::float3> vert_positions
                                    uint corner_tris_len,
                                    const blender::Span<bool> sharp_faces,
 
-                                   const CustomData *loopdata,
+                                   CustomData *loopdata,
                                    bool calc_active_tangent,
                                    const char (*tangent_names)[MAX_CUSTOMDATA_LAYER_NAME],
                                    int tangent_names_len,
-                                   blender::Span<blender::float3> vert_normals,
-                                   blender::Span<blender::float3> face_normals,
-                                   blender::Span<blender::float3> corner_normals,
-                                   blender::Span<blender::float3> vert_orco,
+                                   const float (*vert_normals)[3],
+                                   const float (*face_normals)[3],
+                                   const float (*corner_normals)[3],
+                                   const float (*vert_orco)[3],
                                    /* result */
                                    CustomData *loopdata_out,
                                    uint loopdata_out_len,
                                    short *tangent_mask_curr_p);
 
-void BKE_mesh_calc_loop_tangents(Mesh *mesh_eval,
+void BKE_mesh_calc_loop_tangents(Mesh *me_eval,
                                  bool calc_active_tangent,
                                  const char (*tangent_names)[MAX_CUSTOMDATA_LAYER_NAME],
                                  int tangent_names_len);
 
 /* Helpers */
-void BKE_mesh_add_loop_tangent_named_layer_for_uv(const CustomData *uv_data,
+void BKE_mesh_add_loop_tangent_named_layer_for_uv(CustomData *uv_data,
                                                   CustomData *tan_data,
                                                   int numLoopData,
                                                   const char *layer_name);
