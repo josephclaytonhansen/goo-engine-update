@@ -549,7 +549,7 @@ static void drawviewborder(Scene *scene, Depsgraph *depsgraph, ARegion *region, 
   x2 = viewborder.xmax;
   y2 = viewborder.ymax;
 
-  GPU_line_width(U.viewport_line_width);
+  GPU_line_width(U.pixelsize);
 
   /* apply offsets so the real 3D camera shows through */
 
@@ -798,7 +798,7 @@ static void drawrenderborder(ARegion *region, View3D *v3d)
   uint shdr_pos = GPU_vertformat_attr_add(
       immVertexFormat(), "pos", GPU_COMP_F32, 2, GPU_FETCH_FLOAT);
 
-  GPU_line_width(U.viewport_line_width);
+  GPU_line_width(U.pixelsize);
 
   immBindBuiltinProgram(GPU_SHADER_3D_LINE_DASHED_UNIFORM_COLOR);
 
@@ -986,7 +986,7 @@ static void draw_view_axis(RegionView3D *rv3d, const rcti *rect)
   }
 
   /* draw axis lines */
-  GPU_line_width(2.0f * U.viewport_line_width);
+  GPU_line_width(2.0f * U.pixelsize);
   GPU_line_smooth(true);
   GPU_blend(GPU_BLEND_ALPHA);
 

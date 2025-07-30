@@ -5,15 +5,17 @@
 from __future__ import annotations
 
 import bpy
-from bpy.app.translations import contexts as i18n_contexts
-from bpy_extras.node_utils import find_node_input
-from bl_ui.utils import PresetPanel
-
-from bpy.types import Panel, Menu
-
 from bl_ui.properties_grease_pencil_common import GreasePencilSimplifyPanel
 from bl_ui.properties_render import draw_curves_settings
-from bl_ui.properties_view_layer import ViewLayerCryptomattePanel, ViewLayerAOVPanel, ViewLayerLightgroupsPanel
+from bl_ui.properties_view_layer import (
+    ViewLayerAOVPanel,
+    ViewLayerCryptomattePanel,
+    ViewLayerLightgroupsPanel,
+)
+from bl_ui.utils import PresetPanel
+from bpy.app.translations import contexts as i18n_contexts
+from bpy.types import Menu, Panel
+from bpy_extras.node_utils import find_node_input
 
 
 class CyclesPresetPanel(PresetPanel, Panel):
@@ -67,9 +69,7 @@ class CyclesDebugButtonsPanel(CyclesButtonsPanel):
     @classmethod
     def poll(cls, context):
         prefs = bpy.context.preferences
-        return (CyclesButtonsPanel.poll(context)
-                and prefs.experimental.use_cycles_debug
-                and prefs.view.show_developer_ui)
+        return CyclesButtonsPanel.poll(context) and prefs.experimental.use_cycles_debug and prefs.view.show_developer_ui
 
 
 # Adapt properties editor panel to display in node editor. We have to
@@ -97,37 +97,37 @@ def backend_has_active_gpu(context):
 def use_cpu(context):
     cscene = context.scene.cycles
 
-    return (get_device_type(context) == 'NONE' or cscene.device == 'CPU' or not backend_has_active_gpu(context))
+    return get_device_type(context) == 'NONE' or cscene.device == 'CPU' or not backend_has_active_gpu(context)
 
 
 def use_metal(context):
     cscene = context.scene.cycles
 
-    return (get_device_type(context) == 'METAL' and cscene.device == 'GPU' and backend_has_active_gpu(context))
+    return get_device_type(context) == 'METAL' and cscene.device == 'GPU' and backend_has_active_gpu(context)
 
 
 def use_cuda(context):
     cscene = context.scene.cycles
 
-    return (get_device_type(context) == 'CUDA' and cscene.device == 'GPU' and backend_has_active_gpu(context))
+    return get_device_type(context) == 'CUDA' and cscene.device == 'GPU' and backend_has_active_gpu(context)
 
 
 def use_hip(context):
     cscene = context.scene.cycles
 
-    return (get_device_type(context) == 'HIP' and cscene.device == 'GPU' and backend_has_active_gpu(context))
+    return get_device_type(context) == 'HIP' and cscene.device == 'GPU' and backend_has_active_gpu(context)
 
 
 def use_optix(context):
     cscene = context.scene.cycles
 
-    return (get_device_type(context) == 'OPTIX' and cscene.device == 'GPU' and backend_has_active_gpu(context))
+    return get_device_type(context) == 'OPTIX' and cscene.device == 'GPU' and backend_has_active_gpu(context)
 
 
 def use_oneapi(context):
     cscene = context.scene.cycles
 
-    return (get_device_type(context) == 'ONEAPI' and cscene.device == 'GPU' and backend_has_active_gpu(context))
+    return get_device_type(context) == 'ONEAPI' and cscene.device == 'GPU' and backend_has_active_gpu(context)
 
 
 def use_multi_device(context):
@@ -168,6 +168,7 @@ def use_mnee(context):
     # The MNEE kernel doesn't compile on macOS < 13.
     if use_metal(context):
         import platform
+
         version, _, _ = platform.mac_ver()
         major_version = version.split(".")[0]
         if int(major_version) < 13:
@@ -322,6 +323,7 @@ class CYCLES_RENDER_PT_sampling_path_guiding(CyclesButtonsPanel, Panel):
     @classmethod
     def poll(cls, context):
         from . import engine
+
         return use_cpu(context) and engine.with_path_guiding()
 
     def draw_header(self, context):
@@ -918,22 +920,6 @@ class CYCLES_RENDER_PT_filter(CyclesButtonsPanel, Panel):
         sub.active = scene.cycles.use_denoising
 
 
-class CYCLES_RENDER_PT_override(CyclesButtonsPanel, Panel):
-    bl_label = "Override"
-    bl_options = {'DEFAULT_CLOSED'}
-    bl_context = "view_layer"
-
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = True
-        layout.use_property_decorate = False
-
-        view_layer = context.view_layer
-
-        layout.prop(view_layer, "material_override")
-        layout.prop(view_layer, "samples")
-
-
 class CYCLES_RENDER_PT_passes(CyclesButtonsPanel, Panel):
     bl_label = "Passes"
     bl_context = "view_layer"
@@ -1136,7 +1122,7 @@ class CYCLES_PT_context_material(CyclesButtonsPanel, Panel):
         if ob:
             is_sortable = len(ob.material_slots) > 1
             rows = 3
-            if (is_sortable):
+            if is_sortable:
                 rows = 4
 
             row = layout.row()
@@ -1184,8 +1170,18 @@ class CYCLES_OBJECT_PT_motion_blur(CyclesButtonsPanel, Panel):
     def poll(cls, context):
         ob = context.object
         if CyclesButtonsPanel.poll(context) and ob:
-            if ob.type in {'MESH', 'CURVE', 'CURVE', 'SURFACE', 'FONT',
-                           'META', 'CAMERA', 'CURVES', 'POINTCLOUD', 'VOLUME'}:
+            if ob.type in {
+                'MESH',
+                'CURVE',
+                'CURVE',
+                'SURFACE',
+                'FONT',
+                'META',
+                'CAMERA',
+                'CURVES',
+                'POINTCLOUD',
+                'VOLUME',
+            }:
                 return True
             if ob.instance_type == 'COLLECTION' and ob.instance_collection:
                 return True
@@ -1215,7 +1211,7 @@ class CYCLES_OBJECT_PT_motion_blur(CyclesButtonsPanel, Panel):
         ob = context.object
         cob = ob.cycles
 
-        layout.active = (rd.use_motion_blur and cob.use_motion_blur)
+        layout.active = rd.use_motion_blur and cob.use_motion_blur
 
         col = layout.column()
         col.prop(cob, "motion_steps", text="Steps")
@@ -1225,17 +1221,22 @@ class CYCLES_OBJECT_PT_motion_blur(CyclesButtonsPanel, Panel):
 
 def has_geometry_visibility(ob):
     return ob and (
-        (ob.type in {
-            'MESH',
-            'CURVE',
-            'SURFACE',
-            'FONT',
-            'META',
-            'LIGHT',
-            'VOLUME',
-            'POINTCLOUD',
-            'CURVES',
-        }) or (ob.instance_type == 'COLLECTION' and ob.instance_collection))
+        (
+            ob.type
+            in {
+                'MESH',
+                'CURVE',
+                'SURFACE',
+                'FONT',
+                'META',
+                'LIGHT',
+                'VOLUME',
+                'POINTCLOUD',
+                'CURVES',
+            }
+        )
+        or (ob.instance_type == 'COLLECTION' and ob.instance_collection)
+    )
 
 
 class CYCLES_OBJECT_PT_shading(CyclesButtonsPanel, Panel):
@@ -1380,10 +1381,7 @@ class CYCLES_OBJECT_PT_light_linking(CyclesButtonsPanel, Panel):
 
         col = layout.column()
 
-        col.template_ID(
-            light_linking,
-            "receiver_collection",
-            new="object.light_linking_receiver_collection_new")
+        col.template_ID(light_linking, "receiver_collection", new="object.light_linking_receiver_collection_new")
 
         if not light_linking.receiver_collection:
             return
@@ -1416,10 +1414,7 @@ class CYCLES_OBJECT_PT_shadow_linking(CyclesButtonsPanel, Panel):
 
         col = layout.column()
 
-        col.template_ID(
-            light_linking,
-            "blocker_collection",
-            new="object.light_linking_blocker_collection_new")
+        col.template_ID(light_linking, "blocker_collection", new="object.light_linking_blocker_collection_new")
 
         if not light_linking.blocker_collection:
             return
@@ -1551,12 +1546,9 @@ class CYCLES_LIGHT_PT_preview(CyclesButtonsPanel, Panel):
     @classmethod
     def poll(cls, context):
         return (
-            context.light and
-            not (
-                context.light.type == 'AREA' and
-                context.light.cycles.is_portal
-            ) and
-            CyclesButtonsPanel.poll(context)
+            context.light
+            and not (context.light.type == 'AREA' and context.light.cycles.is_portal)
+            and CyclesButtonsPanel.poll(context)
         )
 
     def draw(self, context):
@@ -1627,9 +1619,11 @@ class CYCLES_LIGHT_PT_nodes(CyclesButtonsPanel, Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.light and not (context.light.type == 'AREA' and
-                                      context.light.cycles.is_portal) and \
-            CyclesButtonsPanel.poll(context)
+        return (
+            context.light
+            and not (context.light.type == 'AREA' and context.light.cycles.is_portal)
+            and CyclesButtonsPanel.poll(context)
+        )
 
     def draw(self, context):
         layout = self.layout
@@ -2051,7 +2045,13 @@ class CYCLES_RENDER_PT_bake(CyclesButtonsPanel, Panel):
             layout.prop(cscene, "bake_type")
 
         if not rd.use_bake_multires and cscene.bake_type not in {
-                "AO", "POSITION", "NORMAL", "UV", "ROUGHNESS", "ENVIRONMENT"}:
+            "AO",
+            "POSITION",
+            "NORMAL",
+            "UV",
+            "ROUGHNESS",
+            "ENVIRONMENT",
+        }:
             row = layout.row()
             row.prop(cbk, "view_from")
             row.active = scene.camera is not None
@@ -2069,7 +2069,12 @@ class CYCLES_RENDER_PT_bake_influence(CyclesButtonsPanel, Panel):
         cscene = scene.cycles
         rd = scene.render
         if rd.use_bake_multires == False and cscene.bake_type in {
-                'NORMAL', 'COMBINED', 'DIFFUSE', 'GLOSSY', 'TRANSMISSION'}:
+            'NORMAL',
+            'COMBINED',
+            'DIFFUSE',
+            'GLOSSY',
+            'TRANSMISSION',
+        }:
             return True
 
     def draw(self, context):
@@ -2256,6 +2261,7 @@ class CYCLES_RENDER_PT_debug(CyclesDebugButtonsPanel, Panel):
         col.separator()
 
         import _cycles
+
         if _cycles.with_debug:
             col.prop(cscene, "direct_light_sampling_type")
 
@@ -2361,10 +2367,7 @@ class CyclesShadingButtonsPanel(CyclesButtonsPanel):
 
     @classmethod
     def poll(cls, context):
-        return (
-            CyclesButtonsPanel.poll(context) and
-            context.space_data.shading.type == 'RENDERED'
-        )
+        return CyclesButtonsPanel.poll(context) and context.space_data.shading.type == 'RENDERED'
 
 
 class CYCLES_VIEW3D_PT_shading_render_pass(CyclesShadingButtonsPanel, Panel):
@@ -2377,17 +2380,12 @@ class CYCLES_VIEW3D_PT_shading_render_pass(CyclesShadingButtonsPanel, Panel):
         layout.prop(shading.cycles, "render_pass", text="")
 
 
-class CYCLES_VIEW3D_PT_shading_debug(CyclesDebugButtonsPanel,
-                                     CyclesShadingButtonsPanel,
-                                     Panel):
+class CYCLES_VIEW3D_PT_shading_debug(CyclesDebugButtonsPanel, CyclesShadingButtonsPanel, Panel):
     bl_label = "Debug"
 
     @classmethod
     def poll(cls, context):
-        return (
-            CyclesDebugButtonsPanel.poll(context) and
-            CyclesShadingButtonsPanel.poll(context)
-        )
+        return CyclesDebugButtonsPanel.poll(context) and CyclesShadingButtonsPanel.poll(context)
 
     def draw(self, context):
         shading = context.space_data.shading
@@ -2406,10 +2404,7 @@ class CYCLES_VIEW3D_PT_shading_lighting(Panel):
 
     @classmethod
     def poll(cls, context):
-        return (
-            context.engine in cls.COMPAT_ENGINES and
-            context.space_data.shading.type == 'RENDERED'
-        )
+        return context.engine in cls.COMPAT_ENGINES and context.space_data.shading.type == 'RENDERED'
 
     def draw(self, context):
         layout = self.layout
@@ -2454,6 +2449,7 @@ def draw_device(self, context):
 
     if context.engine == 'CYCLES':
         from . import engine
+
         cscene = scene.cycles
 
         col = layout.column()
@@ -2464,10 +2460,10 @@ def draw_device(self, context):
         col.prop(cscene, "device")
 
         from . import engine
+
         if engine.with_osl() and (
-            use_cpu(context) or (
-                use_optix(context) and (
-                engine.osl_version()[1] >= 13 or engine.osl_version()[0] > 1))):
+            use_cpu(context) or (use_optix(context) and (engine.osl_version()[1] >= 13 or engine.osl_version()[0] > 1))
+        ):
             osl_col = layout.column()
             osl_col.prop(cscene, "shading_system")
 
@@ -2569,7 +2565,6 @@ classes = (
     CYCLES_RENDER_PT_passes_aov,
     CYCLES_RENDER_PT_passes_lightgroups,
     CYCLES_RENDER_PT_filter,
-    CYCLES_RENDER_PT_override,
     CYCLES_PT_post_processing,
     CYCLES_CAMERA_PT_dof,
     CYCLES_CAMERA_PT_dof_aperture,
@@ -2621,7 +2616,7 @@ classes = (
     node_panel(CYCLES_WORLD_PT_settings_surface),
     node_panel(CYCLES_WORLD_PT_settings_volume),
     node_panel(CYCLES_LIGHT_PT_light),
-    node_panel(CYCLES_LIGHT_PT_beam_shape)
+    node_panel(CYCLES_LIGHT_PT_beam_shape),
 )
 
 

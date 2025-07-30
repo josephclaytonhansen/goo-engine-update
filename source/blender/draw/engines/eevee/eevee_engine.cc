@@ -220,7 +220,11 @@ static void eevee_draw_scene(void *vedata)
   if (DRW_state_is_image_render()) {
     const DRWContextState *draw_ctx = DRW_context_state_get();
     const Scene *scene = draw_ctx->scene;
-    loop_len = std::max(1, scene->eevee.taa_samples);
+    /* Note: Cycles have different option for view layers sample overrides. The current behavior
+     * matches the default `Use`, which simply override if non-zero. */
+    uint64_t render_sample_count = (draw_ctx->view_layer->samples > 0) ? draw_ctx->view_layer->samples :
+                                                                          scene->eevee.taa_render_samples;
+    loop_len = std::max(1, int(render_sample_count));
   }
 
   if (stl->effects->bypass_drawing) {
