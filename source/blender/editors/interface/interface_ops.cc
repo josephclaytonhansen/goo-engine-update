@@ -7,31 +7,25 @@
  */
 
 #include <cstring>
-#include <optional>
 
 #include <fmt/format.h>
 
 #include "MEM_guardedalloc.h"
-
-#include "UI_abstract_view.hh"
 
 #include "DNA_armature_types.h"
 #include "DNA_material_types.h"
 #include "DNA_modifier_types.h" /* for handling geometry nodes properties */
 #include "DNA_object_types.h"   /* for OB_DATA_SUPPORT_ID */
 #include "DNA_screen_types.h"
-#include "DNA_text_types.h"
 
 #include "BLI_blenlib.h"
 #include "BLI_math_color.h"
 
 #include "BLF_api.hh"
-#include "BLT_lang.h"
-#include "BLT_translation.h"
+#include "BLT_lang.hh"
+#include "BLT_translation.hh"
 
 #include "BKE_context.hh"
-#include "BKE_global.h"
-#include "BKE_idprop.h"
 #include "BKE_idtype.hh"
 #include "BKE_layer.hh"
 #include "BKE_lib_id.hh"
@@ -39,9 +33,8 @@
 #include "BKE_lib_remap.hh"
 #include "BKE_material.h"
 #include "BKE_node.hh"
-#include "BKE_report.h"
+#include "BKE_report.hh"
 #include "BKE_screen.hh"
-#include "BKE_text.h"
 
 #include "IMB_colormanagement.hh"
 
@@ -49,11 +42,10 @@
 
 #include "RNA_access.hh"
 #include "RNA_define.hh"
-#include "RNA_enum_types.hh"
 #include "RNA_path.hh"
 #include "RNA_prototypes.h"
-#include "RNA_types.hh"
 
+#include "UI_abstract_view.hh"
 #include "UI_interface.hh"
 
 #include "interface_intern.hh"
@@ -69,10 +61,8 @@
 #include "ED_keyframing.hh"
 
 /* only for UI_OT_editsource */
-#include "BKE_main.hh"
 #include "BLI_ghash.h"
 #include "ED_screen.hh"
-#include "ED_text.hh"
 
 using namespace blender::ui;
 
@@ -828,7 +818,7 @@ static int override_idtemplate_make_exec(bContext *C, wmOperator * /*op*/)
 
   /* 'Security' extra tagging, since this process may also affect the owner ID and not only the
    * used ID, relying on the property update code only is not always enough. */
-  DEG_id_tag_update(&CTX_data_scene(C)->id, ID_RECALC_BASE_FLAGS | ID_RECALC_COPY_ON_WRITE);
+  DEG_id_tag_update(&CTX_data_scene(C)->id, ID_RECALC_BASE_FLAGS | ID_RECALC_SYNC_TO_EVAL);
   WM_event_add_notifier(C, NC_WINDOW, nullptr);
   WM_event_add_notifier(C, NC_WM | ND_LIB_OVERRIDE_CHANGED, nullptr);
   WM_event_add_notifier(C, NC_SPACE | ND_SPACE_VIEW3D, nullptr);
@@ -955,7 +945,7 @@ static int override_idtemplate_clear_exec(bContext *C, wmOperator * /*op*/)
 
   /* 'Security' extra tagging, since this process may also affect the owner ID and not only the
    * used ID, relying on the property update code only is not always enough. */
-  DEG_id_tag_update(&scene->id, ID_RECALC_BASE_FLAGS | ID_RECALC_COPY_ON_WRITE);
+  DEG_id_tag_update(&scene->id, ID_RECALC_BASE_FLAGS | ID_RECALC_SYNC_TO_EVAL);
   WM_event_add_notifier(C, NC_WINDOW, nullptr);
   WM_event_add_notifier(C, NC_WM | ND_LIB_OVERRIDE_CHANGED, nullptr);
   WM_event_add_notifier(C, NC_SPACE | ND_SPACE_VIEW3D, nullptr);
@@ -2405,32 +2395,27 @@ static void UI_OT_list_start_filter(wmOperatorType *ot)
 /** \name UI View Start Filter Operator
  * \{ */
 
-static AbstractView *get_view_focused(bContext *C)
+static bool ui_view_focused_poll(bContext *C)
 {
   const wmWindow *win = CTX_wm_window(C);
   if (!(win && win->eventstate)) {
-    return nullptr;
+    return false;
   }
 
   const ARegion *region = CTX_wm_region(C);
   if (!region) {
-    return nullptr;
+    return false;
   }
-  return reinterpret_cast<AbstractView*>(UI_region_view_find_at(region, win->eventstate->xy, 0));
-}
-
-static bool ui_view_focused_poll(bContext *C)
-{
-  const AbstractView *view = get_view_focused(C);
+  const blender::ui::AbstractView *view = UI_region_view_find_at(region, win->eventstate->xy, 0);
   return view != nullptr;
 }
 
 static int ui_view_start_filter_invoke(bContext *C, wmOperator * /*op*/, const wmEvent *event)
 {
   const ARegion *region = CTX_wm_region(C);
-  const uiViewHandle *hovered_view = UI_region_view_find_at(region, event->xy, 0);
+  const blender::ui::AbstractView *hovered_view = UI_region_view_find_at(region, event->xy, 0);
 
-  if (!UI_view_begin_filtering(C, hovered_view)) {
+  if (!hovered_view->begin_filtering(*C)) {
     return OPERATOR_CANCELLED | OPERATOR_PASS_THROUGH;
   }
 
@@ -2503,72 +2488,6 @@ static void UI_OT_view_drop(wmOperatorType *ot)
 /** \} */
 
 /* -------------------------------------------------------------------- */
-/** \name UI View Drop Operator
- * \{ */
-
-static bool ui_view_scroll_poll(bContext *C)
-{
-  const AbstractView *view = get_view_focused(C);
-  if (!view) {
-    return false;
-  }
-
-  return view->supports_scrolling();
-}
-
-static int ui_view_scroll_invoke(bContext *C, wmOperator * /*op*/, const wmEvent *event)
-{
-  ARegion *region = CTX_wm_region(C);
-  int type = event->type;
-  bool invert_direction = false;
-
-  if (type == MOUSEPAN) {
-    int dummy_val;
-    ui_pan_to_scroll(event, &type, &dummy_val);
-
-    /* 'ui_pan_to_scroll' gives the absolute direction. */
-    if (event->flag & WM_EVENT_SCROLL_INVERT) {
-      invert_direction = true;
-    }
-  }
-
-  AbstractView *view = get_view_focused(C);
-  std::optional<ViewScrollDirection> direction =
-      [type, invert_direction]() -> std::optional<ViewScrollDirection> {
-    switch (type) {
-      case WHEELUPMOUSE:
-        return invert_direction ? ViewScrollDirection::DOWN : ViewScrollDirection::UP;
-      case WHEELDOWNMOUSE:
-        return invert_direction ? ViewScrollDirection::UP : ViewScrollDirection::DOWN;
-      default:
-        return std::nullopt;
-    }
-  }();
-  if (!direction) {
-    return OPERATOR_CANCELLED;
-  }
-
-  BLI_assert(view->supports_scrolling());
-  view->scroll(*direction);
-
-  ED_region_tag_redraw(region);
-  return OPERATOR_FINISHED;
-}
-
-static void UI_OT_view_scroll(wmOperatorType *ot)
-{
-  ot->name = "View Scroll";
-  ot->idname = "UI_OT_view_scroll";
-
-  ot->invoke = ui_view_scroll_invoke;
-  ot->poll = ui_view_scroll_poll;
-
-  ot->flag = OPTYPE_INTERNAL;
-}
-
-/** \} */
-
-/* -------------------------------------------------------------------- */
 /** \name UI View Item Rename Operator
  *
  * General purpose renaming operator for views. Thanks to this, to add a rename button to context
@@ -2583,16 +2502,16 @@ static bool ui_view_item_rename_poll(bContext *C)
   if (region == nullptr) {
     return false;
   }
-  const uiViewItemHandle *active_item = UI_region_views_find_active_item(region);
-  return active_item != nullptr && UI_view_item_can_rename(active_item);
+  const blender::ui::AbstractViewItem *active_item = UI_region_views_find_active_item(region);
+  return active_item != nullptr && UI_view_item_can_rename(*active_item);
 }
 
 static int ui_view_item_rename_exec(bContext *C, wmOperator * /*op*/)
 {
   ARegion *region = CTX_wm_region(C);
-  uiViewItemHandle *active_item = UI_region_views_find_active_item(region);
+  blender::ui::AbstractViewItem *active_item = UI_region_views_find_active_item(region);
 
-  UI_view_item_begin_rename(active_item);
+  UI_view_item_begin_rename(*active_item);
   ED_region_tag_redraw(region);
 
   return OPERATOR_FINISHED;
@@ -2711,7 +2630,6 @@ void ED_operatortypes_ui()
 
   WM_operatortype_append(UI_OT_view_start_filter);
   WM_operatortype_append(UI_OT_view_drop);
-  WM_operatortype_append(UI_OT_view_scroll);
   WM_operatortype_append(UI_OT_view_item_rename);
 
   WM_operatortype_append(UI_OT_override_type_set_button);

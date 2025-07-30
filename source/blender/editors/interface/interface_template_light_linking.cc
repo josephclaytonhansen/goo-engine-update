@@ -13,7 +13,7 @@
 
 #include <fmt/format.h>
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "DNA_collection_types.h"
 #include "DNA_object_types.h"
@@ -399,7 +399,7 @@ void uiTemplateLightLinkingCollection(uiLayout *layout,
       *block,
       "Light Linking Collection Tree View",
       std::make_unique<blender::ui::light_linking::CollectionView>(*context_layout, *collection));
-  tree_view->set_default_rows(3);
+  tree_view->set_min_rows(3);
 
   blender::ui::TreeViewBuilder::build_tree_view(*tree_view, *layout);
 }

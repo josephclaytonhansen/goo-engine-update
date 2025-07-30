@@ -50,8 +50,17 @@ vec4 closure_to_rgba(Closure cl);
 /* Goo-engine node internals */
 void calc_shader_info(vec3 position, vec3 normal, ivec4 light_groups, ivec4 light_group_shadows, out vec4 half_light, out float shadows, out float self_shadows, out vec4 ambient, out float half_lambert);
 void calc_shader_info(vec3 position, vec3 normal, out vec4 half_light, out float shadows, out float self_shadows, out vec4 ambient, out float half_lambert);
+/* Original Goo Engine overloads without half_lambert parameter */
+void calc_shader_info(vec3 position, vec3 normal, ivec4 light_groups, ivec4 light_group_shadows, out vec4 half_light, out float shadows, out float self_shadows, out vec4 ambient);
+void calc_shader_info(vec3 position, vec3 normal, out vec4 half_light, out float shadows, out float self_shadows, out vec4 ambient);
 void screenspace_info(vec3 viewPos, out vec4 scene_col, out float scene_depth);
 void screenspace_curvature(float iiterations, float sample_scale, float clamp_dist, vec3 scale, out float scene_curvature, out float scene_rim);
+
+/* Film scaling factor for texture sampling compatibility */
+float film_scaling_factor_get()
+{
+    return 1.0; /* EEVEE Legacy default - no film scaling */
+}
 
 
 void output_aov(vec4 color, float value, uint hash);

@@ -36,6 +36,10 @@ struct uiViewHandle;
 struct uiViewItemHandle;
 struct wmDrag;
 struct wmEvent;
+namespace blender::ui {
+class AbstractView;
+class AbstractViewItem;
+}  // namespace blender::ui
 
 void UI_but_func_set(uiBut *but, std::function<void(bContext &)> func);
 void UI_but_func_pushed_state_set(uiBut *but, std::function<bool(const uiBut &)> func);

@@ -17,6 +17,7 @@
 #include "BKE_image.h"
 #include "BKE_layer.hh"
 #include "BKE_mask.h"
+#include "BKE_mesh_types.hh"
 #include "BKE_object.hh"
 #include "BKE_paint.hh"
 
@@ -161,6 +162,7 @@ void OVERLAY_edit_uv_init(OVERLAY_Data *vedata)
 
   pd->edit_uv.do_uv_stretching_overlay = show_overlays && do_uvstretching_overlay;
   pd->edit_uv.uv_opacity = sima->uv_opacity;
+  pd->edit_uv.stretch_opacity = sima->stretch_opacity;
   pd->edit_uv.do_tiled_image_overlay = show_overlays && is_image_type && is_tiled_image;
   pd->edit_uv.do_tiled_image_border_overlay = is_image_type && is_tiled_image;
   pd->edit_uv.dash_length = 4.0f * UI_SCALE_FAC;
@@ -284,6 +286,8 @@ void OVERLAY_edit_uv_cache_init(OVERLAY_Data *vedata)
       pd->edit_uv_stretching_grp = DRW_shgroup_create(sh, psl->edit_uv_stretching_ps);
       DRW_shgroup_uniform_block(pd->edit_uv_stretching_grp, "globalsBlock", G_draw.block_ubo);
       DRW_shgroup_uniform_vec2_copy(pd->edit_uv_stretching_grp, "aspect", pd->edit_uv.uv_aspect);
+      DRW_shgroup_uniform_float_copy(
+          pd->edit_uv_stretching_grp, "stretch_opacity", pd->edit_uv.stretch_opacity);
     }
     else /* SI_UVDT_STRETCH_AREA */ {
       GPUShader *sh = OVERLAY_shader_edit_uv_stretching_area_get();
@@ -291,6 +295,8 @@ void OVERLAY_edit_uv_cache_init(OVERLAY_Data *vedata)
       DRW_shgroup_uniform_block(pd->edit_uv_stretching_grp, "globalsBlock", G_draw.block_ubo);
       DRW_shgroup_uniform_float(
           pd->edit_uv_stretching_grp, "totalAreaRatio", &pd->edit_uv.total_area_ratio, 1);
+      DRW_shgroup_uniform_float_copy(
+          pd->edit_uv_stretching_grp, "stretch_opacity", pd->edit_uv.stretch_opacity);
     }
   }
 
@@ -438,9 +444,9 @@ static void overlay_edit_uv_cache_populate(OVERLAY_Data *vedata, Object *ob)
   Mesh *mesh = (Mesh *)ob->data;
   const bool has_active_object_uvmap = CustomData_get_active_layer(&mesh->corner_data,
                                                                    CD_PROP_FLOAT2) != -1;
-  const bool has_active_edit_uvmap = is_edit_object &&
-                                     (CustomData_get_active_layer(&mesh->edit_mesh->bm->ldata,
-                                                                  CD_PROP_FLOAT2) != -1);
+  const bool has_active_edit_uvmap = is_edit_object && (CustomData_get_active_layer(
+                                                            &mesh->runtime->edit_mesh->bm->ldata,
+                                                            CD_PROP_FLOAT2) != -1);
   const bool draw_shadows = (draw_ctx->object_mode != OB_MODE_OBJECT) &&
                             (ob->mode == draw_ctx->object_mode);
 

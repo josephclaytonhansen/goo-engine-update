@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstring>
+#include <optional>
 
 #include "CLG_log.h"
 
@@ -42,9 +43,9 @@
 #include "BLI_string.h"
 #include "BLI_utildefines.h"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
-#include "BKE_anim_data.h"
+#include "BKE_anim_data.hh"
 #include "BKE_attribute.hh"
 #include "BKE_brush.hh"
 #include "BKE_curve.hh"
@@ -65,7 +66,7 @@
 #include "BKE_object.hh"
 #include "BKE_object_types.hh"
 #include "BKE_preview_image.hh"
-#include "BKE_scene.h"
+#include "BKE_scene.hh"
 #include "BKE_vfont.hh"
 
 #include "DEG_depsgraph.hh"
@@ -91,7 +92,11 @@ static void material_init_data(ID *id)
   *((short *)id->name) = ID_MA;
 }
 
-static void material_copy_data(Main *bmain, ID *id_dst, const ID *id_src, const int flag)
+static void material_copy_data(Main *bmain,
+                               std::optional<Library *> owner_library,
+                               ID *id_dst,
+                               const ID *id_src,
+                               const int flag)
 {
   Material *material_dst = (Material *)id_dst;
   const Material *material_src = (const Material *)id_src;
@@ -105,10 +110,11 @@ static void material_copy_data(Main *bmain, ID *id_dst, const ID *id_src, const 
       material_dst->nodetree = ntreeLocalize(material_src->nodetree);
     }
     else {
-      BKE_id_copy_ex(bmain,
-                     (ID *)material_src->nodetree,
-                     (ID **)&material_dst->nodetree,
-                     flag_private_id_data);
+      BKE_id_copy_in_lib(bmain,
+                         owner_library,
+                         (ID *)material_src->nodetree,
+                         (ID **)&material_dst->nodetree,
+                         flag_private_id_data);
     }
     material_dst->nodetree->owner_id = &material_dst->id;
   }
@@ -231,6 +237,7 @@ static void material_blend_read_data(BlendDataReader *reader, ID *id)
 IDTypeInfo IDType_ID_MA = {
     /*id_code*/ ID_MA,
     /*id_filter*/ FILTER_ID_MA,
+    /*dependencies_id_types*/ FILTER_ID_TE | FILTER_ID_GR,
     /*main_listbase_index*/ INDEX_ID_MA,
     /*struct_size*/ sizeof(Material),
     /*name*/ "Material",
@@ -550,7 +557,7 @@ void BKE_id_materials_copy(Main *bmain, ID *id_src, ID *id_dst)
       id_us_plus((ID *)(*matar_dst)[a]);
     }
 
-    DEG_id_tag_update(id_dst, ID_RECALC_COPY_ON_WRITE);
+    DEG_id_tag_update(id_dst, ID_RECALC_SYNC_TO_EVAL);
     DEG_relations_tag_update(bmain);
   }
 }
@@ -582,7 +589,7 @@ void BKE_id_material_resize(Main *bmain, ID *id, short totcol, bool do_id_user)
   }
   *totcolp = totcol;
 
-  DEG_id_tag_update(id, ID_RECALC_COPY_ON_WRITE);
+  DEG_id_tag_update(id, ID_RECALC_SYNC_TO_EVAL);
   DEG_relations_tag_update(bmain);
 }
 
@@ -605,7 +612,7 @@ void BKE_id_material_append(Main *bmain, ID *id, Material *ma)
     id_us_plus((ID *)ma);
     BKE_objects_materials_test_all(bmain, id);
 
-    DEG_id_tag_update(id, ID_RECALC_COPY_ON_WRITE);
+    DEG_id_tag_update(id, ID_RECALC_SYNC_TO_EVAL);
     DEG_relations_tag_update(bmain);
   }
 }
@@ -640,7 +647,7 @@ Material *BKE_id_material_pop(Main *bmain, ID *id, int index_i)
 
       material_data_index_remove_id(id, index);
 
-      DEG_id_tag_update(id, ID_RECALC_COPY_ON_WRITE);
+      DEG_id_tag_update(id, ID_RECALC_SYNC_TO_EVAL);
       DEG_relations_tag_update(bmain);
     }
   }
@@ -666,7 +673,7 @@ void BKE_id_material_clear(Main *bmain, ID *id)
     BKE_objects_materials_test_all(bmain, id);
     material_data_index_clear_id(id);
 
-    DEG_id_tag_update(id, ID_RECALC_COPY_ON_WRITE);
+    DEG_id_tag_update(id, ID_RECALC_SYNC_TO_EVAL);
     DEG_relations_tag_update(bmain);
   }
 }
@@ -727,7 +734,7 @@ static ID *get_evaluated_object_data_with_materials(Object *ob)
   if (ob->type == OB_MESH && ob->mode == OB_MODE_EDIT) {
     Mesh *mesh = static_cast<Mesh *>(ob->data);
     Mesh *editmesh_eval_final = BKE_object_get_editmesh_eval_final(ob);
-    if (mesh->edit_mesh && editmesh_eval_final) {
+    if (mesh->runtime->edit_mesh && editmesh_eval_final) {
       data = &editmesh_eval_final->id;
     }
   }
@@ -850,14 +857,6 @@ int BKE_object_material_ensure(Main *bmain, Object *ob, Material *material)
   return index;
 }
 
-bool BKE_material_use_custom_holdout(Material* ma)
-{
-  if (ma == NULL || ma->blend_method == MA_BM_SOLID) {
-    return false;
-  }
-  return true;
-}
-
 Material *BKE_gpencil_material(Object *ob, short act)
 {
   Material *ma = BKE_object_material_get(ob, act);
@@ -923,7 +922,7 @@ void BKE_object_material_resize(Main *bmain, Object *ob, const short totcol, boo
     ob->actcol = ob->totcol;
   }
 
-  DEG_id_tag_update(&ob->id, ID_RECALC_COPY_ON_WRITE | ID_RECALC_GEOMETRY);
+  DEG_id_tag_update(&ob->id, ID_RECALC_SYNC_TO_EVAL | ID_RECALC_GEOMETRY);
   DEG_relations_tag_update(bmain);
 }
 
@@ -1621,7 +1620,7 @@ void BKE_texpaint_slot_refresh_cache(Scene *scene, Material *ma, const Object *o
     }
   }
 
-  /* COW needed when adding texture slot on an object with no materials.
+  /* Copy-on-eval needed when adding texture slot on an object with no materials.
    * But do it only when slots actually change to avoid continuous depsgraph updates. */
   if (ma->tot_slots != prev_tot_slots || ma->paint_active_slot != prev_paint_active_slot ||
       ma->paint_clone_slot != prev_paint_clone_slot ||
@@ -1629,7 +1628,7 @@ void BKE_texpaint_slot_refresh_cache(Scene *scene, Material *ma, const Object *o
        memcmp(ma->texpaintslot, prev_texpaintslot, sizeof(*ma->texpaintslot) * ma->tot_slots) !=
            0))
   {
-    DEG_id_tag_update(&ma->id, ID_RECALC_SHADING | ID_RECALC_COPY_ON_WRITE);
+    DEG_id_tag_update(&ma->id, ID_RECALC_SHADING | ID_RECALC_SYNC_TO_EVAL);
   }
 
   MEM_SAFE_FREE(prev_texpaintslot);
@@ -2007,13 +2006,6 @@ static void material_default_surface_init(Material *ma)
   output->locy = 300.0f;
 
   nodeSetActive(ntree, output);
-
-  const uint32_t default_light_groups[4] = {
-      0,0,0,1
-  };
-
-  copy_v4_v4_int(ma->light_group_bits, (int*) default_light_groups);
-  copy_v4_v4_int(ma->light_group_shadow_bits, (int*) default_light_groups);
 }
 
 static void material_default_volume_init(Material *ma)
@@ -2113,6 +2105,17 @@ void BKE_materials_init()
   material_default_volume_init(&default_material_volume);
   material_default_holdout_init(&default_material_holdout);
   material_default_gpencil_init(&default_material_gpencil);
+}
+
+bool BKE_material_use_custom_holdout(Material *ma)
+{
+  /* Goo Engine: Check if material uses custom holdout settings.
+   * Return true if the material has custom holdout properties,
+   * false to use default holdout material. */
+  if (ma == nullptr || ma->blend_method == MA_BM_SOLID) {
+    return false;
+  }
+  return true;
 }
 
 void BKE_materials_exit()

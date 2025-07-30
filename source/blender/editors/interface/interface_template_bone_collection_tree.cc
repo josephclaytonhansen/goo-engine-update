@@ -8,7 +8,7 @@
 
 #include "BKE_context.hh"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "ANIM_armature_iter.hh"
 #include "ANIM_bone_collections.hh"
@@ -473,7 +473,7 @@ void uiTemplateBoneCollectionTree(uiLayout *layout, bContext *C)
       *block,
       "Bone Collection Tree View",
       std::make_unique<blender::ui::bonecollections::BoneCollectionTreeView>(*armature));
-  tree_view->set_default_rows(3);
+  tree_view->set_min_rows(3);
 
   ui::TreeViewBuilder::build_tree_view(*tree_view, *layout);
 }

@@ -12,7 +12,7 @@
 
 #include "BLI_math_rotation.h"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "DNA_action_types.h"
 #include "DNA_constraint_types.h"
@@ -1478,11 +1478,6 @@ static void rna_def_constraint_rotate_like(BlenderRNA *brna)
   prop = RNA_def_property(srna, "invert_z", PROP_BOOLEAN, PROP_NONE);
   RNA_def_property_boolean_sdna(prop, nullptr, "flag", ROTLIKE_Z_INVERT);
   RNA_def_property_ui_text(prop, "Invert Z", "Invert the Z rotation");
-  RNA_def_property_update(prop, NC_OBJECT | ND_CONSTRAINT, "rna_Constraint_update");
-
-  prop = RNA_def_property(srna, "invert_all", PROP_BOOLEAN, PROP_NONE);
-  RNA_def_property_boolean_sdna(prop, NULL, "flag", ROTLIKE_INVERT_ALL);
-  RNA_def_property_ui_text(prop, "Invert All", "Invert final combined rotation");
   RNA_def_property_update(prop, NC_OBJECT | ND_CONSTRAINT, "rna_Constraint_update");
 
   prop = RNA_def_property(srna, "euler_order", PROP_ENUM, PROP_NONE);

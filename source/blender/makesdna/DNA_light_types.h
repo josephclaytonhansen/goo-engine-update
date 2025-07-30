@@ -77,12 +77,15 @@ typedef struct Light {
   float spec_fac, att_dist;
   float shadow_softness_factor;
   float shadow_trace_distance;
-  float _pad3;
+  float shadow_filter_radius;
+  float shadow_resolution_scale;
 
-  /* Goo-engine */
+  /** Light groups bit-mapped assignment for NPR workflows (Goo Engine). */
   int light_group_bits[4];
 
-  /* preview */
+  float _pad0;
+
+  /* Preview */
   struct PreviewImage *preview;
 
   /* Nodes */

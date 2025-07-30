@@ -42,7 +42,7 @@
 
 #include "BKE_appdir.hh"
 #include "BKE_context.hh"
-#include "BKE_global.h"
+#include "BKE_global.hh"
 #include "BKE_icons.h"
 #include "BKE_paint.hh"
 #include "BKE_preview_image.hh"
@@ -1446,11 +1446,6 @@ static void icon_set_image(const bContext *C,
                            enum eIconSizes size,
                            const bool use_job)
 {
-  if (U.experimental.disable_material_icon && GS(id->name) == ID_MA) {
-    return;
-  }
-
-
   if (!prv_img) {
     if (G.debug & G_DEBUG) {
       printf("%s: no preview image for this ID: %s\n", __func__, id->name);
@@ -2397,6 +2392,8 @@ int UI_icon_from_idcode(const int idcode)
   switch ((ID_Type)idcode) {
     case ID_AC:
       return ICON_ACTION;
+    case ID_AN:
+      return ICON_ACTION; /* TODO: give Animation its own icon. */
     case ID_AR:
       return ICON_ARMATURE_DATA;
     case ID_BR:

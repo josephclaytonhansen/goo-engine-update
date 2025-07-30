@@ -11,15 +11,12 @@
 #include <algorithm>
 #include <cmath>
 
-#include "CLG_log.h"
-
 /* Define macros in `DNA_genfile.h`. */
 #define DNA_GENFILE_VERSIONING_MACROS
 
 #include "DNA_anim_types.h"
 #include "DNA_brush_types.h"
 #include "DNA_camera_types.h"
-#include "DNA_text_types.h"
 #include "DNA_curve_types.h"
 #include "DNA_defaults.h"
 #include "DNA_light_types.h"
@@ -42,17 +39,18 @@
 #include "BLI_assert.h"
 #include "BLI_listbase.h"
 #include "BLI_map.hh"
-#include "BLI_math_matrix.h"
+#include "BLI_math_rotation.h"
 #include "BLI_math_vector.h"
+#include "BLI_math_matrix.h"
 #include "BLI_set.hh"
 #include "BLI_string.h"
 #include "BLI_string_ref.hh"
 
-#include "BKE_anim_data.h"
+#include "BKE_anim_data.hh"
 #include "BKE_animsys.h"
 #include "BKE_armature.hh"
 #include "BKE_attribute.hh"
-#include "BKE_collection.h"
+#include "BKE_colortools.hh"
 #include "BKE_curve.hh"
 #include "BKE_effect.h"
 #include "BKE_grease_pencil.hh"
@@ -61,24 +59,19 @@
 #include "BKE_material.h"
 #include "BKE_mesh_legacy_convert.hh"
 #include "BKE_nla.h"
-#include "BKE_node.hh"
 #include "BKE_node_runtime.hh"
-#include "BKE_scene.h"
+#include "BKE_scene.hh"
 #include "BKE_tracking.h"
 
 #include "SEQ_iterator.hh"
-#include "SEQ_retiming.hh"
-#include "SEQ_sequencer.hh"
 
 #include "ANIM_armature_iter.hh"
 #include "ANIM_bone_collections.hh"
 
-#include "ED_armature.hh"
-
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "BLO_read_write.hh"
-#include "BLO_readfile.h"
+#include "BLO_readfile.hh"
 
 #include "readfile.hh"
 
@@ -1693,7 +1686,7 @@ static void version_principled_bsdf_specular_tint(bNodeTree *ntree)
       }
     }
     else if (base_color_sock->link) {
-      /* Metallic Mix is a no-op and equivalent to Base Color*/
+      /* Metallic Mix is a no-op and equivalent to Base Color. */
       metallic_mix_out = base_color_sock->link->fromsock;
       metallic_mix_node = base_color_sock->link->fromnode;
     }
@@ -2038,18 +2031,40 @@ static bool seq_filter_bilinear_to_auto(Sequence *seq, void * /*user_data*/)
   return true;
 }
 
-void blo_do_versions_400(FileData *fd, Library * /*lib*/, Main *bmain)
+static void image_settings_avi_to_ffmpeg(Scene *scene)
 {
-  /* Goo engine version warning script - remove if it exists. */
-  if (!MAIN_VERSION_FILE_ATLEAST(bmain, 400, 0)) {
-    LISTBASE_FOREACH_MUTABLE (Text *, text, &bmain->texts) {
-      if (strcmp(text->id.name, "TX.version_warning.py") > 0) {
-        continue;
-      }
-      BLI_remlink(&bmain->texts, text);
+  if (ELEM(scene->r.im_format.imtype, R_IMF_IMTYPE_AVIRAW, R_IMF_IMTYPE_AVIJPEG)) {
+    scene->r.im_format.imtype = R_IMF_IMTYPE_FFMPEG;
+  }
+}
+
+static bool seq_hue_correct_set_wrapping(Sequence *seq, void * /*user_data*/)
+{
+  LISTBASE_FOREACH (SequenceModifierData *, smd, &seq->modifiers) {
+    if (smd->type == seqModifierType_HueCorrect) {
+      HueCorrectModifierData *hcmd = (HueCorrectModifierData *)smd;
+      CurveMapping *cumap = (CurveMapping *)&hcmd->curve_mapping;
+      cumap->flag |= CUMA_USE_WRAPPING;
     }
   }
+  return true;
+}
 
+static void versioning_node_hue_correct_set_wrappng(bNodeTree *ntree)
+{
+  if (ntree->type == NTREE_COMPOSIT) {
+    LISTBASE_FOREACH_MUTABLE (bNode *, node, &ntree->nodes) {
+
+      if (node->type == CMP_NODE_HUECORRECT) {
+        CurveMapping *cumap = (CurveMapping *)node->storage;
+        cumap->flag |= CUMA_USE_WRAPPING;
+      }
+    }
+  }
+}
+
+void blo_do_versions_400(FileData *fd, Library * /*lib*/, Main *bmain)
+{
   if (!MAIN_VERSION_FILE_ATLEAST(bmain, 400, 1)) {
     LISTBASE_FOREACH (Mesh *, mesh, &bmain->meshes) {
       version_mesh_legacy_to_struct_of_array_format(*mesh);
@@ -2988,15 +3003,6 @@ void blo_do_versions_400(FileData *fd, Library * /*lib*/, Main *bmain)
     }
   }
 
-  /* Keep point/spot light soft falloff for files created before 4.0. */
-  if (!MAIN_VERSION_FILE_ATLEAST(bmain, 400, 0)) {
-    LISTBASE_FOREACH (Light *, light, &bmain->lights) {
-      if (light->type == LA_LOCAL || light->type == LA_SPOT) {
-        light->mode |= LA_USE_SOFT_FALLOFF;
-      }
-    }
-  }
-
   if (!MAIN_VERSION_FILE_ATLEAST(bmain, 401, 21)) {
     LISTBASE_FOREACH (Brush *, brush, &bmain->brushes) {
       /* The `sculpt_flag` was used to store the `BRUSH_DIR_IN`
@@ -3007,14 +3013,54 @@ void blo_do_versions_400(FileData *fd, Library * /*lib*/, Main *bmain)
     }
   }
 
-  if (MAIN_VERSION_FILE_ATLEAST(bmain, 402, 0)) {
-    /* These matrices are runtime data and in 4.2 they are not contained in DNA. For those files
-     * from future versions, initialize the matrices to the identity so they are valid before a
-     * depsgraph update. */
-    LISTBASE_FOREACH (Object *, object, &bmain->objects) {
-      unit_m4(object->object_to_world);
-      unit_m4(object->world_to_object);
+  /* Keep point/spot light soft falloff for files created before 4.0. */
+  if (!MAIN_VERSION_FILE_ATLEAST(bmain, 400, 0)) {
+    LISTBASE_FOREACH (Light *, light, &bmain->lights) {
+      if (ELEM(light->type, LA_LOCAL, LA_SPOT)) {
+        light->mode |= LA_USE_SOFT_FALLOFF;
+      }
     }
+  }
+
+  if (!MAIN_VERSION_FILE_ATLEAST(bmain, 401, 21)) {
+    LISTBASE_FOREACH (Brush *, brush, &bmain->brushes) {
+      if (BrushCurvesSculptSettings *settings = brush->curves_sculpt_settings) {
+        settings->flag |= BRUSH_CURVES_SCULPT_FLAG_INTERPOLATE_RADIUS;
+        settings->curve_radius = 0.01f;
+      }
+    }
+  }
+
+  if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 8)) {
+    LISTBASE_FOREACH (Light *, light, &bmain->lights) {
+      light->shadow_filter_radius = 3.0f;
+    }
+  }
+
+  if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 9)) {
+    const float default_snap_angle_increment = DEG2RADF(5.0f);
+    const float default_snap_angle_increment_precision = DEG2RADF(1.0f);
+    LISTBASE_FOREACH (Scene *, scene, &bmain->scenes) {
+      scene->toolsettings->snap_angle_increment_2d = default_snap_angle_increment;
+      scene->toolsettings->snap_angle_increment_3d = default_snap_angle_increment;
+      scene->toolsettings->snap_angle_increment_2d_precision =
+          default_snap_angle_increment_precision;
+      scene->toolsettings->snap_angle_increment_3d_precision =
+          default_snap_angle_increment_precision;
+    }
+  }
+
+  if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 10)) {
+    if (!DNA_struct_member_exists(fd->filesdna, "RaytraceEEVEE", "int", "resolution_scale")) {
+      LISTBASE_FOREACH (Scene *, scene, &bmain->scenes) {
+        scene->eevee.ray_tracing_options.resolution_scale = 2;
+      }
+    }
+  }
+
+  if (MAIN_VERSION_FILE_ATLEAST(bmain, 402, 0)) {
+    /* These matrices are runtime data and in 4.2 they are not contained in DNA.
+     * They will be computed properly by the depsgraph, so no initialization needed. */
   }
 
   /**

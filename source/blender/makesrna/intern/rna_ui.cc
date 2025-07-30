@@ -11,7 +11,7 @@
 #include "DNA_screen_types.h"
 #include "DNA_space_types.h"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "BKE_file_handler.hh"
 #include "BKE_idprop.h"
@@ -63,7 +63,7 @@ const EnumPropertyItem rna_enum_uilist_layout_type_items[] = {
 
 #  include "BKE_context.hh"
 #  include "BKE_main.hh"
-#  include "BKE_report.h"
+#  include "BKE_report.hh"
 #  include "BKE_screen.hh"
 
 #  include "ED_asset_library.hh"
@@ -625,10 +625,7 @@ static void uilist_filter_items(uiList *ui_list,
         int t_idx, t_ni, prev_ni;
         flt_data->items_shown = 0;
         for (i = 0, shown_idx = 0; i < len; i++) {
-          if (filter_flags[i] & UILST_FLT_ITEM_NEVER_SHOW) {
-            BLI_assert_msg(false, "Bit reserved for internal use");
-          }
-          else if ((filter_flags[i] & UILST_FLT_ITEM) ^ filter_exclude) {
+          if ((filter_flags[i] & UILST_FLT_ITEM) ^ filter_exclude) {
             filter_neworder[shown_idx++] = filter_neworder[i];
           }
         }
@@ -656,10 +653,7 @@ static void uilist_filter_items(uiList *ui_list,
         /* we still have to set flt_data->items_shown... */
         flt_data->items_shown = 0;
         for (i = 0; i < len; i++) {
-          if (filter_flags[i] & UILST_FLT_ITEM_NEVER_SHOW) {
-            /* Pass. */
-          }
-          else if ((filter_flags[i] & UILST_FLT_ITEM) ^ filter_exclude) {
+          if ((filter_flags[i] & UILST_FLT_ITEM) ^ filter_exclude) {
             flt_data->items_shown++;
           }
         }
@@ -2079,11 +2073,11 @@ static void rna_def_uilist(BlenderRNA *brna)
   prop = RNA_def_property(func, "filter_flags", PROP_INT, PROP_UNSIGNED);
   RNA_def_property_flag(prop, PropertyFlag(PARM_REQUIRED | PROP_DYNAMIC));
   RNA_def_property_array(prop, 1); /* XXX Dummy value, default 0 does not work */
-  RNA_def_property_ui_text(prop,
-                           "",
-                           "An array of filter flags, one for each item in the collection (NOTE: "
-                           "The upper 16 bits, including FILTER_ITEM, are reserved, only use the "
-                           "lower 16 bits for custom usages)");
+  RNA_def_property_ui_text(
+      prop,
+      "",
+      "An array of filter flags, one for each item in the collection (NOTE: "
+      "FILTER_ITEM bit is reserved, it defines whether the item is shown or not)");
   RNA_def_function_output(func, prop);
   prop = RNA_def_property(func, "filter_neworder", PROP_INT, PROP_UNSIGNED);
   RNA_def_property_flag(prop, PropertyFlag(PARM_REQUIRED | PROP_DYNAMIC));

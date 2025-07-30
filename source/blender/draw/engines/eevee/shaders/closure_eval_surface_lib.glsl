@@ -472,6 +472,31 @@ void calc_shader_info(vec3 position,
   ambient = vec4(probe_evaluate_world_diff(n_n), 1.0);
 }
 
+/* Overloads without half_lambert parameter for Goo Engine compatibility */
+void calc_shader_info(vec3 position,
+                      vec3 normal,
+                      out vec4 half_light,
+                      out float shadows,
+                      out float self_shadows,
+                      out vec4 ambient)
+{
+  float half_lambert_unused;
+  calc_shader_info(position, normal, half_light, shadows, self_shadows, ambient, half_lambert_unused);
+}
+
+void calc_shader_info(vec3 position,
+                      vec3 normal,
+                      ivec4 light_groups,
+                      ivec4 light_group_shadows,
+                      out vec4 half_light,
+                      out float shadows,
+                      out float self_shadows,
+                      out vec4 ambient)
+{
+  float half_lambert_unused;
+  calc_shader_info(position, normal, light_groups, light_group_shadows, half_light, shadows, self_shadows, ambient, half_lambert_unused);
+}
+
 void screenspace_info(vec3 viewPos, out vec4 scene_col, out float scene_depth)
 {
   vec2 uvs = get_uvs_from_view(viewPos * vec3(1.0, 1.0, -1.0));

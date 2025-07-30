@@ -24,7 +24,7 @@
 #include "BLI_math_vector.h"
 #include "BLI_string_utf8_symbols.h"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "UI_resources.hh"
 
@@ -74,7 +74,7 @@ const EnumPropertyItem rna_enum_color_sets_items[] = {
 
 #  include "BKE_constraint.h"
 #  include "BKE_context.hh"
-#  include "BKE_global.h"
+#  include "BKE_global.hh"
 #  include "BKE_idprop.h"
 
 #  include "DEG_depsgraph.hh"
@@ -1147,12 +1147,6 @@ static void rna_def_pose_channel(BlenderRNA *brna)
       prop, nullptr, "drawflag", PCHAN_DRAW_NO_CUSTOM_BONE_SIZE);
   RNA_def_property_ui_text(
       prop, "Scale to Bone Length", "Scale the custom object by the bone length");
-  RNA_def_property_update(prop, NC_OBJECT | ND_POSE, "rna_Pose_update");
-
-  prop = RNA_def_property(srna, "hide_outliner", PROP_BOOLEAN, PROP_NONE);
-  RNA_def_property_boolean_negative_sdna(prop, NULL, "drawflag", PCHAN_DRAW_SHOW_OUTLINER);
-  RNA_def_property_ui_text(
-        prop, "Set Outliner Flag", "Hide this pose bone in the Outliner when \"Hidden Pose Bones\" is disabled.");
   RNA_def_property_update(prop, NC_OBJECT | ND_POSE, "rna_Pose_update");
 
   prop = RNA_def_property(srna, "custom_shape_transform", PROP_POINTER, PROP_NONE);

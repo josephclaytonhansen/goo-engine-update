@@ -19,8 +19,6 @@
 #include "BKE_DerivedMesh.hh"
 #include "BKE_customdata.hh"
 #include "BKE_editmesh.hh"
-#include "BKE_editmesh_cache.hh"
-#include "BKE_lib_id.hh"
 #include "BKE_mesh.hh"
 #include "BKE_mesh_iterators.hh"
 #include "BKE_mesh_wrapper.hh"
@@ -61,15 +59,7 @@ BMEditMesh *BKE_editmesh_copy(BMEditMesh *em)
 BMEditMesh *BKE_editmesh_from_object(Object *ob)
 {
   BLI_assert(ob->type == OB_MESH);
-  /* sanity check */
-#if 0 /* disable in multi-object edit. */
-#  ifndef NDEBUG
-  if (((Mesh *)ob->data)->edit_mesh) {
-    BLI_assert(((Mesh *)ob->data)->edit_mesh->ob == ob);
-  }
-#  endif
-#endif
-  return ((Mesh *)ob->data)->edit_mesh;
+  return ((Mesh *)ob->data)->runtime->edit_mesh;
 }
 
 static void editmesh_tessface_calc_intern(BMEditMesh *em,

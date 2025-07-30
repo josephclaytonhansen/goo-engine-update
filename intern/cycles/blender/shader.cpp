@@ -1434,10 +1434,12 @@ void BlenderSync::resolve_view_layer_attributes(Shader *shader,
         BL::Scene b_scene = b_depsgraph.scene_eval();
         float4 value;
 
-        BKE_view_layer_find_rgba_attribute((::Scene *)b_scene.ptr.data,
-                                           (::ViewLayer *)b_layer.ptr.data,
-                                           real_name.c_str(),
-                                           &value.x);
+        // BKE_view_layer_find_rgba_attribute((::Scene *)b_scene.ptr.data,
+        //                                    (::ViewLayer *)b_layer.ptr.data,
+        //                                    real_name.c_str(),
+        //                                    &value.x);
+        /* Goo Engine: Default RGBA values since Cycles is disabled */
+        value.x = 1.0f; value.y = 1.0f; value.z = 1.0f; value.w = 1.0f;
 
         /* Replace all outgoing links, using appropriate output types. */
         float val_avg = (value.x + value.y + value.z) / 3.0f;

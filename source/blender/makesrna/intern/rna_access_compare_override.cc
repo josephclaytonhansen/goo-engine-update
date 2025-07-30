@@ -658,7 +658,7 @@ bool RNA_struct_override_matches(Main *bmain,
   if (!root_path) {
     _delta_time_diffing = 0.0f;
     _num_delta_time_diffing = 0;
-    _timeit_time_global = BLI_check_seconds_timer();
+    _timeit_time_global = BLI_time_now_seconds();
   }
 #endif
 
@@ -793,7 +793,7 @@ bool RNA_struct_override_matches(Main *bmain,
 
 #ifdef DEBUG_OVERRIDE_TIMEIT
     if (!root_path) {
-      _timeit_time_diffing = BLI_check_seconds_timer();
+      _timeit_time_diffing = BLI_time_now_seconds();
     }
 #endif
 
@@ -810,7 +810,7 @@ bool RNA_struct_override_matches(Main *bmain,
 
 #ifdef DEBUG_OVERRIDE_TIMEIT
     if (!root_path) {
-      const float _delta_time = float(BLI_check_seconds_timer() - _timeit_time_diffing);
+      const float _delta_time = float(BLI_time_now_seconds() - _timeit_time_diffing);
       _delta_time_diffing += _delta_time;
       _num_delta_time_diffing++;
     }
@@ -936,7 +936,7 @@ bool RNA_struct_override_matches(Main *bmain,
 
 #ifdef DEBUG_OVERRIDE_TIMEIT
   if (!root_path) {
-    const float _delta_time = float(BLI_check_seconds_timer() - _timeit_time_global);
+    const float _delta_time = float(BLI_time_now_seconds() - _timeit_time_global);
     _sum_time_global += _delta_time;
     _num_time_global++;
     _sum_time_diffing += _delta_time_diffing;
@@ -1448,14 +1448,6 @@ static bool override_apply_property_check_skip(Main *bmain,
                                                RNAPropertyOverrideApplyContext &rnaapply_ctx)
 {
   UNUSED_VARS_NDEBUG(bmain, id_ptr_src);
-
-  // HACK: Specifically prevent overriding actions when Resync Enforce is used
-  if ((rnaapply_ctx.flag & RNA_OVERRIDE_APPLY_FLAG_IGNORE_ID_POINTERS) != 0) {
-    StructRNA* rna_type = RNA_property_pointer_type(&rnaapply_ctx.ptr_dst, rnaapply_ctx.prop_dst);
-    if (RNA_struct_is_ID(rna_type) && RNA_type_to_ID_code(rna_type) == ID_AC) {
-      return false;
-    }
-  }
 
   if ((rnaapply_ctx.flag & RNA_OVERRIDE_APPLY_FLAG_IGNORE_ID_POINTERS) == 0) {
     return false;

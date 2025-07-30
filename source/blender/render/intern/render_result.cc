@@ -13,9 +13,7 @@
 
 #include "MEM_guardedalloc.h"
 
-#include "BLI_ghash.h"
 #include "BLI_hash_md5.hh"
-#include "BLI_implicit_sharing.hh"
 #include "BLI_listbase.h"
 #include "BLI_path_util.h"
 #include "BLI_rect.h"
@@ -25,14 +23,13 @@
 #include "BLI_utildefines.h"
 
 #include "BKE_appdir.hh"
-#include "BKE_camera.h"
-#include "BKE_global.h"
+#include "BKE_global.hh"
 #include "BKE_image.h"
 #include "BKE_image_format.h"
 #include "BKE_image_save.h"
 #include "BKE_main.hh"
-#include "BKE_report.h"
-#include "BKE_scene.h"
+#include "BKE_report.hh"
+#include "BKE_scene.hh"
 
 #include "IMB_colormanagement.hh"
 #include "IMB_imbuf.hh"
@@ -40,8 +37,6 @@
 #include "IMB_openexr.hh"
 
 #include "GPU_texture.h"
-
-#include "RE_engine.h"
 
 #include "render_result.h"
 #include "render_types.h"
@@ -1019,10 +1014,7 @@ static void render_result_exr_file_cache_path(Scene *sce,
 
   BLI_path_join(r_path, FILE_CACHE_MAX, root, filename_full);
   if (BLI_path_is_rel(r_path)) {
-    char path_temp[FILE_MAX];
-    STRNCPY(path_temp, r_path);
-    BLI_path_abs(path_temp, dirname);
-    BLI_strncpy(r_path, path_temp, FILE_CACHE_MAX);
+    BLI_path_abs(r_path, dirname);
   }
 }
 
@@ -1118,9 +1110,7 @@ ImBuf *RE_render_result_rect_to_ibuf(RenderResult *rr,
 
   /* Color -> gray-scale. */
   /* editing directly would alter the render view */
-  if (imf->planes == R_IMF_PLANES_BW && imf->imtype != R_IMF_IMTYPE_MULTILAYER &&
-      !(ibuf->float_buffer.data && !ibuf->byte_buffer.data && ibuf->channels == 1))
-  {
+  if (imf->planes == R_IMF_PLANES_BW && imf->imtype != R_IMF_IMTYPE_MULTILAYER) {
     ImBuf *ibuf_bw = IMB_dupImBuf(ibuf);
     IMB_color_to_bw(ibuf_bw);
     IMB_freeImBuf(ibuf);

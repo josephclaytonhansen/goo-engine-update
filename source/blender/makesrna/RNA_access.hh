@@ -17,6 +17,7 @@
 #include "RNA_types.hh"
 
 #include "BLI_compiler_attrs.h"
+#include "BLI_function_ref.hh"
 
 struct ID;
 struct IDOverrideLibrary;
@@ -287,11 +288,6 @@ int RNA_property_enum_bitflag_identifiers(
 StructRNA *RNA_property_pointer_type(PointerRNA *ptr, PropertyRNA *prop);
 bool RNA_property_pointer_poll(PointerRNA *ptr, PropertyRNA *prop, PointerRNA *value);
 
-/**
- * A property is a runtime property if the PROP_INTERN_RUNTIME flag is set on it.
- */
-bool RNA_property_is_runtime(const PropertyRNA *prop);
-
 bool RNA_property_editable(const PointerRNA *ptr, PropertyRNA *prop);
 /**
  * Version of #RNA_property_editable that tries to return additional info in \a r_info
@@ -330,7 +326,7 @@ bool RNA_property_anim_editable(const PointerRNA *ptr, PropertyRNA *prop);
 bool RNA_property_animated(PointerRNA *ptr, PropertyRNA *prop);
 /**
  * With LibOverrides, a property may be animatable and anim-editable, but not driver-editable (in
- * case the reference data already has an animation data, its Action can ba an editable local ID,
+ * case the reference data already has an animation data, its Action can be an editable local ID,
  * but the drivers are directly stored in the animdata, overriding these is not supported
  * currently).
  *
@@ -414,16 +410,15 @@ void RNA_property_string_set_bytes(PointerRNA *ptr, PropertyRNA *prop, const cha
 eStringPropertySearchFlag RNA_property_string_search_flag(PropertyRNA *prop);
 /**
  * Search candidates for string `prop` by calling `visit_fn` with each string.
- * Typically these strings are collected in `visit_user_data` in a format defined by the caller.
  *
  * See #PropStringSearchFunc for details.
  */
-void RNA_property_string_search(const bContext *C,
-                                PointerRNA *ptr,
-                                PropertyRNA *prop,
-                                const char *edit_text,
-                                StringPropertySearchVisitFunc visit_fn,
-                                void *visit_user_data);
+void RNA_property_string_search(
+    const bContext *C,
+    PointerRNA *ptr,
+    PropertyRNA *prop,
+    const char *edit_text,
+    blender::FunctionRef<void(StringPropertySearchVisitParams)> visit_fn);
 
 /**
  * \return the length without `\0` terminator.
@@ -796,6 +791,9 @@ StructRNA *ID_code_to_RNA_type(short idcode);
 /* macro which inserts the function name */
 #if defined __GNUC__
 #  define RNA_warning(format, args...) _RNA_warning("%s: " format "\n", __func__, ##args)
+#elif defined(_MSVC_TRADITIONAL) && \
+    !_MSVC_TRADITIONAL  // The "new preprocessor" is enabled via /Zc:preprocessor
+#  define RNA_warning(format, ...) _RNA_warning("%s: " format "\n", __FUNCTION__, ##__VA_ARGS__)
 #else
 #  define RNA_warning(format, ...) _RNA_warning("%s: " format "\n", __FUNCTION__, __VA_ARGS__)
 #endif

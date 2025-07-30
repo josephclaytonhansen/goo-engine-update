@@ -11,14 +11,13 @@
 #include "BLI_math_base.hh"
 #include "BLI_math_geom.h"
 
-#include "BLI_math_base_safe.h"
 #include "BLI_math_bits.h"
 #include "BLI_math_matrix.h"
 #include "BLI_math_rotation.h"
 #include "BLI_math_vector.h"
 #include "BLI_utildefines.h"
 
-#include "BLI_strict_flags.h"
+#include "BLI_strict_flags.h" /* Keep last. */
 
 /********************************** Polygons *********************************/
 
@@ -4801,8 +4800,9 @@ void lookat_m4(
 
   i_multmatrix(mat1, mat);
 
-  mat1[1][1] = mat1[2][2] = 1.0f; /* be careful here to reinit */
-  mat1[1][2] = mat1[2][1] = 0.0f; /* those modified by the last */
+  /* Be careful here to reinitialize those modified by the last. */
+  mat1[1][1] = mat1[2][2] = 1.0f;
+  mat1[1][2] = mat1[2][1] = 0.0f;
 
   /* paragraph */
   if (hyp != 0.0f) { /* rotate Y */

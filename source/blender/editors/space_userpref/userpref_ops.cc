@@ -18,15 +18,17 @@
 #endif
 #include "BLI_fileops.h"
 #include "BLI_path_util.h"
+#include "BLI_string.h"
+#include "BLI_string_utf8.h"
 
-#include "BKE_callbacks.h"
+#include "BKE_callbacks.hh"
 #include "BKE_context.hh"
 #include "BKE_main.hh"
 #include "BKE_preferences.h"
 
-#include "BKE_report.h"
+#include "BKE_report.hh"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "RNA_access.hh"
 #include "RNA_define.hh"

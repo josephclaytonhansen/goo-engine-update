@@ -16,7 +16,7 @@
 #include "BLI_rand.h"
 #include "BLI_string_utils.hh"
 
-#include "BKE_global.h"
+#include "BKE_global.hh"
 #include "BKE_paint.hh"
 #include "BKE_particle.h"
 
@@ -95,6 +95,13 @@ void EEVEE_material_bind_resources(DRWShadingGroup *shgrp,
   DRW_shgroup_uniform_block_ref(shgrp, "renderpass_block", &pd->renderpass_ubo);
 
   DRW_shgroup_uniform_float_copy(shgrp, "alphaClipThreshold", alpha_clip_threshold);
+
+  /* Set material light groups for Goo Engine */
+  int light_groups[4];
+  GPU_material_light_group_bits_get(gpumat, light_groups);
+  DRW_shgroup_uniform_ivec4_copy(shgrp, "lightGroups", light_groups);
+  GPU_material_light_group_shadow_bits_get(gpumat, light_groups);
+  DRW_shgroup_uniform_ivec4_copy(shgrp, "lightGroupShadows", light_groups);
 
   DRW_shgroup_uniform_int_copy(shgrp, "outputSssId", 1);
   DRW_shgroup_uniform_texture(shgrp, "utilTex", e_data.util_tex);
@@ -912,7 +919,7 @@ void EEVEE_materials_cache_populate(EEVEE_Data *vedata,
 
         if (G.debug_value == 889 && ob->sculpt && BKE_object_sculpt_pbvh_get(ob)) {
           int debug_node_nr = 0;
-          DRW_debug_modelmat(ob->object_to_world);
+          DRW_debug_modelmat(ob->object_to_world().ptr());
           BKE_pbvh_draw_debug_cb(
               BKE_object_sculpt_pbvh_get(ob), DRW_sculpt_debug_cb, &debug_node_nr);
         }

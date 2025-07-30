@@ -15,7 +15,7 @@
 
 #include "BLI_math_rotation.h"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "BKE_customdata.hh"
 
@@ -72,9 +72,9 @@ const EnumPropertyItem rna_enum_ramp_blend_items[] = {
 #  include "BKE_grease_pencil.hh"
 #  include "BKE_main.hh"
 #  include "BKE_material.h"
-#  include "BKE_node.h"
+#  include "BKE_node.hh"
 #  include "BKE_paint.hh"
-#  include "BKE_scene.h"
+#  include "BKE_scene.hh"
 #  include "BKE_texture.h"
 #  include "BKE_workspace.h"
 
@@ -200,7 +200,7 @@ static void rna_Material_use_nodes_update(bContext *C, PointerRNA *ptr)
     ED_node_shader_default(C, &ma->id);
   }
 
-  DEG_id_tag_update(&ma->id, ID_RECALC_COPY_ON_WRITE);
+  DEG_id_tag_update(&ma->id, ID_RECALC_SYNC_TO_EVAL);
   DEG_relations_tag_update(bmain);
   rna_Material_draw_update(bmain, CTX_data_scene(C), ptr);
 }
@@ -1003,29 +1003,6 @@ void RNA_def_material(BlenderRNA *brna)
                            "Displacements over this threshold may cause visibility issues");
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
 
-  prop = RNA_def_property(srna, "light_group_bits", PROP_INT, PROP_NONE);
-  RNA_def_property_int_sdna(prop, NULL, "light_group_bits");
-  RNA_def_property_array(prop, 4);
-  RNA_def_property_ui_text(prop, "Light Groups", "Light group bitfield");
-  RNA_def_property_clear_flag(prop, PROP_ANIMATABLE);
-  RNA_def_property_flag(prop, PROP_SKIP_SAVE | PROP_LIB_EXCEPTION);
-  RNA_def_property_update(prop, 0, "rna_Material_draw_update");
-
-  prop = RNA_def_property(srna, "light_group_shadow_bits", PROP_INT, PROP_NONE);
-  RNA_def_property_int_sdna(prop, NULL, "light_group_shadow_bits");
-  RNA_def_property_array(prop, 4);
-  RNA_def_property_ui_text(prop, "Light Group Shadows", "Light group shadow bitfield");
-  RNA_def_property_clear_flag(prop, PROP_ANIMATABLE);
-  RNA_def_property_flag(prop, PROP_SKIP_SAVE | PROP_LIB_EXCEPTION);
-  RNA_def_property_update(prop, 0, "rna_Material_draw_update");
-
-  /* Self shadowing */
-  prop = RNA_def_property(srna, "check_shadow_id", PROP_BOOLEAN, PROP_NONE);
-  RNA_def_property_boolean_sdna(prop, NULL, "check_shadow_id", MA_SHADOW_ID);
-  RNA_def_property_boolean_default(prop, false);
-  RNA_def_property_ui_text(prop, "Check Self Shadowing", "Filter shadows cast by this Object");
-  RNA_def_property_update(prop, 0, "rna_Material_draw_update");
-
   /* For Preview Render */
   prop = RNA_def_property(srna, "preview_render_type", PROP_ENUM, PROP_NONE);
   RNA_def_property_enum_sdna(prop, nullptr, "pr_type");
@@ -1082,6 +1059,23 @@ void RNA_def_material(BlenderRNA *brna)
   prop = RNA_def_property(srna, "lineart", PROP_POINTER, PROP_NONE);
   RNA_def_property_pointer_sdna(prop, nullptr, "lineart");
   RNA_def_property_ui_text(prop, "Line Art Settings", "Line art settings for material");
+
+  /* Goo Engine: Light groups */
+  prop = RNA_def_property(srna, "light_group_bits", PROP_INT, PROP_NONE);
+  RNA_def_property_int_sdna(prop, nullptr, "light_group_bits");
+  RNA_def_property_array(prop, 4);
+  RNA_def_property_ui_text(prop, "Light Groups", "Light group bitfield");
+  RNA_def_property_clear_flag(prop, PROP_ANIMATABLE);
+  RNA_def_property_flag(prop, PROP_SKIP_SAVE | PROP_LIB_EXCEPTION);
+  RNA_def_property_update(prop, 0, "rna_Material_draw_update");
+
+  prop = RNA_def_property(srna, "light_group_shadow_bits", PROP_INT, PROP_NONE);
+  RNA_def_property_int_sdna(prop, nullptr, "light_group_shadow_bits");
+  RNA_def_property_array(prop, 4);
+  RNA_def_property_ui_text(prop, "Light Group Shadows", "Light group shadow bitfield");
+  RNA_def_property_clear_flag(prop, PROP_ANIMATABLE);
+  RNA_def_property_flag(prop, PROP_SKIP_SAVE | PROP_LIB_EXCEPTION);
+  RNA_def_property_update(prop, 0, "rna_Material_draw_update");
 
   rna_def_material_greasepencil(brna);
   rna_def_material_lineart(brna);

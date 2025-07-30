@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <string>
+
 #include "DNA_customdata_types.h" /* for eCustomDataType */
 #include "DNA_image_types.h"
 #include "DNA_listBase.h"
@@ -71,6 +73,7 @@ enum eGPUMaterialFlag {
   GPU_MATFLAG_HOLDOUT = (1 << 6),
   GPU_MATFLAG_SHADER_TO_RGBA = (1 << 7),
   GPU_MATFLAG_AO = (1 << 8),
+  /* Signals the presence of multiple reflection closures. */
   GPU_MATFLAG_COAT = (1 << 9),
   GPU_MATFLAG_TRANSLUCENT = (1 << 10),
 
@@ -130,14 +133,14 @@ enum eGPUDefaultValue {
 };
 
 struct GPUCodegenOutput {
-  char *attr_load;
+  std::string attr_load;
   /* Node-tree functions calls. */
-  char *displacement;
-  char *surface;
-  char *volume;
-  char *thickness;
-  char *composite;
-  char *material_functions;
+  std::string displacement;
+  std::string surface;
+  std::string volume;
+  std::string thickness;
+  std::string composite;
+  std::string material_functions;
 
   GPUShaderCreateInfo *create_info;
 };
@@ -328,12 +331,6 @@ uint64_t GPU_material_uuid_get(GPUMaterial *mat);
 void GPU_pass_cache_init();
 void GPU_pass_cache_garbage_collect();
 void GPU_pass_cache_free();
-void GPU_material_light_group_bits_get(GPUMaterial *mat, int *out);
-void GPU_material_light_group_shadow_bits_get(GPUMaterial *mat, int *out);
-
-void GPU_pass_cache_init();
-void GPU_pass_cache_garbage_collect();
-void GPU_pass_cache_free();
 
 /* Requested Material Attributes and Textures */
 
@@ -425,3 +422,6 @@ GPUMaterial *GPU_material_from_callbacks(eGPUMaterialEngine engine,
                                          ConstructGPUMaterialFn construct_function_cb,
                                          GPUCodegenCallbackFn generate_code_function_cb,
                                          void *thunk);
+
+void GPU_material_light_group_bits_get(GPUMaterial *mat, int* out);
+void GPU_material_light_group_shadow_bits_get(GPUMaterial *mat, int* out);

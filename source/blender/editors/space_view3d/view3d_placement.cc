@@ -20,7 +20,6 @@
 
 #include "RNA_access.hh"
 #include "RNA_define.hh"
-#include "RNA_enum_types.hh"
 
 #include "WM_api.hh"
 #include "WM_toolsystem.hh"
@@ -272,7 +271,7 @@ static void draw_line_loop(const float coords[][3], int coords_len, const float 
   float viewport[4];
   GPU_viewport_size_get_f(viewport);
   GPU_batch_uniform_2fv(batch, "viewportSize", &viewport[2]);
-  GPU_batch_uniform_1f(batch, "lineWidth", U.pixelsize);
+  GPU_batch_uniform_1f(batch, "lineWidth", U.viewport_line_width);
 
   GPU_batch_draw(batch);
 
@@ -305,7 +304,7 @@ static void draw_line_pairs(const float coords_a[][3],
   float viewport[4];
   GPU_viewport_size_get_f(viewport);
   GPU_batch_uniform_2fv(batch, "viewportSize", &viewport[2]);
-  GPU_batch_uniform_1f(batch, "lineWidth", U.pixelsize);
+  GPU_batch_uniform_1f(batch, "lineWidth", U.viewport_line_width);
 
   GPU_batch_draw(batch);
 
@@ -351,7 +350,7 @@ static void draw_line_bounds(const BoundBox *bounds, const float color[4])
   float viewport[4];
   GPU_viewport_size_get_f(viewport);
   GPU_batch_uniform_2fv(batch, "viewportSize", &viewport[2]);
-  GPU_batch_uniform_1f(batch, "lineWidth", U.pixelsize);
+  GPU_batch_uniform_1f(batch, "lineWidth", U.viewport_line_width);
 
   GPU_batch_draw(batch);
 

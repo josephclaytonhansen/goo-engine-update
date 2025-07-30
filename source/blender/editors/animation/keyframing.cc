@@ -9,39 +9,33 @@
 #include <cstddef>
 #include <cstdio>
 
-#include <fmt/format.h>
-
 #include "MEM_guardedalloc.h"
 
 #include "BLI_blenlib.h"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "DNA_ID.h"
 #include "DNA_action_types.h"
 #include "DNA_anim_types.h"
 #include "DNA_armature_types.h"
-#include "DNA_constraint_types.h"
-#include "DNA_key_types.h"
-#include "DNA_material_types.h"
 #include "DNA_object_types.h"
 #include "DNA_scene_types.h"
 
 #include "BKE_action.h"
-#include "BKE_anim_data.h"
+#include "BKE_anim_data.hh"
 #include "BKE_animsys.h"
 #include "BKE_armature.hh"
 #include "BKE_context.hh"
-#include "BKE_fcurve.h"
-#include "BKE_global.h"
+#include "BKE_fcurve.hh"
+#include "BKE_global.hh"
 #include "BKE_idtype.hh"
 #include "BKE_lib_id.hh"
 #include "BKE_nla.h"
-#include "BKE_report.h"
-#include "BKE_scene.h"
+#include "BKE_report.hh"
+#include "BKE_scene.hh"
 
 #include "DEG_depsgraph.hh"
-#include "DEG_depsgraph_build.hh"
 
 #include "ED_keyframing.hh"
 #include "ED_object.hh"
@@ -53,7 +47,6 @@
 #include "ANIM_fcurve.hh"
 #include "ANIM_keyframing.hh"
 #include "ANIM_rna.hh"
-#include "ANIM_visualkey.hh"
 
 #include "UI_interface.hh"
 #include "UI_resources.hh"
@@ -252,35 +245,6 @@ static int insert_key_with_keyingset(bContext *C, wmOperator *op, KeyingSet *ks)
   return OPERATOR_FINISHED;
 }
 
-static bool is_idproperty_keyable(IDProperty *prop, const PropertyRNA *property_rna)
-{
-  if (RNA_property_is_runtime(property_rna)) {
-    return false;
-  }
-
-  if (ELEM(prop->type,
-           eIDPropertyType::IDP_BOOLEAN,
-           eIDPropertyType::IDP_INT,
-           eIDPropertyType::IDP_FLOAT,
-           eIDPropertyType::IDP_DOUBLE))
-  {
-    return true;
-  }
-
-  if (prop->type == eIDPropertyType::IDP_ARRAY) {
-    if (ELEM(prop->subtype,
-             eIDPropertyType::IDP_BOOLEAN,
-             eIDPropertyType::IDP_INT,
-             eIDPropertyType::IDP_FLOAT,
-             eIDPropertyType::IDP_DOUBLE))
-    {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 static blender::Vector<std::string> construct_rna_paths(PointerRNA *ptr)
 {
   eRotationModes rotation_mode;
@@ -334,19 +298,9 @@ static blender::Vector<std::string> construct_rna_paths(PointerRNA *ptr)
   if (insert_channel_flags & USER_ANIM_KEY_CHANNEL_CUSTOM_PROPERTIES) {
     if (properties) {
       LISTBASE_FOREACH (IDProperty *, prop, &properties->data.group) {
-        char name_escaped[MAX_IDPROP_NAME * 2];
-        BLI_str_escape(name_escaped, prop->name, sizeof(name_escaped));
-        std::string path = fmt::format("[\"{}\"]", name_escaped);
-        PointerRNA resolved_ptr;
-        PropertyRNA *resolved_prop;
-        const bool is_resolved = RNA_path_resolve_property(
-            ptr, path.c_str(), &resolved_ptr, &resolved_prop);
-        if (!is_resolved) {
-          continue;
-        }
-        if (is_idproperty_keyable(prop, resolved_prop)) {
-          paths.append(path);
-        }
+        std::string name = prop->name;
+        std::string rna_path = "[\"" + name + "\"]";
+        paths.append(rna_path);
       }
     }
   }
@@ -759,6 +713,20 @@ static int clear_anim_v3d_exec(bContext *C, wmOperator * /*op*/)
   return OPERATOR_FINISHED;
 }
 
+static int clear_anim_v3d_invoke(bContext *C, wmOperator *op, const wmEvent * /*event*/)
+{
+  if (RNA_boolean_get(op->ptr, "confirm")) {
+    return WM_operator_confirm_ex(C,
+                                  op,
+                                  IFACE_("Remove animation from selected objects?"),
+                                  nullptr,
+                                  IFACE_("Remove"),
+                                  ALERT_ICON_NONE,
+                                  false);
+  }
+  return clear_anim_v3d_exec(C, op);
+}
+
 void ANIM_OT_keyframe_clear_v3d(wmOperatorType *ot)
 {
   /* identifiers */
@@ -767,7 +735,7 @@ void ANIM_OT_keyframe_clear_v3d(wmOperatorType *ot)
   ot->idname = "ANIM_OT_keyframe_clear_v3d";
 
   /* callbacks */
-  ot->invoke = WM_operator_confirm_or_exec;
+  ot->invoke = clear_anim_v3d_invoke;
   ot->exec = clear_anim_v3d_exec;
 
   ot->poll = ED_operator_areaactive;
@@ -901,6 +869,20 @@ static int delete_key_v3d_exec(bContext *C, wmOperator *op)
   return delete_key_using_keying_set(C, op, ks);
 }
 
+static int delete_key_v3d_invoke(bContext *C, wmOperator *op, const wmEvent * /*event*/)
+{
+  if (RNA_boolean_get(op->ptr, "confirm")) {
+    return WM_operator_confirm_ex(C,
+                                  op,
+                                  IFACE_("Delete keyframes from selected objects?"),
+                                  nullptr,
+                                  IFACE_("Delete"),
+                                  ALERT_ICON_NONE,
+                                  false);
+  }
+  return delete_key_v3d_exec(C, op);
+}
+
 void ANIM_OT_keyframe_delete_v3d(wmOperatorType *ot)
 {
   /* identifiers */
@@ -909,7 +891,7 @@ void ANIM_OT_keyframe_delete_v3d(wmOperatorType *ot)
   ot->idname = "ANIM_OT_keyframe_delete_v3d";
 
   /* callbacks */
-  ot->invoke = WM_operator_confirm_or_exec;
+  ot->invoke = delete_key_v3d_invoke;
   ot->exec = delete_key_v3d_exec;
 
   ot->poll = ED_operator_areaactive;
@@ -1360,7 +1342,7 @@ static bool object_frame_has_keyframe(Object *ob, float frame)
     return false;
   }
 
-  /* check own animation data - specifically, the action it contains */
+  /* check its own animation data - specifically, the action it contains */
   if ((ob->adt) && (ob->adt->action)) {
     /* #41525 - When the active action is a NLA strip being edited,
      * we need to correct the frame number to "look inside" the

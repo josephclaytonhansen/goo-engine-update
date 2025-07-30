@@ -6,20 +6,16 @@
  * \ingroup animrig
  */
 
-#include "BLI_linklist.h"
 #include "BLI_listbase.h"
 #include "BLI_map.hh"
-#include "BLI_math_color.h"
 #include "BLI_string.h"
 #include "BLI_string_utf8.h"
 #include "BLI_string_utils.hh"
 #include "BLI_utildefines.h"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "DNA_armature_types.h"
-
-#include "BLI_math_bits.h"
 
 #include "MEM_guardedalloc.h"
 
@@ -133,6 +129,8 @@ static void bonecoll_ensure_name_unique(bArmature *armature, BoneCollection *bco
     BoneCollection *bcoll;
   };
 
+  /* Cannot capture armature & bcoll by reference in the lambda, as that would change its signature
+   * and no longer be compatible with BLI_uniquename_cb(). */
   auto bonecoll_name_is_duplicate = [](void *arg, const char *name) -> bool {
     DupNameCheckData *data = static_cast<DupNameCheckData *>(arg);
     for (BoneCollection *bcoll : data->arm->collections_span()) {
@@ -438,7 +436,7 @@ void ANIM_armature_bonecoll_active_name_set(bArmature *armature, const char *nam
   ANIM_armature_bonecoll_active_set(armature, bcoll);
 }
 
-void ANIM_armature_bonecoll_active_runtime_refresh(struct bArmature *armature)
+void ANIM_armature_bonecoll_active_runtime_refresh(bArmature *armature)
 {
   const std::string_view active_name = armature->active_collection_name;
   if (active_name.empty()) {
@@ -605,10 +603,7 @@ void ANIM_armature_bonecoll_name_set(bArmature *armature, BoneCollection *bcoll,
 
   bonecoll_ensure_name_unique(armature, bcoll);
 
-  /* Bone collections can be reached via .collections (4.0+) and .collections_all (4.1+).
-   * Animation data from 4.0 should have been versioned to only use `.collections_all`. */
   BKE_animdata_fix_paths_rename_all(&armature->id, "collections", old_name, bcoll->name);
-  BKE_animdata_fix_paths_rename_all(&armature->id, "collections_all", old_name, bcoll->name);
 }
 
 void ANIM_armature_bonecoll_remove_from_index(bArmature *armature, int index)
@@ -1063,8 +1058,8 @@ static bool bcoll_list_contains(const ListBase /*BoneCollectionRef*/ *collection
   return false;
 }
 
-bool ANIM_armature_bonecoll_contains_active_bone(const struct bArmature *armature,
-                                                 const struct BoneCollection *bcoll)
+bool ANIM_armature_bonecoll_contains_active_bone(const bArmature *armature,
+                                                 const BoneCollection *bcoll)
 {
   if (armature->edbo) {
     if (!armature->act_edbone) {

@@ -7,13 +7,12 @@
  */
 
 #include "BLI_math_matrix.h"
-#include "BLI_math_vector.h"
 #include "BLI_sys_types.h"
 
 #include "DNA_object_types.h"
 #include "DNA_scene_types.h"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "BKE_context.hh"
 #include "BKE_editmesh.hh"
@@ -649,7 +648,9 @@ void MESH_OT_primitive_uv_sphere_add(wmOperatorType *ot)
 {
   /* identifiers */
   ot->name = "Add UV Sphere";
-  ot->description = "Construct a spherical mesh with quad faces, except for triangle faces at the top and bottom";
+  ot->description =
+      "Construct a spherical mesh with quad faces, except for triangle faces at the top and "
+      "bottom";
   ot->idname = "MESH_OT_primitive_uv_sphere_add";
 
   /* api callbacks */

@@ -15,16 +15,13 @@
 #include "BLI_linklist.h"
 #include "BLI_path_util.h"
 #include "BLI_string.h"
-#include "BLI_sys_types.h"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "BKE_appdir.hh"
-#include "BKE_global.h"
+#include "BKE_global.hh"
 
 #include "GPU_platform.h"
-
-#include "GHOST_C-api.h"
 
 #define WM_PLATFORM_SUPPORT_TEXT_SIZE 1024
 
@@ -74,7 +71,7 @@ static void wm_platform_support_create_link(char *link)
   BLI_dynstr_append(ds, "windows/");
 #elif defined(__APPLE__)
   BLI_dynstr_append(ds, "apple/");
-#else /* UNIX */
+#else /* UNIX. */
   BLI_dynstr_append(ds, "linux/");
 #endif
 
@@ -116,7 +113,7 @@ bool WM_platform_support_perform_checks()
     return result;
   }
 
-  /* update the message and link based on the found support level */
+  /* Update the message and link based on the found support level. */
   GHOST_DialogOptions dialog_options = GHOST_DialogOptions(0);
 
   switch (support_level) {
@@ -126,7 +123,7 @@ bool WM_platform_support_perform_checks()
 
     case GPU_SUPPORT_LEVEL_LIMITED: {
       size_t slen = 0;
-      STR_CONCAT(title, slen, "Fruitbat - ");
+      STR_CONCAT(title, slen, "Blender - ");
       STR_CONCAT(
           title, slen, CTX_IFACE_(BLT_I18NCONTEXT_ID_WINDOWMANAGER, "Limited Platform Support"));
       slen = 0;
@@ -155,7 +152,7 @@ bool WM_platform_support_perform_checks()
 
     case GPU_SUPPORT_LEVEL_UNSUPPORTED: {
       size_t slen = 0;
-      STR_CONCAT(title, slen, "Fruitbat - ");
+      STR_CONCAT(title, slen, "Blender - ");
       STR_CONCAT(
           title, slen, CTX_IFACE_(BLT_I18NCONTEXT_ID_WINDOWMANAGER, "Platform Unsupported"));
       slen = 0;

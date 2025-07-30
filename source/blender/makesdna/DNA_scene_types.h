@@ -44,6 +44,16 @@ struct World;
 struct bGPdata;
 struct bNodeTree;
 
+/** Workaround to forward-declare C++ type in C header. */
+#ifdef __cplusplus
+namespace blender::bke {
+class SceneRuntime;
+}
+using SceneRuntimeHandle = blender::bke::SceneRuntime;
+#else   // __cplusplus
+typedef struct SceneRuntimeHandle SceneRuntimeHandle;
+#endif  // __cplusplus
+
 /* -------------------------------------------------------------------- */
 /** \name FFMPEG
  * \{ */
@@ -189,6 +199,7 @@ typedef struct SceneRenderLayer {
 
   /** Converted to ViewLayer setting. */
   struct Material *mat_override DNA_DEPRECATED;
+  struct World *world_override DNA_DEPRECATED;
 
   /** Converted to LayerCollection cycles camera visibility override. */
   unsigned int lay DNA_DEPRECATED;
@@ -1733,6 +1744,12 @@ typedef struct ToolSettings {
   char use_plane_axis_auto;
   char _pad7[2];
 
+  /** Rotation Angle snapping amount */
+  float snap_angle_increment_2d;
+  float snap_angle_increment_2d_precision;
+  float snap_angle_increment_3d;
+  float snap_angle_increment_3d_precision;
+
 } ToolSettings;
 
 /** \} */
@@ -1995,6 +2012,7 @@ typedef struct Scene {
 
   /** Default allocated now. */
   struct ToolSettings *toolsettings;
+
   void *_pad4;
   struct DisplaySafeAreas safe_areas;
 
@@ -2081,6 +2099,10 @@ typedef struct Scene {
   struct SceneEEVEE eevee;
   struct SceneGpencil grease_pencil_settings;
   struct SceneHydra hydra;
+
+  /* Runtime data (not saved). */
+  SceneRuntimeHandle *runtime;
+  void *_pad9;
 } Scene;
 
 /** \} */
@@ -2847,7 +2869,8 @@ enum {
   SCE_EEVEE_GTAO_BOUNCE = (1 << 6),
   // SCE_EEVEE_DOF_ENABLED = (1 << 7), /* Moved to camera->dof.flag */
   SCE_EEVEE_BLOOM_ENABLED = (1 << 8),
-  SCE_EEVEE_MOTION_BLUR_ENABLED = (1 << 9),
+  SCE_EEVEE_MOTION_BLUR_ENABLED_DEPRECATED = (1 << 9), /* Moved to scene->r.mode */
+  SCE_EEVEE_MOTION_BLUR_ENABLED = (1 << 9), /* For EEVEE Legacy compatibility */
   SCE_EEVEE_SHADOW_HIGH_BITDEPTH = (1 << 10),
   SCE_EEVEE_TAA_REPROJECTION = (1 << 11),
   // SCE_EEVEE_SSS_ENABLED = (1 << 12), /* Unused */
@@ -2864,6 +2887,7 @@ enum {
   SCE_EEVEE_DOF_JITTER = (1 << 23),
   SCE_EEVEE_SHADOW_ENABLED = (1 << 24),
   SCE_EEVEE_SHADOW_ID_HIGH_BITDEPTH = (1 << 25),
+  SCE_EEVEE_SHADOW_JITTERED_VIEWPORT = (1 << 26),
   SCE_EEVEE_RAYTRACE_OPTIONS_SPLIT = (1 << 26),
 };
 
@@ -2891,10 +2915,10 @@ enum {
   /* SHADOW_METHOD_MAX = 3, */ /* UNUSED */
 };
 
-/** #SceneEEVEE::motion_blur_position */
+/** Motion blur position for EEVEE Legacy */
 enum {
-  SCE_EEVEE_MB_CENTER = 0,
-  SCE_EEVEE_MB_START = 1,
+  SCE_EEVEE_MB_START = 0,
+  SCE_EEVEE_MB_CENTER = 1,
   SCE_EEVEE_MB_END = 2,
 };
 
