@@ -645,18 +645,6 @@ void OVERLAY_bone_instance_data_set_color(BoneInstanceData *data, const float bo
   data->color_b = encode_2f_to_float(bone_color[2], bone_color[3]);
 }
 
-void OVERLAY_bone_instance_data_set_color_with_wire_width(BoneInstanceData *data,
-                                                          const float bone_color[4],
-                                                          const float wire_width)
-{
-  /* Encoded color into 2 floats to be able to use the obmat to color the custom bones. */
-  data->color_a = encode_2f_to_float(bone_color[0], bone_color[1]);
-  /* For the wire width, we compress the value and store it in the alpha channel. */
-  float compressed_wire_width = wire_width / 16.0f; /* WIRE_WIDTH_COMPRESSION = 16.0 */
-  CLAMP(compressed_wire_width, 0.0f, 1.0f);
-  data->color_b = encode_2f_to_float(bone_color[2], compressed_wire_width);
-}
-
 /* Octahedral */
 static void drw_shgroup_bone_octahedral(const ArmatureDrawContext *ctx,
                                         const float (*bone_mat)[4],
@@ -904,8 +892,7 @@ static void drw_shgroup_bone_custom_mesh_wire(const ArmatureDrawContext *ctx,
                                               Mesh *mesh,
                                               const float (*bone_mat)[4],
                                               const float color[4],
-                                              Object *custom,
-                                              const float wire_width)
+                                              Object *custom)
 {
   using namespace blender::draw;
   /* TODO(fclem): arg... less than ideal but we never iter on this object
@@ -918,7 +905,7 @@ static void drw_shgroup_bone_custom_mesh_wire(const ArmatureDrawContext *ctx,
     BoneInstanceData inst_data;
     mul_m4_m4m4(inst_data.mat, ctx->ob->object_to_world().ptr(), bone_mat);
     OVERLAY_bone_instance_data_set_color_hint(&inst_data, color);
-    OVERLAY_bone_instance_data_set_color_with_wire_width(&inst_data, color, wire_width);
+    OVERLAY_bone_instance_data_set_color(&inst_data, color);
     DRW_buffer_add_entry_struct(buf, inst_data.mat);
   }
 
@@ -988,13 +975,12 @@ static void drw_shgroup_bone_custom_solid(const ArmatureDrawContext *ctx,
 static void drw_shgroup_bone_custom_wire(const ArmatureDrawContext *ctx,
                                          const float (*bone_mat)[4],
                                          const float color[4],
-                                         Object *custom,
-                                         const float wire_width)
+                                         Object *custom)
 {
   /* See comments in #drw_shgroup_bone_custom_solid. */
   Mesh *mesh = BKE_object_get_evaluated_mesh_no_subsurf(custom);
   if (mesh != nullptr) {
-    drw_shgroup_bone_custom_mesh_wire(ctx, mesh, bone_mat, color, custom, wire_width);
+    drw_shgroup_bone_custom_mesh_wire(ctx, mesh, bone_mat, color, custom);
     return;
   }
 
@@ -2137,7 +2123,7 @@ class ArmatureBoneDrawStrategyCustomShape : public ArmatureBoneDrawStrategy {
       drw_shgroup_bone_custom_solid(ctx, disp_mat, col_solid, col_hint, col_wire, pchan->custom);
     }
     else {
-      drw_shgroup_bone_custom_wire(ctx, disp_mat, col_wire, pchan->custom, pchan->custom_shape_wire_width);
+      drw_shgroup_bone_custom_wire(ctx, disp_mat, col_wire, pchan->custom);
     }
 
     if (select_id != -1) {
