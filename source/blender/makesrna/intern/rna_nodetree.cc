@@ -5394,6 +5394,20 @@ static void def_sh_shader_info(StructRNA *srna)
   RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_Node_update");
 }
 
+static void def_sh_color_palette(StructRNA *srna)
+{
+  PropertyRNA *prop;
+
+  RNA_def_struct_sdna_from(srna, "NodeShaderColorPalette", "storage");
+
+  prop = RNA_def_property(srna, "palette", PROP_POINTER, PROP_NONE);
+  RNA_def_property_pointer_sdna(prop, NULL, "palette");
+  RNA_def_property_struct_type(prop, "Palette");
+  RNA_def_property_flag(prop, PROP_EDITABLE);
+  RNA_def_property_ui_text(prop, "Palette", "Color palette datablock");
+  RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_Node_update");
+}
+
 
 static void def_sh_tex_magic(StructRNA *srna)
 {

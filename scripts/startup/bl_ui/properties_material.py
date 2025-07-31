@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 import bpy
-from bpy.types import Menu, Panel, UIList
 from bpy.app.translations import contexts as i18n_contexts
-from rna_prop_ui import PropertyPanel
+from bpy.types import Menu, Panel, UIList
 from bpy_extras.node_utils import find_node_input
+from rna_prop_ui import PropertyPanel
 
 
 class MATERIAL_MT_context_menu(Menu):
@@ -238,7 +238,7 @@ def draw_material_settings(self, context):
     layout.prop(mat, "check_shadow_id")
 
     row = layout.row()
-    row.active = ((mat.blend_method == 'CLIP') or (mat.shadow_method == 'CLIP'))
+    row.active = (mat.blend_method == 'CLIP') or (mat.shadow_method == 'CLIP')
     row.prop(mat, "alpha_threshold")
 
     if mat.blend_method not in {'OPAQUE', 'CLIP', 'HASHED'}:
@@ -416,5 +416,6 @@ classes = (
 
 if __name__ == "__main__":  # only for live edit.
     from bpy.utils import register_class
+
     for cls in classes:
         register_class(cls)

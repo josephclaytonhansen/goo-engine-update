@@ -2,6 +2,7 @@
 * Copyright 2005 Blender Foundation. All rights reserved. */
 
 #include "../node_shader_util.hh"
+#include "../../intern/node_util.hh"
 
 #include "UI_interface.hh"
 #include "UI_resources.hh"

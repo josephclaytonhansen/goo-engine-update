@@ -1491,6 +1491,12 @@ typedef struct NodeShaderOutputAOV {
   char name[64];
 } NodeShaderOutputAOV;
 
+typedef struct NodeShaderColorPalette {
+  /** Pointer to the Palette datablock containing colors. */
+  struct Palette *palette;
+  char _pad[8];
+} NodeShaderColorPalette;
+
 typedef struct NodeSunBeams {
   float source[2];
 

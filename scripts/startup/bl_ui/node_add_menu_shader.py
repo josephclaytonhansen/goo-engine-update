@@ -3,32 +3,27 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 import bpy
-from bpy.types import Menu
 from bl_ui import node_add_menu
-from bpy.app.translations import (
-    pgettext_iface as iface_,
-)
+from bpy.app.translations import pgettext_iface as iface_
+from bpy.types import Menu
 
 
 # only show input/output nodes when editing line style node trees
 def line_style_shader_nodes_poll(context):
     snode = context.space_data
-    return (snode.tree_type == 'ShaderNodeTree' and
-            snode.shader_type == 'LINESTYLE')
+    return snode.tree_type == 'ShaderNodeTree' and snode.shader_type == 'LINESTYLE'
 
 
 # only show nodes working in world node trees
 def world_shader_nodes_poll(context):
     snode = context.space_data
-    return (snode.tree_type == 'ShaderNodeTree' and
-            snode.shader_type == 'WORLD')
+    return snode.tree_type == 'ShaderNodeTree' and snode.shader_type == 'WORLD'
 
 
 # only show nodes working in object node trees
 def object_shader_nodes_poll(context):
     snode = context.space_data
-    return (snode.tree_type == 'ShaderNodeTree' and
-            snode.shader_type == 'OBJECT')
+    return snode.tree_type == 'ShaderNodeTree' and snode.shader_type == 'OBJECT'
 
 
 def cycles_shader_nodes_poll(context):
@@ -40,18 +35,15 @@ def eevee_shader_nodes_poll(context):
 
 
 def object_cycles_shader_nodes_poll(context):
-    return (object_shader_nodes_poll(context) and
-            cycles_shader_nodes_poll(context))
+    return object_shader_nodes_poll(context) and cycles_shader_nodes_poll(context)
 
 
 def object_not_eevee_shader_nodes_poll(context):
-    return (object_shader_nodes_poll(context) and
-            not eevee_shader_nodes_poll(context))
+    return object_shader_nodes_poll(context) and not eevee_shader_nodes_poll(context)
 
 
 def object_eevee_shader_nodes_poll(context):
-    return (object_shader_nodes_poll(context) and
-            eevee_shader_nodes_poll(context))
+    return object_shader_nodes_poll(context) and eevee_shader_nodes_poll(context)
 
 
 class NODE_MT_category_shader_input(Menu):
@@ -180,10 +172,7 @@ class NODE_MT_category_shader_shader(Menu):
             "ShaderNodeBsdfHairPrincipled",
             poll=object_not_eevee_shader_nodes_poll(context),
         )
-        node_add_menu.add_node_type(
-            layout,
-            "ShaderNodeVolumePrincipled"
-        )
+        node_add_menu.add_node_type(layout, "ShaderNodeVolumePrincipled")
         node_add_menu.add_node_type(
             layout,
             "ShaderNodeBsdfRefraction",
@@ -331,11 +320,13 @@ class NODE_MT_category_goo_engine(Menu):
         node_add_menu.add_node_type(layout, "ShaderNodeShaderInfo")
         node_add_menu.add_node_type(layout, "ShaderNodeScreenspaceInfo")
         node_add_menu.add_node_type(layout, "ShaderNodeCurvature")
+        node_add_menu.add_node_type(layout, "ShaderNodeColorPalette")
         node_add_menu.add_node_type(layout, "ShaderNodeSetDepth")
         node_add_menu.add_node_type(layout, "ShaderNodeSdfPrimitive")
         node_add_menu.add_node_type(layout, "ShaderNodeSdfOp")
         node_add_menu.add_node_type(layout, "ShaderNodeSdfVectorOp")
         node_add_menu.add_node_type(layout, "ShaderNodeSdfNoise")
+
 
 class NODE_MT_category_shader_script(Menu):
     bl_idname = "NODE_MT_category_shader_script"
@@ -400,5 +391,6 @@ classes = (
 
 if __name__ == "__main__":  # only for live edit.
     from bpy.utils import register_class
+
     for cls in classes:
         register_class(cls)

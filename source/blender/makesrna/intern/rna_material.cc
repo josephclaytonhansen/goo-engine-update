@@ -1077,6 +1077,12 @@ void RNA_def_material(BlenderRNA *brna)
   RNA_def_property_flag(prop, PROP_SKIP_SAVE | PROP_LIB_EXCEPTION);
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
 
+  prop = RNA_def_property(srna, "check_shadow_id", PROP_BOOLEAN, PROP_NONE);
+  RNA_def_property_boolean_sdna(prop, nullptr, "check_shadow_id", MA_SHADOW_ID);
+  RNA_def_property_boolean_default(prop, false);
+  RNA_def_property_ui_text(prop, "Check Self Shadowing", "Filter shadows cast by this Object");
+  RNA_def_property_update(prop, 0, "rna_Material_draw_update");
+
   rna_def_material_greasepencil(brna);
   rna_def_material_lineart(brna);
 

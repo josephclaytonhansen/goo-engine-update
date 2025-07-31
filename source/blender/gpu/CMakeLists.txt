@@ -498,6 +498,7 @@ set(GLSL_SRC
   shaders/material/gpu_shader_material_bevel.glsl
   shaders/material/gpu_shader_material_wavelength.glsl
   shaders/material/gpu_shader_material_blackbody.glsl
+  shaders/material/gpu_shader_material_color_palette.glsl
   shaders/material/gpu_shader_material_curvature.glsl
   shaders/material/gpu_shader_material_screenspace_info.glsl
   shaders/material/gpu_shader_material_set_depth.glsl
