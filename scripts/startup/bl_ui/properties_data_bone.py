@@ -3,10 +3,9 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 import bpy
-from bpy.types import Panel
 import rna_prop_ui
-
 from bpy.app.translations import contexts as i18n_contexts
+from bpy.types import Panel
 
 
 class BoneButtonsPanel:
@@ -16,7 +15,7 @@ class BoneButtonsPanel:
 
     @classmethod
     def poll(cls, context):
-        return (context.bone or context.edit_bone)
+        return context.bone or context.edit_bone
 
 
 class BONE_PT_context_bone(BoneButtonsPanel, Panel):
@@ -170,7 +169,7 @@ class BONE_PT_curved(BoneButtonsPanel, Panel):
         col.prop(bone, "bbone_handle_type_start", text="Start Handle")
 
         col2 = col.column(align=True)
-        col2.active = (bone.bbone_handle_type_start != 'AUTO')
+        col2.active = bone.bbone_handle_type_start != 'AUTO'
         col2.prop_search(bone, "bbone_custom_handle_start", arm, bone_list, text="Custom")
 
         row = col.row(align=True)
@@ -190,7 +189,7 @@ class BONE_PT_curved(BoneButtonsPanel, Panel):
         col.prop(bone, "bbone_handle_type_end", text="End Handle")
 
         col2 = col.column(align=True)
-        col2.active = (bone.bbone_handle_type_end != 'AUTO')
+        col2.active = bone.bbone_handle_type_end != 'AUTO'
         col2.prop_search(bone, "bbone_custom_handle_end", arm, bone_list, text="Custom")
 
         row = col.row(align=True)
@@ -236,13 +235,13 @@ class BONE_PT_relations(BoneButtonsPanel, Panel):
             col.prop(bone, "use_relative_parent")
 
         sub = col.column()
-        sub.active = (bone.parent is not None)
+        sub.active = bone.parent is not None
         sub.prop(bone, "use_connect")
         sub = col.column()
-        sub.active = (not bone.parent or not bone.use_connect)
+        sub.active = not bone.parent or not bone.use_connect
         sub.prop(bone, "use_local_location")
         sub = col.column()
-        sub.active = (bone.parent is not None)
+        sub.active = bone.parent is not None
         sub.prop(bone, "use_inherit_rotation")
         sub.prop(bone, "inherit_scale")
 
@@ -415,6 +414,7 @@ class BONE_PT_display_custom_shape(BoneButtonsPanel, Panel):
 
             sub.separator()
             sub.prop(bone, "show_wire", text="Wireframe")
+            sub.prop(pchan, "custom_shape_wire_width")
 
 
 class BONE_PT_inverse_kinematics(BoneButtonsPanel, Panel):
@@ -613,5 +613,6 @@ classes = (
 
 if __name__ == "__main__":  # only for live edit.
     from bpy.utils import register_class
+
     for cls in classes:
         register_class(cls)
