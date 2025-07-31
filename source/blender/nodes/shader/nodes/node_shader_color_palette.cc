@@ -13,6 +13,7 @@
 #include "BKE_main.hh"
 #include "BKE_node.hh"
 #include "BKE_paint.hh"
+#include "BKE_context.hh"
 
 #include "BLI_color.hh"
 #include "BLI_string.h"
