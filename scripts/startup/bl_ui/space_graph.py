@@ -2,11 +2,11 @@
 #
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-from bpy.types import Header, Menu, Panel
 from bl_ui.space_dopesheet import (
     DopesheetFilterPopoverBase,
     dopesheet_filter,
 )
+from bpy.types import Header, Menu, Panel
 
 
 class GRAPH_HT_header(Header):
@@ -153,6 +153,10 @@ class GRAPH_MT_view(Menu):
 
         layout.operator("graph.view_selected")
         layout.operator("graph.view_all")
+        if context.scene.use_preview_range:
+            layout.operator("anim.scene_range_frame", text="Frame Preview Range")
+        else:
+            layout.operator("anim.scene_range_frame", text="Frame Scene Range")
         layout.operator("graph.view_frame")
         layout.separator()
 
@@ -249,6 +253,7 @@ class GRAPH_MT_marker(Menu):
         layout = self.layout
 
         from bl_ui.space_time import marker_menu_generic
+
         marker_menu_generic(layout, context)
 
         # TODO: pose markers for action edit mode only?
@@ -317,6 +322,7 @@ class GRAPH_MT_key_density(Menu):
 
     def draw(self, _context):
         from bl_ui_utils.layout import operator_context
+
         layout = self.layout
         layout.operator("graph.decimate", text="Decimate (Ratio)").mode = 'RATIO'
         # Using the modal operation doesn't make sense for this variant
@@ -426,13 +432,17 @@ class GRAPH_MT_key_snap(Menu):
 class GRAPH_MT_view_pie(Menu):
     bl_label = "View"
 
-    def draw(self, _context):
+    def draw(self, context):
         layout = self.layout
 
         pie = layout.menu_pie()
         pie.operator("graph.view_all")
         pie.operator("graph.view_selected", icon='ZOOM_SELECTED')
         pie.operator("graph.view_frame")
+        if context.scene.use_preview_range:
+            pie.operator("anim.scene_range_frame", text="Frame Preview Range")
+        else:
+            pie.operator("anim.scene_range_frame", text="Frame Scene Range")
 
 
 class GRAPH_MT_delete(Menu):
@@ -534,5 +544,6 @@ classes = (
 
 if __name__ == "__main__":  # only for live edit.
     from bpy.utils import register_class
+
     for cls in classes:
         register_class(cls)

@@ -2,13 +2,13 @@
 #
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-from bpy.types import Header, Menu, Panel
-from bpy.app.translations import contexts as i18n_contexts
 from bl_ui.space_dopesheet import (
-    DopesheetFilterPopoverBase,
     DopesheetActionPanelBase,
+    DopesheetFilterPopoverBase,
     dopesheet_filter,
 )
+from bpy.app.translations import contexts as i18n_contexts
+from bpy.types import Header, Menu, Panel
 
 
 class NLA_HT_header(Header):
@@ -117,6 +117,10 @@ class NLA_MT_view(Menu):
 
         layout.operator("nla.view_selected")
         layout.operator("nla.view_all")
+        if context.scene.use_preview_range:
+            layout.operator("anim.scene_range_frame", text="Frame Preview Range")
+        else:
+            layout.operator("anim.scene_range_frame", text="Frame Scene Range")
         layout.operator("nla.view_frame")
         layout.separator()
 
@@ -168,6 +172,7 @@ class NLA_MT_marker(Menu):
         layout = self.layout
 
         from bl_ui.space_time import marker_menu_generic
+
         marker_menu_generic(layout, context)
 
 
@@ -264,10 +269,12 @@ class NLA_MT_strips(Menu):
             layout.operator("nla.tweakmode_exit", text="Stop Tweaking Strip Actions")
         else:
             layout.operator("nla.tweakmode_enter", text="Start Editing Stashed Action").isolate_action = True
-            layout.operator("nla.tweakmode_enter",
-                            text="Start Tweaking Strip Actions (Full Stack)").use_upper_stack_evaluation = True
-            layout.operator("nla.tweakmode_enter",
-                            text="Start Tweaking Strip Actions (Lower Stack)").use_upper_stack_evaluation = False
+            layout.operator(
+                "nla.tweakmode_enter", text="Start Tweaking Strip Actions (Full Stack)"
+            ).use_upper_stack_evaluation = True
+            layout.operator(
+                "nla.tweakmode_enter", text="Start Tweaking Strip Actions (Lower Stack)"
+            ).use_upper_stack_evaluation = False
 
 
 class NLA_MT_strips_transform(Menu):
@@ -304,13 +311,17 @@ class NLA_MT_snap_pie(Menu):
 class NLA_MT_view_pie(Menu):
     bl_label = "View"
 
-    def draw(self, _context):
+    def draw(self, context):
         layout = self.layout
 
         pie = layout.menu_pie()
         pie.operator("nla.view_all")
         pie.operator("nla.view_selected", icon='ZOOM_SELECTED')
         pie.operator("nla.view_frame")
+        if context.scene.use_preview_range:
+            pie.operator("anim.scene_range_frame", text="Frame Preview Range")
+        else:
+            pie.operator("anim.scene_range_frame", text="Frame Scene Range")
 
 
 class NLA_MT_context_menu(Menu):
@@ -325,10 +336,12 @@ class NLA_MT_context_menu(Menu):
             layout.operator("nla.tweakmode_exit", text="Stop Tweaking Strip Actions")
         else:
             layout.operator("nla.tweakmode_enter", text="Start Editing Stashed Action").isolate_action = True
-            layout.operator("nla.tweakmode_enter",
-                            text="Start Tweaking Strip Actions (Full Stack)").use_upper_stack_evaluation = True
-            layout.operator("nla.tweakmode_enter",
-                            text="Start Tweaking Strip Actions (Lower Stack)").use_upper_stack_evaluation = False
+            layout.operator(
+                "nla.tweakmode_enter", text="Start Tweaking Strip Actions (Full Stack)"
+            ).use_upper_stack_evaluation = True
+            layout.operator(
+                "nla.tweakmode_enter", text="Start Tweaking Strip Actions (Lower Stack)"
+            ).use_upper_stack_evaluation = False
 
         layout.separator()
 
@@ -396,5 +409,6 @@ classes = (
 
 if __name__ == "__main__":  # only for live edit.
     from bpy.utils import register_class
+
     for cls in classes:
         register_class(cls)

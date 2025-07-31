@@ -3,20 +3,18 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 import bpy
+from bl_ui.properties_grease_pencil_common import (
+    GreasePencilLayerAdjustmentsPanel,
+    GreasePencilLayerDisplayPanel,
+    GreasePencilLayerMasksPanel,
+    GreasePencilLayerRelationsPanel,
+    GreasePencilLayerTransformPanel,
+)
 from bpy.types import (
     Header,
     Menu,
     Panel,
 )
-
-from bl_ui.properties_grease_pencil_common import (
-    GreasePencilLayerMasksPanel,
-    GreasePencilLayerTransformPanel,
-    GreasePencilLayerAdjustmentsPanel,
-    GreasePencilLayerRelationsPanel,
-    GreasePencilLayerDisplayPanel,
-)
-
 from rna_prop_ui import PropertyPanel
 
 #######################################
@@ -37,6 +35,7 @@ def dopesheet_filter(layout, context):
         row.prop(dopesheet, "show_missing_nla", text="")
     else:  # graph and dopesheet editors - F-Curves and drivers only
         row.prop(dopesheet, "show_only_errors", text="")
+
 
 #######################################
 # Dope-sheet Filtering Popovers
@@ -189,6 +188,7 @@ class DOPESHEET_PT_filters(DopesheetFilterPopoverBase, Panel):
 #######################################
 # DopeSheet Editor - General/Standard UI
 
+
 class DOPESHEET_HT_header(Header):
     bl_space_type = 'DOPESHEET_EDITOR'
 
@@ -201,9 +201,10 @@ class DOPESHEET_HT_header(Header):
 
         if st.mode == 'TIMELINE':
             from bl_ui.space_time import (
-                TIME_MT_editor_menus,
                 TIME_HT_editor_buttons,
+                TIME_MT_editor_menus,
             )
+
             TIME_MT_editor_menus.draw_collapsible(context, layout)
             TIME_HT_editor_buttons.draw_header(context, layout)
         else:
@@ -386,6 +387,10 @@ class DOPESHEET_MT_view(Menu):
 
         layout.operator("action.view_selected")
         layout.operator("action.view_all")
+        if context.scene.use_preview_range:
+            layout.operator("anim.scene_range_frame", text="Frame Preview Range")
+        else:
+            layout.operator("anim.scene_range_frame", text="Frame Scene Range")
         layout.operator("action.view_frame")
         layout.separator()
 
@@ -426,13 +431,17 @@ class DOPESHEET_MT_view(Menu):
 class DOPESHEET_MT_view_pie(Menu):
     bl_label = "View"
 
-    def draw(self, _context):
+    def draw(self, context):
         layout = self.layout
 
         pie = layout.menu_pie()
         pie.operator("action.view_all")
         pie.operator("action.view_selected", icon='ZOOM_SELECTED')
         pie.operator("action.view_frame")
+        if context.scene.use_preview_range:
+            pie.operator("anim.scene_range_frame", text="Frame Preview Range")
+        else:
+            pie.operator("anim.scene_range_frame", text="Frame Scene Range")
 
 
 class DOPESHEET_MT_select(Menu):
@@ -484,6 +493,7 @@ class DOPESHEET_MT_marker(Menu):
         layout = self.layout
 
         from bl_ui.space_time import marker_menu_generic
+
         marker_menu_generic(layout, context)
 
         st = context.space_data
@@ -496,6 +506,7 @@ class DOPESHEET_MT_marker(Menu):
                 layout.operator("action.markers_make_local")
 
         layout.prop(st, "use_marker_sync")
+
 
 #######################################
 # Keyframe Editing
@@ -637,6 +648,7 @@ class DOPESHEET_PT_action(DopesheetActionPanelBase, Panel):
 
 #######################################
 # Grease Pencil Editing
+
 
 class DOPESHEET_MT_gpencil_channel(Menu):
     bl_label = "Channel"
@@ -915,10 +927,11 @@ classes = (
     DOPESHEET_PT_gpencil_layer_relations,
     DOPESHEET_PT_gpencil_layer_display,
     DOPESHEET_PT_custom_props_action,
-    DOPESHEET_PT_snapping
+    DOPESHEET_PT_snapping,
 )
 
 if __name__ == "__main__":  # only for live edit.
     from bpy.utils import register_class
+
     for cls in classes:
         register_class(cls)
