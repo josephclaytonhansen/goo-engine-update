@@ -128,6 +128,7 @@ DefNode(ShaderNode,     SH_NODE_SEPARATE_COLOR,     def_sh_combsep_color,   "SEP
 DefNode(ShaderNode,     SH_NODE_MIX,                def_sh_mix,             "MIX",                Mix,              "Mix",               "Mix values by a factor")
 DefNode(ShaderNode,     SH_NODE_SHADER_INFO,        def_sh_shader_info,     "SHADERINFO",         ShaderInfo,       "Shader Info",       "Separate internal lighting into multiple outputs, and allow for per-node light-groups.")
 DefNode(ShaderNode,     SH_NODE_COLOR_PALETTE,      def_sh_color_palette,   "COLOR_PALETTE",      ColorPalette,     "Color Palette",      "A grid of colors for NPR workflows")
+DefNode(ShaderNode,     SH_NODE_LIGHT_INFO,         def_sh_light_info,      "LIGHT_INFO",         LightInfo,        "Light Info",         "Get information from a selected light object")
 DefNode(ShaderNode,     SH_NODE_SCREENSPACE_INFO,   0,                      "SCREENSPACEINFO",    ScreenspaceInfo,  "Screenspace Info",  "Sample internal colour and depth buffers")
 DefNode(ShaderNode,     SH_NODE_SET_DEPTH,          0,                      "SET_DEPTH",          SetDepth,         "Set Depth",         "Pixel depth offset")
 DefNode(ShaderNode,     SH_NODE_CURVATURE,          0,                      "CURVATURE",      Curvature,        "Curvature",         ""              )

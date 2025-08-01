@@ -321,6 +321,7 @@ class NODE_MT_category_goo_engine(Menu):
         node_add_menu.add_node_type(layout, "ShaderNodeScreenspaceInfo")
         node_add_menu.add_node_type(layout, "ShaderNodeCurvature")
         node_add_menu.add_node_type(layout, "ShaderNodeColorPalette")
+        node_add_menu.add_node_type(layout, "ShaderNodeLightInfo")
         node_add_menu.add_node_type(layout, "ShaderNodeSetDepth")
         node_add_menu.add_node_type(layout, "ShaderNodeSdfPrimitive")
         node_add_menu.add_node_type(layout, "ShaderNodeSdfOp")

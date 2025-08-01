@@ -986,6 +986,7 @@ void BKE_nodetree_remove_layer_n(struct bNodeTree *ntree, struct Scene *scene, i
 #define SH_NODE_SET_DEPTH 806
 #define SH_NODE_CURVATURE 807
 #define SH_NODE_COLOR_PALETTE 808
+#define SH_NODE_LIGHT_INFO 809
 
 /** \} */
 

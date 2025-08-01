@@ -39,6 +39,7 @@ void register_shader_nodes()
   register_node_type_sh_combxyz();
   register_node_type_sh_curvature();
   register_node_type_sh_color_palette();
+  register_node_type_sh_light_info();
   register_node_type_sh_curve_float();
   register_node_type_sh_curve_rgb();
   register_node_type_sh_curve_vec();
