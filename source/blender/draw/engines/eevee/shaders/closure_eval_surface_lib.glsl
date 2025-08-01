@@ -462,6 +462,9 @@ void calc_shader_info(vec3 position,
     }
 
     float radiance = light_diffuse(light.data, n_n, cl_common.V, light.L);
+    if (light.data.l_type == AREA_ELLIPSE || light.data.l_type == AREA_RECT) {
+      radiance *= float(dot(ld.l_forward, vec3(light.L)) < 0.0);
+    }
     half_light += vec4(light.data.l_color * light.data.l_diff * radiance, 0.0);
     vec3 L = (ld.l_type == SUN) ? -ld.l_forward : (light.L.xyz / light.L.w);
     half_lambert += 0.5 * dot(L, n_n) + 0.5;
