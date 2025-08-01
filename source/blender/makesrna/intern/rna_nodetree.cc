@@ -5406,6 +5406,12 @@ static void def_sh_color_palette(StructRNA *srna)
   RNA_def_property_flag(prop, PROP_EDITABLE);
   RNA_def_property_ui_text(prop, "Palette", "Color palette datablock");
   RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_Node_update");
+
+  prop = RNA_def_property(srna, "node_active_color", PROP_INT, PROP_NONE);
+  RNA_def_property_int_sdna(prop, NULL, "node_active_color");
+  RNA_def_property_range(prop, 0, 8);
+  RNA_def_property_ui_text(prop, "Active Color", "Currently active color index for this node");
+  RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_Node_update");
 }
 
 

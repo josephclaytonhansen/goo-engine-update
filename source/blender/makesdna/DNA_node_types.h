@@ -1494,7 +1494,12 @@ typedef struct NodeShaderOutputAOV {
 typedef struct NodeShaderColorPalette {
   /** Pointer to the Palette datablock containing colors. */
   struct Palette *palette;
-  char _pad[8];
+  /** Pointer to the original source palette (for syncing color changes). */
+  struct Palette *source_palette;
+  /** Per-node active color index (independent of palette's active_color). */
+  int node_active_color;
+  /** Version counter for sync tracking. */
+  int last_sync_version;
 } NodeShaderColorPalette;
 
 typedef struct NodeSunBeams {
