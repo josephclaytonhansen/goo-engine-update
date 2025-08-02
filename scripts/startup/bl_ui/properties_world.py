@@ -95,7 +95,8 @@ class EEVEE_WORLD_PT_surface(WorldButtonsPanel, Panel):
         layout = self.layout
 
         world = context.world
-
+        # THORN add rd defintion for trans checkbox
+        rd = context.scene.render
         layout.prop(world, "use_nodes", icon='NODETREE')
         layout.separator()
 
@@ -104,7 +105,7 @@ class EEVEE_WORLD_PT_surface(WorldButtonsPanel, Panel):
         if world.use_nodes:
             ntree = world.node_tree
             node = ntree.get_output_node('EEVEE')
-
+            
             if node:
                 input = find_node_input(node, "Surface")
                 if input:
@@ -115,8 +116,9 @@ class EEVEE_WORLD_PT_surface(WorldButtonsPanel, Panel):
                 layout.label(text="No output node")
         else:
             layout.prop(world, "color")
-
-
+            # THORN add transparent checkbox 
+            layout.prop(rd, "film_transparent", text="Transparent")
+            
 class EEVEE_WORLD_PT_volume(WorldButtonsPanel, Panel):
     bl_label = "Volume"
     bl_translation_context = i18n_contexts.id_id
