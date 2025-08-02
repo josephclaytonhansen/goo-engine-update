@@ -3798,7 +3798,7 @@ static uiBlock *block_create_autorun_warning(bContext *C, ARegion *region, void 
           &pref_ptr,
           "use_scripts_auto_execute",
           UI_ITEM_NONE,
-          RPT_("Permanently allow execution of scripts"),
+          RPT_("Permanently allow execution of scripts in this file"),
           ICON_NONE);
 
   uiItemS_ex(layout, 3.0f);
@@ -3857,7 +3857,7 @@ static uiBlock *block_create_autorun_warning(bContext *C, ARegion *region, void 
                          UI_BTYPE_BUT,
                          0,
                          ICON_NONE,
-                         IFACE_("Ignore"),
+                         IFACE_("Keep Disabled"),
                          0,
                          0,
                          50,
