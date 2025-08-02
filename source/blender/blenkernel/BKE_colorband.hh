@@ -10,7 +10,7 @@
 struct CBData;
 struct ColorBand;
 
-/** #ColorBand.data length. Blender value 32 changed to 64 THORN*/
+/** #ColorBand.data length. Blender value 32 changed to 64 THORN */
 #define MAXCOLORBAND 64
 
 void BKE_colorband_init(ColorBand *coba, bool rangetype);
