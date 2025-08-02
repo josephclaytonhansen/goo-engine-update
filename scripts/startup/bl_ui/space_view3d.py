@@ -659,7 +659,9 @@ class VIEW3D_HT_header(Header):
         # Orientation
         if object_mode in {'OBJECT', 'EDIT', 'EDIT_GPENCIL'} or has_pose_mode:
             orient_slot = scene.transform_orientation_slots[0]
+            #thorn
             row = layout.row(align=True)
+            row.prop(tool_settings, "use_transform_data_origin", text="", icon='PIVOT_BOUNDBOX')            row = layout.row(align=True)
 
             sub = row.row()
             sub.ui_units_x = 4
