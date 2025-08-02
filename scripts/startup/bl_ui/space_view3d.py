@@ -150,6 +150,8 @@ class VIEW3D_HT_tool_header(Header):
             sub.prop(context.object, "use_mesh_mirror_x", text="X", toggle=True)
             sub.prop(context.object, "use_mesh_mirror_y", text="Y", toggle=True)
             sub.prop(context.object, "use_mesh_mirror_z", text="Z", toggle=True)
+            #thorn add topology mirror button to header
+            sub.prop(context.object.data, "use_mirror_topology", text="T", toggle=True)
             if mode_string == 'EDIT_MESH':
                 tool_settings = context.tool_settings
                 layout.prop(tool_settings, "use_mesh_automerge", text="")
@@ -659,7 +661,7 @@ class VIEW3D_HT_header(Header):
         # Orientation
         if object_mode in {'OBJECT', 'EDIT', 'EDIT_GPENCIL'} or has_pose_mode:
             orient_slot = scene.transform_orientation_slots[0]
-            #thorn
+            #thorn add Transform Affect Only Origins button to header toolbar
             row = layout.row(align=True)
             row.prop(tool_settings, "use_transform_data_origin", text="", icon='PIVOT_BOUNDBOX')            row = layout.row(align=True)
 
