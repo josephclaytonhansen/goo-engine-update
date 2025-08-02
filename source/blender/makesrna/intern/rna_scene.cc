@@ -684,6 +684,18 @@ static const EnumPropertyItem snap_to_items[] = {
     {0, nullptr, 0, nullptr, nullptr},
 };
 
+static const EnumPropertyItem compositor_device_items[] = {
+    {0, "CPU", 0, "CPU", "Use CPU for compositing"},
+    {1, "GPU", 0, "GPU", "Use GPU for compositing"},
+    {0, nullptr, 0, nullptr, nullptr},
+};
+
+static const EnumPropertyItem compositor_precision_items[] = {
+    {0, "AUTO", 0, "Auto", "Use automatic precision"},
+    {1, "FULL", 0, "Full", "Use full 32-bit precision"},
+    {0, nullptr, 0, nullptr, nullptr},
+};
+
 const EnumPropertyItem rna_enum_grease_pencil_selectmode_items[] = {
     {GP_SELECTMODE_POINT, "POINT", ICON_GP_SELECT_POINTS, "Point", "Select only points"},
     {GP_SELECTMODE_STROKE, "STROKE", ICON_GP_SELECT_STROKES, "Stroke", "Select all stroke points"},
@@ -6851,6 +6863,17 @@ static void rna_def_scene_render_data(BlenderRNA *brna)
   RNA_def_property_range(prop, 0, 3);
   RNA_def_property_ui_text(
       prop, "Additional Subdivision", "Additional subdivision along the curves");
+  RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, "rna_Scene_render_update");
+
+  /* Compositor */
+  prop = RNA_def_property(srna, "compositor_device", PROP_ENUM, PROP_NONE);
+  RNA_def_property_enum_items(prop, compositor_device_items);
+  RNA_def_property_ui_text(prop, "Device", "Device to use for compositor");
+  RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, "rna_Scene_render_update");
+
+  prop = RNA_def_property(srna, "compositor_precision", PROP_ENUM, PROP_NONE);
+  RNA_def_property_enum_items(prop, compositor_precision_items);
+  RNA_def_property_ui_text(prop, "Precision", "Precision mode for compositor");
   RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, "rna_Scene_render_update");
 
   /* Performance */

@@ -858,6 +858,11 @@ typedef struct RenderData {
 
   /** Motion blur shutter. */
   struct CurveMapping mblur_shutter_curve;
+
+  /** Compositor. */
+  short compositor_device;
+  short compositor_precision;
+  char _pad11[4];
 } RenderData;
 
 /** #RenderData::quality_flag */
@@ -870,6 +875,18 @@ typedef enum eHairType {
   SCE_HAIR_SHAPE_STRAND = 0,
   SCE_HAIR_SHAPE_STRIP = 1,
 } eHairType;
+
+/** #RenderData::compositor_device */
+typedef enum eCompositorDevice {
+  SCE_COMPOSITOR_DEVICE_CPU = 0,
+  SCE_COMPOSITOR_DEVICE_GPU = 1,
+} eCompositorDevice;
+
+/** #RenderData::compositor_precision */
+typedef enum eCompositorPrecision {
+  SCE_COMPOSITOR_PRECISION_AUTO = 0,
+  SCE_COMPOSITOR_PRECISION_FULL = 1,
+} eCompositorPrecision;
 
 /** \} */
 

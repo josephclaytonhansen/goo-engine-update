@@ -58,23 +58,23 @@ static int node_shader_gpu_shader_info(GPUMaterial *mat,
                                       GPUNodeStack *in,
                                       GPUNodeStack *out)
 {
- // Set this to ensure shadowmap eval.
- GPU_material_flag_set(mat, GPU_MATFLAG_DIFFUSE);
+  // Set this to ensure shadowmap eval.
+  GPU_material_flag_set(mat, GPU_MATFLAG_DIFFUSE);
 
- if (!in[0].link) {
-   GPU_link(mat, "world_position_get", &in[0].link);
- }
- if (!in[1].link) {
-   GPU_link(mat, "world_normals_get", &in[1].link);
- }
+  if (!in[0].link) {
+    GPU_link(mat, "world_position_get", &in[0].link);
+  }
+  if (!in[1].link) {
+    GPU_link(mat, "world_normals_get", &in[1].link);
+  }
 
- auto* info = (NodeShaderInfo*) node->storage;
- if (info->use_own_light_groups) {
-   // HACK: GPU_uniform supports floats only, use floatBitsToInt in shader to reinterpret.
-   return GPU_stack_link(mat, node, "node_shader_info_light_groups", in, out, GPU_uniform((float*)info->light_group_bits), GPU_uniform((float*)info->light_group_shadow_bits));
- } else {
-   return GPU_stack_link(mat, node, "node_shader_info", in, out);
- }
+  auto* info = (NodeShaderInfo*) node->storage;
+  if (info->use_own_light_groups) {
+    // HACK: GPU_uniform supports floats only, use floatBitsToInt in shader to reinterpret.
+    return GPU_stack_link(mat, node, "node_shader_info_light_groups", in, out, GPU_uniform((float*)info->light_group_bits), GPU_uniform((float*)info->light_group_shadow_bits));
+  } else {
+    return GPU_stack_link(mat, node, "node_shader_info", in, out);
+  }
 }
 
 }  // namespace blender::nodes::node_shader_shader_info_cc

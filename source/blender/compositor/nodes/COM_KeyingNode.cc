@@ -131,7 +131,6 @@ NodeOperationOutput *KeyingNode::setup_feather(NodeConverter &converter,
                                                int distance) const
 {
   /* this uses a modified gaussian blur function otherwise its far too slow */
-  eCompositorQuality quality = context.get_quality();
 
   /* initialize node data */
   NodeBlurData data;
@@ -146,7 +145,6 @@ NodeOperationOutput *KeyingNode::setup_feather(NodeConverter &converter,
 
   GaussianAlphaXBlurOperation *operationx = new GaussianAlphaXBlurOperation();
   operationx->set_data(&data);
-  operationx->set_quality(quality);
   operationx->set_size(1.0f);
   operationx->set_subtract(distance < 0);
   operationx->set_falloff(falloff);
@@ -154,7 +152,6 @@ NodeOperationOutput *KeyingNode::setup_feather(NodeConverter &converter,
 
   GaussianAlphaYBlurOperation *operationy = new GaussianAlphaYBlurOperation();
   operationy->set_data(&data);
-  operationy->set_quality(quality);
   operationy->set_size(1.0f);
   operationy->set_subtract(distance < 0);
   operationy->set_falloff(falloff);

@@ -17,7 +17,6 @@ void BilateralBlurNode::convert_to_operations(NodeConverter &converter,
 {
   NodeBilateralBlurData *data = (NodeBilateralBlurData *)this->get_bnode()->storage;
   BilateralBlurOperation *operation = new BilateralBlurOperation();
-  operation->set_quality(context.get_quality());
   operation->set_data(data);
 
   converter.add_operation(operation);

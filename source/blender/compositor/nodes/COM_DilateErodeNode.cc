@@ -82,11 +82,9 @@ void DilateErodeNode::convert_to_operations(NodeConverter &converter,
   }
   else if (editor_node->custom1 == CMP_NODE_DILATE_ERODE_DISTANCE_FEATHER) {
     /* this uses a modified gaussian blur function otherwise its far too slow */
-    eCompositorQuality quality = context.get_quality();
 
     GaussianAlphaXBlurOperation *operationx = new GaussianAlphaXBlurOperation();
     operationx->set_data(&alpha_blur_);
-    operationx->set_quality(quality);
     operationx->set_falloff(PROP_SMOOTH);
     converter.add_operation(operationx);
 
@@ -96,7 +94,6 @@ void DilateErodeNode::convert_to_operations(NodeConverter &converter,
 
     GaussianAlphaYBlurOperation *operationy = new GaussianAlphaYBlurOperation();
     operationy->set_data(&alpha_blur_);
-    operationy->set_quality(quality);
     operationy->set_falloff(PROP_SMOOTH);
     converter.add_operation(operationy);
 
