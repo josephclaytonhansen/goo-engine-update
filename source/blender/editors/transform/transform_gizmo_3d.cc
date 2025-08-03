@@ -384,7 +384,9 @@ static void gizmo_get_axis_color(const int axis_idx,
   }
 
   copy_v4_v4(r_col_hi, r_col);
-
+  r_col_hi[0] = 0.9f;
+  r_col_hi[1] = 0.9f;
+  r_col_hi[2] = 0.9f;
   r_col[3] = alpha * alpha_fac;
   r_col_hi[3] = alpha_hi * alpha_fac;
 }
