@@ -17,6 +17,7 @@
 #include "MEM_guardedalloc.h"
 
 #include "DNA_anim_types.h"
+#include "DNA_camera_types.h"
 #include "DNA_collection_types.h"
 #include "DNA_curveprofile_types.h"
 #include "DNA_defaults.h"
@@ -2401,6 +2402,21 @@ void BKE_scene_frame_set(Scene *scene, float frame)
   double intpart;
   scene->r.subframe = modf(double(frame), &intpart);
   scene->r.cfra = int(intpart);
+  
+  /* Update scene resolution from active camera on frame change */
+  BKE_scene_camera_resolution_update(scene);
+}
+
+void BKE_scene_camera_resolution_update(Scene *scene)
+{
+  if (scene && scene->camera && scene->camera->data) {
+    Camera *cam = (Camera *)scene->camera->data;
+    if (cam->resolution_x > 0 && cam->resolution_y > 0 && cam->resolution_percentage > 0.0f) {
+      scene->r.xsch = cam->resolution_x;
+      scene->r.ysch = cam->resolution_y;
+      scene->r.size = cam->resolution_percentage;
+    }
+  }
 }
 
 /* -------------------------------------------------------------------- */

@@ -37,6 +37,7 @@
 #include "BKE_editmesh.hh"
 #include "BKE_idtype.hh"
 #include "BKE_paint.hh"
+#include "BKE_scene.hh"
 #include "BKE_volume.hh"
 
 #include "ED_gpencil_legacy.hh"
@@ -717,6 +718,7 @@ const EnumPropertyItem rna_enum_grease_pencil_selectmode_items[] = {
 
 #  include "DNA_anim_types.h"
 #  include "DNA_cachefile_types.h"
+#  include "DNA_camera_types.h"
 #  include "DNA_color_types.h"
 #  include "DNA_mesh_types.h"
 #  include "DNA_node_types.h"
@@ -970,6 +972,21 @@ static void rna_Scene_camera_update(Main *bmain, Scene * /*scene_unused*/, Point
 {
   wmWindowManager *wm = static_cast<wmWindowManager *>(bmain->wm.first);
   Scene *scene = (Scene *)ptr->data;
+
+  /* Update scene resolution from new active camera */
+  if (scene && scene->camera && scene->camera->data) {
+    Camera *cam = (Camera *)scene->camera->data;
+    if (cam->resolution_x > 0 && cam->resolution_y > 0) {
+      scene->r.xsch = cam->resolution_x;
+      scene->r.ysch = cam->resolution_y;
+    } else {
+      /* If camera doesn't have resolution set, initialize it from scene */
+      if (cam->resolution_x <= 0) cam->resolution_x = scene->r.xsch;
+      if (cam->resolution_y <= 0) cam->resolution_y = scene->r.ysch;
+    }
+    /* Send additional notifications for UI updates */
+    WM_main_add_notifier(NC_SCENE | ND_RENDER_OPTIONS, scene);
+  }
 
   WM_windows_scene_data_sync(&wm->windows, scene);
   DEG_id_tag_update(&scene->id, ID_RECALC_SYNC_TO_EVAL);
@@ -2434,6 +2451,17 @@ static void rna_SceneCamera_update(Main * /*bmain*/, Scene * /*scene*/, PointerR
 
   if (camera && (camera->type == OB_CAMERA)) {
     DEG_id_tag_update(&camera->id, ID_RECALC_GEOMETRY);
+    
+    // Update camera resolution from scene resolution (when scene resolution changes)
+    if (camera->data) {
+      Camera *cam = (Camera *)camera->data;
+      // Sync scene resolution TO camera
+      cam->resolution_x = scene->r.xsch;
+      cam->resolution_y = scene->r.ysch;
+      
+      WM_main_add_notifier(NC_CAMERA | ND_DRAW_RENDER_VIEWPORT, camera);
+      DEG_id_tag_update(&scene->id, ID_RECALC_SYNC_TO_EVAL);
+    }
   }
 }
 
@@ -6717,7 +6745,7 @@ static void rna_def_scene_render_data(BlenderRNA *brna)
   RNA_def_property_range(prop, 1, SHRT_MAX);
   RNA_def_property_ui_range(prop, 1, 100, 10, 1);
   RNA_def_property_ui_text(prop, "Resolution Scale", "Percentage scale for render resolution");
-  RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, "rna_SceneSequencer_update");
+  RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, "rna_SceneCamera_update");
 
   prop = RNA_def_property(srna, "preview_pixel_size", PROP_ENUM, PROP_NONE);
   RNA_def_property_enum_sdna(prop, nullptr, "preview_pixel_size");

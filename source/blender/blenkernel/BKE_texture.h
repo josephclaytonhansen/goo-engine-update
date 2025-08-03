@@ -25,7 +25,12 @@ struct TexMapping;
 struct TexResult;
 
 /** #ColorBand.data length. THORN - SET TO 64 FROM DEFAULT 32 GRADIENT RAMP COLOR LIMITS*/
-#define MAXCOLORBAND 64
+/* Some defines for general use.
+ * This is not the place for them, but DNA files don't allow defines.
+ * This should all be moved to `BKE_texture.hh` eventually.
+ */
+
+#define MAXCOLORBAND 32
 
 /**
  * Utility for all IDs using those texture slots.

@@ -144,6 +144,27 @@ class DATA_PT_lens(CameraButtonsPanel, Panel):
         sub.prop(cam, "clip_end", text="End")
 
 
+class DATA_PT_camera_resolution(CameraButtonsPanel, Panel):
+    bl_label = "Resolution"
+    COMPAT_ENGINES = {
+        'BLENDER_RENDER',
+        'BLENDER_EEVEE',
+        'BLENDER_EEVEE_NEXT',
+        'BLENDER_WORKBENCH',
+    }
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+
+        cam = context.camera
+
+        col = layout.column(align=True)
+        col.prop(cam, "resolution_x", text="Resolution X")
+        col.prop(cam, "resolution_y", text="Y")
+        col.prop(cam, "resolution_percentage", text="%")
+
+
 class DATA_PT_camera_stereoscopy(CameraButtonsPanel, Panel):
     bl_label = "Stereoscopy"
     COMPAT_ENGINES = {
@@ -571,6 +592,7 @@ classes = (
     CAMERA_PT_safe_areas_presets,
     DATA_PT_context_camera,
     DATA_PT_lens,
+    DATA_PT_camera_resolution,
     DATA_PT_camera_dof,
     DATA_PT_camera_dof_aperture,
     DATA_PT_camera,

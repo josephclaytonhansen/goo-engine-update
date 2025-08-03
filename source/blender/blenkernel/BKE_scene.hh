@@ -168,6 +168,7 @@ float BKE_scene_frame_get(const Scene *scene);
  * Set current frame and sub-frame based on a fractional frame.
  */
 void BKE_scene_frame_set(Scene *scene, float frame);
+void BKE_scene_camera_resolution_update(Scene *scene);
 
 TransformOrientationSlot *BKE_scene_orientation_slot_get_from_flag(Scene *scene, int flag);
 TransformOrientationSlot *BKE_scene_orientation_slot_get(Scene *scene, int slot_index);

@@ -177,6 +177,11 @@ float BKE_scene_frame_get(const struct Scene *scene);
  */
 void BKE_scene_frame_set(struct Scene *scene, float frame);
 
+/**
+ * Update scene resolution to match active camera resolution.
+ */
+void BKE_scene_camera_resolution_update(struct Scene *scene);
+
 struct TransformOrientationSlot *BKE_scene_orientation_slot_get_from_flag(struct Scene *scene,
                                                                           int flag);
 struct TransformOrientationSlot *BKE_scene_orientation_slot_get(struct Scene *scene,

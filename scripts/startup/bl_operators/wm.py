@@ -3314,7 +3314,14 @@ class WM_MT_splash(Menu):
         col1 = split.column()
         col1.label(text="New File")
 
-        bpy.types.TOPBAR_MT_file_new.draw_ex(col1, context, use_splash=True)
+        # Access TOPBAR_MT_file_new safely
+        topbar_mt_file_new = getattr(bpy.types, 'TOPBAR_MT_file_new', None)
+        if topbar_mt_file_new:
+            topbar_mt_file_new.draw_ex(col1, context, use_splash=True)
+        else:
+            # Fallback if menu is not available
+            col1.operator("wm.read_homefile", text="General", icon='FILE_NEW')
+            col1.operator("wm.read_factory_settings", text="Factory Settings")
 
         # Recent
         col2 = split.column()

@@ -19,8 +19,12 @@
 
 #include "rna_internal.hh"
 
+#include "DNA_ID.h"
+
 #include "WM_api.hh"
 #include "WM_types.hh"
+
+#include "BKE_scene.h"
 
 #ifdef RNA_RUNTIME
 
@@ -28,6 +32,7 @@
 
 #  include "BKE_camera.h"
 #  include "BKE_object.hh"
+#  include "BKE_scene.h"
 
 #  include "DEG_depsgraph.hh"
 #  include "DEG_depsgraph_build.hh"
@@ -84,6 +89,30 @@ static void rna_Camera_dependency_update(Main *bmain, Scene * /*scene*/, Pointer
   Camera *camera = (Camera *)ptr->owner_id;
   DEG_relations_tag_update(bmain);
   DEG_id_tag_update(&camera->id, 0);
+}
+
+static void rna_Camera_resolution_update(Main *bmain, Scene *scene, PointerRNA *ptr)
+{
+  Camera *cam = (Camera *)ptr->owner_id;
+
+  // If scene is not provided, try to find the active scene.
+  if (scene == nullptr) {
+    // Use the first scene in Main as a fallback.
+    scene = static_cast<Scene *>(bmain->scenes.first);
+  }
+  if (!scene) {
+    return;
+  }
+
+  // Only update if this camera is the active camera for the scene.
+  if (scene->camera && scene->camera->data == (ID *)cam) {
+    if (cam->resolution_x > 0 && cam->resolution_y > 0) {
+      scene->r.xsch = cam->resolution_x;
+      scene->r.ysch = cam->resolution_y;
+      WM_main_add_notifier(NC_SCENE | ND_RENDER_OPTIONS, scene);
+      DEG_id_tag_update(&scene->id, ID_RECALC_SYNC_TO_EVAL);
+    }
+  }
 }
 
 static CameraBGImage *rna_Camera_background_images_new(Camera *cam)
@@ -714,6 +743,21 @@ void RNA_def_camera(BlenderRNA *brna)
   RNA_def_property_ui_text(
       prop, "Sensor Height", "Vertical size of the image sensor area in millimeters");
   RNA_def_property_update(prop, NC_OBJECT | ND_DRAW, "rna_Camera_update");
+
+  /* Camera-specific resolution override */
+  prop = RNA_def_property(srna, "resolution_x", PROP_INT, PROP_PIXEL);
+  RNA_def_property_int_sdna(prop, nullptr, "resolution_x");
+  RNA_def_property_range(prop, 1, INT_MAX);
+  RNA_def_property_ui_range(prop, 1, 65536, 1, -1);
+  RNA_def_property_ui_text(prop, "Resolution X", "Camera-specific horizontal resolution");
+  RNA_def_property_update(prop, NC_CAMERA | ND_DRAW_RENDER_VIEWPORT, "rna_Camera_resolution_update");
+
+  prop = RNA_def_property(srna, "resolution_y", PROP_INT, PROP_PIXEL);
+  RNA_def_property_int_sdna(prop, nullptr, "resolution_y");
+  RNA_def_property_range(prop, 1, INT_MAX);
+  RNA_def_property_ui_range(prop, 1, 65536, 1, -1);
+  RNA_def_property_ui_text(prop, "Resolution Y", "Camera-specific vertical resolution");
+  RNA_def_property_update(prop, NC_CAMERA | ND_DRAW_RENDER_VIEWPORT, "rna_Camera_resolution_update");
 
   prop = RNA_def_property(srna, "ortho_scale", PROP_FLOAT, PROP_NONE);
   RNA_def_property_float_sdna(prop, nullptr, "ortho_scale");
