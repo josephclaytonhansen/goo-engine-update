@@ -24,8 +24,8 @@ struct Tex;
 struct TexMapping;
 struct TexResult;
 
-/** #ColorBand.data length. */
-#define MAXCOLORBAND 32
+/** #ColorBand.data length. THORN - SET TO 64 FROM DEFAULT 32 GRADIENT RAMP COLOR LIMITS*/
+#define MAXCOLORBAND 64
 
 /**
  * Utility for all IDs using those texture slots.
