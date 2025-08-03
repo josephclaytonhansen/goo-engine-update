@@ -1280,7 +1280,7 @@ static void widget_draw_icon_centered(const BIFIconID icon,
     const bool has_theme = UI_icon_get_theme_color(int(icon), color);
 
     UI_icon_draw_ex(
-        x, y, icon, aspect * UI_INV_SCALE_FAC, alpha, desaturate, color, has_theme, nullptr);
+        x, y, icon, aspect * UI_INV_SCALE_FAC, alpha, desaturate, color, has_theme, nullptr, false);
   }
 }
 
@@ -1371,24 +1371,32 @@ static void widget_draw_icon(
     /* to indicate draggable */
     if (ui_but_drag_is_draggable(but) && (but->flag & UI_HOVER)) {
       UI_icon_draw_ex(
-          xs, ys, icon, aspect, 1.25f, 0.0f, color, has_theme, &but->icon_overlay_text);
+          xs, ys, icon, aspect, 1.25f, 0.0f, color, has_theme, &but->icon_overlay_text, false);
     }
     else if (but->flag & (UI_HOVER | UI_SELECT | UI_SELECT_DRAW)) {
       UI_icon_draw_ex(
-          xs, ys, icon, aspect, alpha, 0.0f, color, has_theme, &but->icon_overlay_text);
+          xs, ys, icon, aspect, alpha, 0.0f, color, has_theme, &but->icon_overlay_text, false);
     }
     else if (!((but->icon != ICON_NONE) && UI_but_is_tool(but))) {
       if (has_theme) {
         alpha *= 0.8f;
       }
-      UI_icon_draw_ex(
-          xs, ys, icon, aspect, alpha, 0.0f, color, has_theme, &but->icon_overlay_text);
+      UI_icon_draw_ex(xs,
+                      ys,
+                      icon,
+                      aspect,
+                      alpha,
+                      0.0f,
+                      color,
+                      has_theme,
+                      &but->icon_overlay_text,
+                      but->drawflag & UI_BUT_ICON_INVERT);
     }
     else {
       const bTheme *btheme = UI_GetTheme();
       const float desaturate = 1.0 - btheme->tui.icon_saturation;
       UI_icon_draw_ex(
-          xs, ys, icon, aspect, alpha, desaturate, color, has_theme, &but->icon_overlay_text);
+          xs, ys, icon, aspect, alpha, desaturate, color, has_theme, &but->icon_overlay_text, false);
     }
   }
 
@@ -2780,6 +2788,7 @@ static void widget_state_menu_item(uiWidgetType *wt,
     /* Inactive. */
     if (state->but_flag & UI_HOVER) {
       color_blend_v3_v3(wt->wcol.inner, wt->wcol.text, 0.2f);
+      copy_v3_v3_uchar(wt->wcol.text, wt->wcol.text_sel);
       wt->wcol.inner[3] = 255;
     }
     color_blend_v3_v3(wt->wcol.text, wt->wcol.inner, 0.5f);
@@ -5656,7 +5665,7 @@ void ui_draw_menu_item(const uiFontStyle *fstyle,
     GPU_blend(GPU_BLEND_ALPHA);
     /* XXX scale weak get from fstyle? */
     UI_icon_draw_ex(
-        xs, ys, iconid, aspect, 1.0f, 0.0f, wt->wcol.text, false, UI_NO_ICON_OVERLAY_TEXT);
+        xs, ys, iconid, aspect, 1.0f, 0.0f, wt->wcol.text, false, UI_NO_ICON_OVERLAY_TEXT, false);
     GPU_blend(GPU_BLEND_NONE);
   }
 

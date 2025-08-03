@@ -186,7 +186,8 @@ static void area_draw_azone_fullscreen(short /*x1*/, short /*y1*/, short x2, sho
                   0.0f,
                   nullptr,
                   false,
-                  UI_NO_ICON_OVERLAY_TEXT);
+                  UI_NO_ICON_OVERLAY_TEXT,
+                  false);
 }
 
 /**

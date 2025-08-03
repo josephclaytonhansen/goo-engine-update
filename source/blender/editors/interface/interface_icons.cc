@@ -427,7 +427,8 @@ static void vicon_collection_color_draw(
                   0.0f,
                   collection_color->color,
                   true,
-                  UI_NO_ICON_OVERLAY_TEXT);
+                  UI_NO_ICON_OVERLAY_TEXT,
+                  false);
 }
 
 #  define DEF_ICON_COLLECTION_COLOR_DRAW(index, color) \
@@ -456,7 +457,7 @@ static void vicon_strip_color_draw(
   const float aspect = float(ICON_DEFAULT_WIDTH) / float(w);
 
   UI_icon_draw_ex(
-      x, y, ICON_SNAP_FACE, aspect, 1.0f, 0.0f, strip_color->color, true, UI_NO_ICON_OVERLAY_TEXT);
+      x, y, ICON_SNAP_FACE, aspect, 1.0f, 0.0f, strip_color->color, true, UI_NO_ICON_OVERLAY_TEXT, false);
 }
 
 #  define DEF_ICON_STRIP_COLOR_DRAW(index, color) \
@@ -492,7 +493,8 @@ static void vicon_strip_color_draw_library_data_indirect(
                   0.0f,
                   nullptr,
                   false,
-                  UI_NO_ICON_OVERLAY_TEXT);
+                  UI_NO_ICON_OVERLAY_TEXT,
+                  false);
 }
 
 static void vicon_strip_color_draw_library_data_override_noneditable(
@@ -1857,7 +1859,8 @@ static void icon_draw_size(float x,
                            const float desaturate,
                            const uchar mono_rgba[4],
                            const bool mono_border,
-                           const IconTextOverlay *text_overlay)
+                           const IconTextOverlay *text_overlay,
+                           const bool inverted = false)
 {
   bTheme *btheme = UI_GetTheme();
   const float fdraw_size = float(draw_size);
@@ -1932,7 +1935,7 @@ static void icon_draw_size(float x,
   else if (di->type == ICON_TYPE_EVENT) {
     const short event_type = di->data.input.event_type;
     const short event_value = di->data.input.event_value;
-    icon_draw_rect_input(x, y, w, h, alpha, event_type, event_value);
+    icon_draw_rect_input(x, y, w, h, alpha, event_type, event_value, inverted);
   }
   else if (di->type == ICON_TYPE_COLOR_TEXTURE) {
     /* texture image use premul alpha for correct scaling */
@@ -2551,7 +2554,8 @@ void UI_icon_draw_ex(float x,
                      float desaturate,
                      const uchar mono_color[4],
                      const bool mono_border,
-                     const IconTextOverlay *text_overlay)
+                     const IconTextOverlay *text_overlay,
+                     const bool inverted)
 {
   const int draw_size = get_draw_size(ICON_SIZE_ICON);
   icon_draw_size(x,
@@ -2564,7 +2568,8 @@ void UI_icon_draw_ex(float x,
                  desaturate,
                  mono_color,
                  mono_border,
-                 text_overlay);
+                 text_overlay,
+                 inverted);
 }
 
 void UI_icon_text_overlay_init_from_count(IconTextOverlay *text_overlay,

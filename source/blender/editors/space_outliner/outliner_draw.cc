@@ -2936,7 +2936,8 @@ static bool tselem_draw_icon(uiBlock *block,
                         0.0f,
                         btheme->collection_color[collection->color_tag].color,
                         true,
-                        &text_overlay);
+                        &text_overlay,
+                        false);
         return true;
       }
     }
@@ -2947,11 +2948,11 @@ static bool tselem_draw_icon(uiBlock *block,
     /* Restrict column clip. it has been coded by simply overdrawing, doesn't work for buttons. */
     uchar color[4];
     if (UI_icon_get_theme_color(data.icon, color)) {
-      UI_icon_draw_ex(x, y, data.icon, UI_INV_SCALE_FAC, alpha, 0.0f, color, true, &text_overlay);
+      UI_icon_draw_ex(x, y, data.icon, UI_INV_SCALE_FAC, alpha, 0.0f, color, true, &text_overlay, false);
     }
     else {
       UI_icon_draw_ex(
-          x, y, data.icon, UI_INV_SCALE_FAC, alpha, 0.0f, nullptr, false, &text_overlay);
+          x, y, data.icon, UI_INV_SCALE_FAC, alpha, 0.0f, nullptr, false, &text_overlay, false);
     }
   }
   else {

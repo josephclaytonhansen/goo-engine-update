@@ -1103,7 +1103,8 @@ static void panel_draw_aligned_widgets(const uiStyle *style,
                     0.0f,
                     title_color,
                     false,
-                    UI_NO_ICON_OVERLAY_TEXT);
+                    UI_NO_ICON_OVERLAY_TEXT,
+                    false);
     GPU_blend(GPU_BLEND_NONE);
   }
 
@@ -1132,7 +1133,8 @@ static void panel_draw_aligned_widgets(const uiStyle *style,
                     0.0f,
                     title_color,
                     false,
-                    UI_NO_ICON_OVERLAY_TEXT);
+                    UI_NO_ICON_OVERLAY_TEXT,
+                    false);
     GPU_blend(GPU_BLEND_NONE);
   }
 

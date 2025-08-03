@@ -548,6 +548,27 @@ static void rna_uiTemplateID(uiLayout *layout,
   uiTemplateID(layout, C, ptr, propname, newop, openop, unlinkop, filter, live_icon, name);
 }
 
+static void rna_uiTemplateAction(uiLayout *layout,
+                                 bContext *C,
+                                 PointerRNA *data_ptr,
+                                 const char *newop,
+                                 const char *unlinkop,
+                                 const char *name,
+                                 const char *text_ctxt,
+                                 bool translate)
+{
+  ID *id = static_cast<ID *>(data_ptr->data);
+  if (!id) {
+    RNA_warning("template_action: data is not an ID");
+    return;
+  }
+
+  /* Get translated name (label). */
+  name = rna_translate_ui_text(name, text_ctxt, nullptr, nullptr, translate);
+
+  uiTemplateAction(layout, C, id, newop, unlinkop, name);
+}
+
 static void rna_uiTemplateAnyID(uiLayout *layout,
                                 PointerRNA *ptr,
                                 const char *propname,
@@ -1579,6 +1600,15 @@ void RNA_api_ui_layout(StructRNA *srna)
                "",
                "Optionally limit the items which can be selected");
   RNA_def_boolean(func, "live_icon", false, "", "Show preview instead of fixed icon");
+  api_ui_item_common_text(func);
+
+  func = RNA_def_function(srna, "template_action", "rna_uiTemplateAction");
+  RNA_def_function_flag(func, FUNC_USE_CONTEXT);
+  RNA_def_function_ui_description(func, "Item for action selection UI");
+  parm = RNA_def_pointer(func, "data", "ID", "", "Data from which to take the action");
+  RNA_def_parameter_flags(parm, PROP_NEVER_NULL, PARM_REQUIRED | PARM_RNAPTR);
+  RNA_def_string(func, "new", nullptr, 0, "", "Operator identifier to create a new action");
+  RNA_def_string(func, "unlink", nullptr, 0, "", "Operator identifier to unlink the action");
   api_ui_item_common_text(func);
 
   func = RNA_def_function(srna, "template_ID_preview", "uiTemplateIDPreview");

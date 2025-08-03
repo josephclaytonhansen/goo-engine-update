@@ -362,6 +362,9 @@ enum {
 
   /** Drawn in a way that indicates that the state/value is unknown. */
   UI_BUT_INDETERMINATE = 1 << 26,
+
+  /** Draw icon inverted to indicate a special state. */
+  UI_BUT_ICON_INVERT = 1 << 27,
 };
 
 /**
@@ -2384,6 +2387,23 @@ void uiTemplateAnyID(uiLayout *layout,
                      const char *propname,
                      const char *proptypename,
                      const char *text);
+
+/**
+ * Action selector.
+ *
+ * This is a specialisation of #uiTemplateID, hard-coded to assign Actions to the given ID.
+ * Such a specialisation is necessary, as the RNA property (`id.animation_data.action`) does not
+ * exist when the ID's `adt` pointer is `nullptr`. In that case uiTemplateID will not be able
+ * to find the RNA type of that property, which in turn it needs to determine the type of IDs to
+ * show.
+ */
+void uiTemplateAction(uiLayout *layout,
+                      const bContext *C,
+                      ID *id,
+                      const char *newop,
+                      const char *unlinkop,
+                      const char *text);
+
 /**
  * Search menu to pick an item from a collection.
  * A version of uiTemplateID that works for non-ID types.

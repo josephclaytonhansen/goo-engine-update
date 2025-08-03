@@ -27,6 +27,7 @@
 #include "DNA_scene_types.h"
 #include "DNA_shader_fx_types.h"
 #include "DNA_texture_types.h"
+#include "DNA_anim_types.h"
 
 #include "BLI_fileops.h"
 #include "BLI_listbase.h"
@@ -65,6 +66,7 @@
 #include "BKE_scene.hh"
 #include "BKE_screen.hh"
 #include "BKE_shader_fx.h"
+#include "BKE_anim_data.hh"
 
 #include "BLO_readfile.hh"
 
@@ -1206,6 +1208,7 @@ static uiBut *template_id_def_new_but(uiBlock *block,
                                       StructRNA *type,
                                       const char *const newop,
                                       const bool editable,
+                                      const bool id_open,
                                       const bool use_tab_but,
                                       int but_height)
 {
@@ -1253,8 +1256,11 @@ static uiBut *template_id_def_new_but(uiBlock *block,
   const char *button_text = (id) ? "" : CTX_IFACE_(template_id_context(type), "New");
   const int icon = (id && !use_tab_but) ? ICON_DUPLICATE : ICON_ADD;
   const uiFontStyle *fstyle = UI_FSTYLE_WIDGET;
-  const int w = id ? UI_UNIT_X :
-                     UI_fontstyle_string_width(fstyle, button_text) + (UI_UNIT_X * 1.5);
+
+  int w = id ? UI_UNIT_X : id_open ? UI_UNIT_X * 3 : UI_UNIT_X * 6;
+  if (!id) {
+    w = std::max(UI_fontstyle_string_width(fstyle, button_text) + int((UI_UNIT_X * 1.5f)), w);
+  }
 
   if (newop) {
     but = uiDefIconTextButO(block,
@@ -1510,7 +1516,8 @@ static void template_ID(const bContext *C,
   }
 
   if ((flag & UI_ID_ADD_NEW) && (hide_buttons == false)) {
-    template_id_def_new_but(block, id, template_ui, type, newop, editable, false, UI_UNIT_X);
+    template_id_def_new_but(
+        block, id, template_ui, type, newop, editable, flag & UI_ID_OPEN, false, UI_UNIT_X);
   }
 
   /* Due to space limit in UI - skip the "open" icon for packed data, and allow to unpack.
@@ -1534,8 +1541,11 @@ static void template_ID(const bContext *C,
   else if (flag & UI_ID_OPEN) {
     const char *button_text = (id) ? "" : IFACE_("Open");
     const uiFontStyle *fstyle = UI_FSTYLE_WIDGET;
-    const int w = id ? UI_UNIT_X :
-                       UI_fontstyle_string_width(fstyle, button_text) + (UI_UNIT_X * 1.5);
+
+    int w = id ? UI_UNIT_X : (flag & UI_ID_ADD_NEW) ? UI_UNIT_X * 3 : UI_UNIT_X * 6;
+    if (!id) {
+      w = std::max(UI_fontstyle_string_width(fstyle, button_text) + int((UI_UNIT_X * 1.5f)), w);
+    }
 
     if (openop) {
       but = uiDefIconTextButO(block,
@@ -1702,6 +1712,7 @@ static void template_ID_tabs(const bContext *C,
                                   type,
                                   newop,
                                   editable,
+                                  flag & UI_ID_OPEN,
                                   true,
                                   but_height);
     UI_but_drawflag_enable(but, but_align);
@@ -1814,6 +1825,56 @@ void uiTemplateID(uiLayout *layout,
                  false,
                  1.0f,
                  live_icon,
+                 false);
+}
+
+void uiTemplateAction(uiLayout *layout,
+                      const bContext *C,
+                      ID *id,
+                      const char *newop,
+                      const char *unlinkop,
+                      const char *text)
+{
+  /* Find AnimData property from the given ID. This is based on the 4.3 implementation. */
+  static const char *adt_action_propname = "action";
+  
+  /* Create a dummy AnimData PointerRNA to find the action property */
+  PointerRNA dummy_adt_ptr = RNA_pointer_create(nullptr, &RNA_AnimData, nullptr);
+  PropertyRNA *adt_action_prop = RNA_struct_find_property(&dummy_adt_ptr, adt_action_propname);
+  if (!adt_action_prop) {
+    return;
+  }
+
+  /* Create a typed-but-null PointerRNA for AnimData.
+   * FIXME: This is a very dirty hack, would be good to find a way to not rely on typed-but-null
+   * PointerRNA.
+   */
+  AnimData *adt = BKE_animdata_from_id(id);
+  PointerRNA adt_ptr = RNA_pointer_create(id, &RNA_AnimData, adt);
+
+  int flag = UI_ID_BROWSE | UI_ID_RENAME | UI_ID_DELETE;
+  if (newop) {
+    flag |= UI_ID_ADD_NEW;
+  }
+
+  uiLayout *row = uiLayoutRow(layout, true);
+
+  ui_template_id(row,
+                 C,
+                 &adt_ptr,
+                 adt_action_propname,
+                 newop,
+                 nullptr,
+                 unlinkop,
+                 nullptr,
+                 text,
+                 flag,
+                 0,
+                 0,
+                 UI_TEMPLATE_ID_FILTER_ALL,
+                 false,
+                 1.0f,
+                 false,
                  false);
 }
 

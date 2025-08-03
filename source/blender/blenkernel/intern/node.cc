@@ -530,6 +530,8 @@ static StringRef get_legacy_socket_subtype_idname(StringRef idname, const void *
         return "NodeSocketFloatTimeAbsolute";
       case PROP_DISTANCE:
         return "NodeSocketFloatDistance";
+      case PROP_WAVELENGTH:
+        return "NodeSocketFloatWavelength";
     }
   }
   if (idname == "NodeSocketInt") {
@@ -2065,6 +2067,8 @@ const char *nodeStaticSocketType(const int type, const int subtype)
           return "NodeSocketFloatTimeAbsolute";
         case PROP_DISTANCE:
           return "NodeSocketFloatDistance";
+        case PROP_WAVELENGTH:
+          return "NodeSocketFloatWavelength";
         case PROP_NONE:
         default:
           return "NodeSocketFloat";
@@ -2150,6 +2154,8 @@ const char *nodeStaticSocketInterfaceTypeNew(const int type, const int subtype)
           return "NodeTreeInterfaceSocketFloatTimeAbsolute";
         case PROP_DISTANCE:
           return "NodeTreeInterfaceSocketFloatDistance";
+        case PROP_WAVELENGTH:
+          return "NodeTreeInterfaceSocketFloatWavelength";
         case PROP_NONE:
         default:
           return "NodeTreeInterfaceSocketFloat";

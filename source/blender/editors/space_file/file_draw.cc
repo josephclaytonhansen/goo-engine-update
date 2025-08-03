@@ -686,7 +686,8 @@ static void file_draw_preview(const FileList *files,
                     0.0f,
                     icon_color,
                     false,
-                    UI_NO_ICON_OVERLAY_TEXT);
+                    UI_NO_ICON_OVERLAY_TEXT,
+                    false);
   }
 
   if (is_link || is_offline) {
@@ -707,7 +708,8 @@ static void file_draw_preview(const FileList *files,
                       0.0f,
                       dark,
                       false,
-                      UI_NO_ICON_OVERLAY_TEXT);
+                      UI_NO_ICON_OVERLAY_TEXT,
+                      false);
       UI_icon_draw_ex(icon_x,
                       icon_y,
                       arrow,
@@ -716,7 +718,8 @@ static void file_draw_preview(const FileList *files,
                       0.0f,
                       light,
                       false,
-                      UI_NO_ICON_OVERLAY_TEXT);
+                      UI_NO_ICON_OVERLAY_TEXT,
+                      false);
     }
     else {
       /* Link to folder or non-previewed file. */
@@ -732,7 +735,8 @@ static void file_draw_preview(const FileList *files,
                       0.0f,
                       icon_color,
                       false,
-                      UI_NO_ICON_OVERLAY_TEXT);
+                      UI_NO_ICON_OVERLAY_TEXT,
+                      false);
     }
   }
   else if (icon && ((!is_icon && !(file->typeflag & FILE_TYPE_FTFONT)) || is_loading)) {
@@ -750,7 +754,8 @@ static void file_draw_preview(const FileList *files,
                     0.0f,
                     dark,
                     false,
-                    UI_NO_ICON_OVERLAY_TEXT);
+                    UI_NO_ICON_OVERLAY_TEXT,
+                    false);
     UI_icon_draw_ex(icon_x,
                     icon_y,
                     icon,
@@ -759,7 +764,8 @@ static void file_draw_preview(const FileList *files,
                     0.0f,
                     light,
                     false,
-                    UI_NO_ICON_OVERLAY_TEXT);
+                    UI_NO_ICON_OVERLAY_TEXT,
+                    false);
   }
 
   const bool is_current_main_data = filelist_file_get_id(file) != nullptr;
@@ -778,7 +784,8 @@ static void file_draw_preview(const FileList *files,
                     0.0f,
                     light,
                     false,
-                    UI_NO_ICON_OVERLAY_TEXT);
+                    UI_NO_ICON_OVERLAY_TEXT,
+                    false);
   }
 
   /* Contrasting outline around some preview types. */
