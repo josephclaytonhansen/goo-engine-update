@@ -225,10 +225,6 @@ static bool idp_snap_calc_incremental(
     return false;
   }
 
-  if (scene->toolsettings->snap_flag & SCE_SNAP_ABS_GRID) {
-    co_relative = nullptr;
-  }
-
   if (co_relative != nullptr) {
     sub_v3_v3(co, co_relative);
   }
@@ -1205,9 +1201,10 @@ static int view3d_interactive_add_modal(bContext *C, wmOperator *op, const wmEve
           /* pass */
         }
 
-        if (ipd->use_snap && (ipd->snap_to & SCE_SNAP_TO_INCREMENT)) {
+        if (ipd->use_snap && (ipd->snap_to & (SCE_SNAP_TO_INCREMENT | SCE_SNAP_TO_GRID))) {
+          const float *co_relative = (ipd->snap_to & SCE_SNAP_TO_GRID) ? nullptr : ipd->co_src;
           if (idp_snap_calc_incremental(
-                  ipd->scene, ipd->v3d, ipd->region, ipd->co_src, ipd->step[STEP_BASE].co_dst))
+                  ipd->scene, ipd->v3d, ipd->region, co_relative, ipd->step[STEP_BASE].co_dst))
           {
           }
         }
@@ -1229,9 +1226,10 @@ static int view3d_interactive_add_modal(bContext *C, wmOperator *op, const wmEve
           /* pass */
         }
 
-        if (ipd->use_snap && (ipd->snap_to & SCE_SNAP_TO_INCREMENT)) {
+        if (ipd->use_snap && (ipd->snap_to & (SCE_SNAP_TO_INCREMENT | SCE_SNAP_TO_GRID))) {
+          const float *co_relative = (ipd->snap_to & SCE_SNAP_TO_GRID) ? nullptr : ipd->co_src;
           if (idp_snap_calc_incremental(
-                  ipd->scene, ipd->v3d, ipd->region, ipd->co_src, ipd->step[STEP_DEPTH].co_dst))
+                  ipd->scene, ipd->v3d, ipd->region, co_relative, ipd->step[STEP_DEPTH].co_dst))
           {
           }
         }

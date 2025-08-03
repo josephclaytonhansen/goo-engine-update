@@ -676,12 +676,6 @@ static eSnapMode snap_mode_from_spacetype(TransInfo *t)
 
   if (t->spacetype == SPACE_IMAGE) {
     eSnapMode snap_mode = eSnapMode(ts->snap_uv_mode);
-    if ((snap_mode & SCE_SNAP_TO_INCREMENT) && (ts->snap_uv_flag & SCE_SNAP_ABS_GRID) &&
-        (t->mode == TFM_TRANSLATION))
-    {
-      snap_mode &= ~SCE_SNAP_TO_INCREMENT;
-      snap_mode |= SCE_SNAP_TO_GRID;
-    }
     return snap_mode;
   }
 
@@ -695,13 +689,6 @@ static eSnapMode snap_mode_from_spacetype(TransInfo *t)
     }
 
     eSnapMode snap_mode = eSnapMode(ts->snap_mode);
-    if ((snap_mode & SCE_SNAP_TO_INCREMENT) && (ts->snap_flag & SCE_SNAP_ABS_GRID) &&
-        (t->mode == TFM_TRANSLATION))
-    {
-      /* Special case in which snap to increments is transformed to snap to grid. */
-      snap_mode &= ~SCE_SNAP_TO_INCREMENT;
-      snap_mode |= SCE_SNAP_TO_GRID;
-    }
     return snap_mode;
   }
 

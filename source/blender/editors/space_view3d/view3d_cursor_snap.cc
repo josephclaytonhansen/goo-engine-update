@@ -143,10 +143,6 @@ static bool v3d_cursor_snap_calc_incremental(
     return false;
   }
 
-  if (scene->toolsettings->snap_flag & SCE_SNAP_ABS_GRID) {
-    co_relative = nullptr;
-  }
-
   if (co_relative != nullptr) {
     sub_v3_v3(co, co_relative);
   }
@@ -811,8 +807,9 @@ static void v3d_cursor_snap_update(V3DSnapCursorState *state,
       ED_view3d_win_to_3d(v3d, region, co_depth, mval_fl, co);
     }
 
-    if (snap_data->is_enabled && (snap_elements & SCE_SNAP_TO_INCREMENT)) {
-      v3d_cursor_snap_calc_incremental(scene, v3d, region, state->prevpoint, co);
+    if (snap_data->is_enabled && (snap_elements & (SCE_SNAP_TO_INCREMENT | SCE_SNAP_TO_GRID))) {
+      const float *co_relative = (snap_elements & SCE_SNAP_TO_GRID) ? nullptr : state->prevpoint;
+      v3d_cursor_snap_calc_incremental(scene, v3d, region, co_relative, co);
     }
   }
   else if (snap_elem & SCE_SNAP_TO_VERTEX) {
