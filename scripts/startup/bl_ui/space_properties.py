@@ -112,22 +112,25 @@ class PropertiesAnimationMixin:
         col.use_property_split = True
         self.draw_action_and_slot_selector(context, col, self._animated_id(context))
 
-    @classmethod
-    def draw_action_and_slot_selector(cls, context, layout, animated_id):
+    @staticmethod
+    def draw_action_and_slot_selector(context, layout, animated_id):
         if not animated_id:
-            class_list = [c.__name__ for c in cls.mro()]
-            print("PropertiesAnimationMixin: no animatable data-block, this is a bug "
-                  "in one of these classes: {}".format(class_list))
+            print("PropertiesAnimationMixin: no animatable data-block, this is a bug")
             layout.label(text='No animatable data-block, please report as bug', icon='ERROR')
             return
 
-        # Use the new template_action function implemented for Blender 4.2+
-        layout.template_action(animated_id, new="action.new", unlink="action.unlink")
-
-        if not context.preferences.experimental.use_animation_baklava:
-            return
-
+        # Use template_ID with AnimData.action for Blender 4.2 compatibility
         adt = animated_id.animation_data
+        if adt is not None:
+            layout.template_ID(adt, "action", new="action.new", unlink="action.unlink")
+
+        # Check if animation baklava is available (Blender 4.3+ feature)
+        try:
+            if not context.preferences.experimental.use_animation_baklava:
+                return
+        except AttributeError:
+            # Animation baklava not available in this Blender version, skip slot selector
+            return
         if not adt or not adt.action:
             return
 

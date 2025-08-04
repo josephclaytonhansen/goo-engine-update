@@ -88,11 +88,6 @@ class IMAGE_MT_view(Menu):
 
         layout.separator()
 
-        layout.operator("image.view_zoom_in")
-        layout.operator("image.view_zoom_out")
-
-        layout.separator()
-
         layout.menu("IMAGE_MT_view_zoom")
 
         layout.separator()
@@ -121,22 +116,31 @@ class IMAGE_MT_view(Menu):
 
 
 class IMAGE_MT_view_zoom(Menu):
-    bl_label = "Fractional Zoom"
+    bl_label = "Zoom"
 
     def draw(self, _context):
         layout = self.layout
+        from math import isclose
 
+        # Get current zoom level 
+        current_zoom = _context.space_data.zoom_percentage
         ratios = ((1, 8), (1, 4), (1, 2), (1, 1), (2, 1), (4, 1), (8, 1))
 
         for i, (a, b) in enumerate(ratios):
-            if i in {3, 4}:  # Draw separators around Zoom 1:1.
-                layout.separator()
-
+            percent = a / b * 100
             layout.operator(
                 "image.view_zoom_ratio",
-                text=iface_("Zoom %d:%d") % (a, b),
+                text=iface_("%g%% (%d:%d)") % (percent, a, b),
                 translate=False,
+                icon=('NONE', 'LAYER_ACTIVE')[isclose(percent, current_zoom, abs_tol=0.5)]
             ).ratio = a / b
+
+        layout.separator()
+
+        layout.operator("image.view_zoom_in")
+        layout.operator("image.view_zoom_out")
+        layout.operator("image.view_all", text="Zoom to Fit").fit_view = True
+        layout.operator("image.view_zoom_border", text="Zoom Region...")
 
 
 class IMAGE_MT_select(Menu):

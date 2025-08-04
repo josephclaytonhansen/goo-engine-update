@@ -1323,11 +1323,9 @@ class CLIP_MT_view(Menu):
             layout.operator("clip.view_all")
             layout.operator("clip.view_all", text="View Fit").fit_view = True
             layout.operator("clip.view_center_cursor")
-            layout.menu("CLIP_MT_view_zoom")
             layout.separator()
 
-            layout.operator("clip.view_zoom_in")
-            layout.operator("clip.view_zoom_out")
+            layout.menu("CLIP_MT_view_zoom")
             layout.separator()
 
             layout.prop(sc, "show_metadata")
