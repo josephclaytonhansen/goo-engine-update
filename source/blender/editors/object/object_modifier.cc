@@ -1269,6 +1269,17 @@ static int modifier_add_exec(bContext *C, wmOperator *op)
   return OPERATOR_FINISHED;
 }
 
+static int modifier_add_invoke(bContext *C, wmOperator *op, const wmEvent *event)
+{
+  if (event->modifier & KM_ALT || CTX_wm_view3d(C)) {
+    RNA_boolean_set(op->ptr, "use_selected_objects", true);
+  }
+  if (!RNA_struct_property_is_set(op->ptr, "type")) {
+    return WM_menu_invoke(C, op, event);
+  }
+  return modifier_add_exec(C, op);
+}
+
 static const EnumPropertyItem *modifier_add_itemf(bContext *C,
                                                   PointerRNA * /*ptr*/,
                                                   PropertyRNA * /*prop*/,
@@ -1327,7 +1338,7 @@ void OBJECT_OT_modifier_add(wmOperatorType *ot)
   ot->idname = "OBJECT_OT_modifier_add";
 
   /* api callbacks */
-  ot->invoke = WM_menu_invoke;
+  ot->invoke = modifier_add_invoke;
   ot->exec = modifier_add_exec;
   ot->poll = ED_operator_object_active_editable;
 
@@ -1562,6 +1573,39 @@ void OBJECT_OT_modifier_remove(wmOperatorType *ot)
   ot->flag = OPTYPE_REGISTER | OPTYPE_UNDO | OPTYPE_INTERNAL;
   edit_modifier_properties(ot);
   edit_modifier_report_property(ot);
+}
+
+static int modifiers_clear_exec(bContext *C, wmOperator * /*op*/)
+{
+  Main *bmain = CTX_data_main(C);
+
+  CTX_DATA_BEGIN (C, Object *, object, selected_editable_objects) {
+    /* Clear all modifiers from the object */
+    while (!BLI_listbase_is_empty(&object->modifiers)) {
+      ModifierData *md = static_cast<ModifierData *>(object->modifiers.first);
+      BKE_modifier_remove_from_list(object, md);
+      BKE_modifier_free(md);
+    }
+    
+    DEG_id_tag_update(&object->id, ID_RECALC_GEOMETRY);
+    WM_main_add_notifier(NC_OBJECT | ND_MODIFIER | NA_REMOVED, object);
+  }
+  CTX_DATA_END;
+
+  DEG_relations_tag_update(bmain);
+  return OPERATOR_FINISHED;
+}
+
+void OBJECT_OT_modifiers_clear(wmOperatorType *ot)
+{
+  ot->name = "Clear Object Modifiers";
+  ot->description = "Clear all modifiers from the selected objects";
+  ot->idname = "OBJECT_OT_modifiers_clear";
+
+  ot->exec = modifiers_clear_exec;
+  ot->poll = ED_operator_object_active_local_editable;
+
+  ot->flag = OPTYPE_REGISTER | OPTYPE_UNDO;
 }
 
 /** \} */
@@ -2202,6 +2246,52 @@ void OBJECT_OT_modifier_copy_to_selected(wmOperatorType *ot)
   /* flags */
   ot->flag = OPTYPE_REGISTER | OPTYPE_UNDO | OPTYPE_INTERNAL;
   edit_modifier_properties(ot);
+}
+
+static int object_modifiers_copy_exec(bContext *C, wmOperator *op)
+{
+  Main *bmain = CTX_data_main(C);
+  Object *active_object = ED_object_active_context(C);
+
+  CTX_DATA_BEGIN (C, Object *, object, selected_objects) {
+    if (object == active_object) {
+      continue;
+    }
+    LISTBASE_FOREACH (ModifierData *, md, &active_object->modifiers) {
+      BKE_object_copy_modifier(bmain, CTX_data_scene(C), object, active_object, md);
+      WM_event_add_notifier(C, NC_OBJECT | ND_MODIFIER | NA_ADDED, object);
+      DEG_id_tag_update(&object->id, ID_RECALC_TRANSFORM | ID_RECALC_GEOMETRY | ID_RECALC_ANIMATION);
+    }
+  }
+  CTX_DATA_END;
+
+  DEG_relations_tag_update(bmain);
+  return OPERATOR_FINISHED;
+}
+
+static bool modifiers_copy_to_selected_poll(bContext *C)
+{
+  if (!ED_operator_object_active_editable(C)) {
+    return false;
+  }
+  Object *active_object = ED_object_active_context(C);
+  if (BLI_listbase_is_empty(&active_object->modifiers)) {
+    CTX_wm_operator_poll_msg_set(C, "Active object has no modifiers");
+    return false;
+  }
+  return true;
+}
+
+void OBJECT_OT_modifiers_copy_to_selected(wmOperatorType *ot)
+{
+  ot->name = "Copy Modifiers to Selected Objects";
+  ot->idname = "OBJECT_OT_modifiers_copy_to_selected";
+  ot->description = "Copy modifiers to other selected objects";
+
+  ot->exec = object_modifiers_copy_exec;
+  ot->poll = modifiers_copy_to_selected_poll;
+
+  ot->flag = OPTYPE_REGISTER | OPTYPE_UNDO;
 }
 
 /** \} */

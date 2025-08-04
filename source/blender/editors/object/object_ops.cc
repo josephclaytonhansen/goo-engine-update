@@ -118,6 +118,7 @@ void ED_operatortypes_object()
 
   WM_operatortype_append(OBJECT_OT_modifier_add);
   WM_operatortype_append(OBJECT_OT_modifier_remove);
+  WM_operatortype_append(OBJECT_OT_modifiers_clear);
   WM_operatortype_append(OBJECT_OT_modifier_move_up);
   WM_operatortype_append(OBJECT_OT_modifier_move_down);
   WM_operatortype_append(OBJECT_OT_modifier_move_to_index);
@@ -126,6 +127,7 @@ void ED_operatortypes_object()
   WM_operatortype_append(OBJECT_OT_modifier_convert);
   WM_operatortype_append(OBJECT_OT_modifier_copy);
   WM_operatortype_append(OBJECT_OT_modifier_copy_to_selected);
+  WM_operatortype_append(OBJECT_OT_modifiers_copy_to_selected);
   WM_operatortype_append(OBJECT_OT_modifier_set_active);
   WM_operatortype_append(OBJECT_OT_multires_subdivide);
   WM_operatortype_append(OBJECT_OT_multires_reshape);
