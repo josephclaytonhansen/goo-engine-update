@@ -33,6 +33,8 @@
 
 #include "DEG_depsgraph.hh"
 
+#include "UI_resources.hh"
+
 /* -------------------------------------------------------------------- */
 /** \name Object
  * \{ */
@@ -239,9 +241,17 @@ static void gpencil_layer_final_tint_and_alpha_get(const GPENCIL_PrivateData *pd
     const bool use_onion_fade = (gpd->onion_flag & GP_ONION_FADE) != 0;
     const bool use_next_col = gpf->runtime.onion_id > 0.0f;
 
-    const float *onion_col_custom = (use_onion_custom_col) ?
-                                        (use_next_col ? gpd->gcolor_next : gpd->gcolor_prev) :
-                                        U.gpencil_new_layer_col;
+    float color_next[3];
+    float color_prev[3];
+    if (use_onion_custom_col) {
+      copy_v3_v3(color_next, gpd->gcolor_next);
+      copy_v3_v3(color_prev, gpd->gcolor_prev);
+    }
+    else {
+      UI_GetThemeColor3fv(TH_FRAME_AFTER, color_next);
+      UI_GetThemeColor3fv(TH_FRAME_BEFORE, color_prev);
+    }
+    const float *onion_col_custom = use_next_col ? color_next : color_prev;
 
     copy_v4_fl4(r_tint, UNPACK3(onion_col_custom), 1.0f);
 

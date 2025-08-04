@@ -41,6 +41,8 @@
 #include "ED_screen.hh"
 #include "ED_view3d.hh"
 
+#include "UI_resources.hh"
+
 /* ************************************************** */
 /* GREASE PENCIL DRAWING */
 
@@ -586,7 +588,13 @@ static void annotation_draw_onionskins(
   float color[4];
 
   /* 1) Draw Previous Frames First */
-  copy_v3_v3(color, gpl->gcolor_prev);
+  /* Use theme color if default, otherwise use custom color */
+  if (gpl->gcolor_prev[0] == 0.302f && gpl->gcolor_prev[1] == 0.851f && gpl->gcolor_prev[2] == 0.302f) {
+    UI_GetThemeColor3fv(TH_FRAME_BEFORE, color);
+  }
+  else {
+    copy_v3_v3(color, gpl->gcolor_prev);
+  }
 
   if (gpl->gstep > 0) {
     bGPDframe *gf;
@@ -618,7 +626,13 @@ static void annotation_draw_onionskins(
   }
 
   /* 2) Now draw next frames */
-  copy_v3_v3(color, gpl->gcolor_next);
+  /* Use theme color if default, otherwise use custom color */
+  if (gpl->gcolor_next[0] == 0.250f && gpl->gcolor_next[1] == 0.1f && gpl->gcolor_next[2] == 1.0f) {
+    UI_GetThemeColor3fv(TH_FRAME_AFTER, color);
+  }
+  else {
+    copy_v3_v3(color, gpl->gcolor_next);
+  }
 
   if (gpl->gstep_next > 0) {
     bGPDframe *gf;

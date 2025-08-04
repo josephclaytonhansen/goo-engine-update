@@ -134,10 +134,12 @@ static void motion_path_cache(OVERLAY_Data *vedata,
   bool show_keyframes_no = (avs->path_viewflag & MOTIONPATH_VIEW_KFNOS) != 0;
   bool show_frame_no = (avs->path_viewflag & MOTIONPATH_VIEW_FNUMS) != 0;
   bool show_lines = (mpath->flag & MOTIONPATH_FLAG_LINES) != 0;
-  float no_custom_col[3] = {-1.0f, -1.0f, -1.0f};
+  float theme_col_pre[3], theme_col_post[3];
+  UI_GetThemeColor3fv(TH_FRAME_BEFORE, theme_col_pre);
+  UI_GetThemeColor3fv(TH_FRAME_AFTER, theme_col_post);
   const bool use_custom_color = mpath->flag & MOTIONPATH_FLAG_CUSTOM;
-  const float *color_pre = use_custom_color ? mpath->color : no_custom_col;
-  const float *color_post = use_custom_color ? mpath->color_post : no_custom_col;
+  const float *color_pre = use_custom_color ? mpath->color : theme_col_pre;
+  const float *color_post = use_custom_color ? mpath->color_post : theme_col_post;
 
   int sfra, efra, stepsize;
   motion_path_get_frame_range_to_draw(avs, mpath, cfra, &sfra, &efra, &stepsize);

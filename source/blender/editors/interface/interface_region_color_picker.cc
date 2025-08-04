@@ -105,6 +105,21 @@ bool ui_but_is_color_gamma(uiBut *but)
   return but->block->is_color_gamma_picker;
 }
 
+bool ui_but_color_has_alpha(uiBut *but)
+{
+  if (but->rnaprop) {
+    const PropertySubType prop_subtype = RNA_property_subtype(but->rnaprop);
+    if (ELEM(prop_subtype, PROP_COLOR, PROP_COLOR_GAMMA)) {
+      const int color_components_count = RNA_property_array_length(&but->rnapoin, but->rnaprop);
+      if (color_components_count == 4) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 void ui_scene_linear_to_perceptual_space(uiBut *but, float rgb[3])
 {
   /* Map to color picking space for HSV values and HSV cube/circle,
