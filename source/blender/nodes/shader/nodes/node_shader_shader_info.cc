@@ -2,7 +2,7 @@
 * Copyright 2005 Blender Foundation. All rights reserved. */
 
 #include "../node_shader_util.hh"
-#include "../../intern/node_util.hh"
+#include "node_util.hh"
 
 #include "UI_interface.hh"
 #include "UI_resources.hh"
@@ -58,8 +58,9 @@ static int node_shader_gpu_shader_info(GPUMaterial *mat,
                                       GPUNodeStack *in,
                                       GPUNodeStack *out)
 {
-  // Set this to ensure shadowmap eval.
+  // Set flags to ensure proper lighting evaluation
   GPU_material_flag_set(mat, GPU_MATFLAG_DIFFUSE);
+  GPU_material_flag_set(mat, GPU_MATFLAG_GLOSSY);
 
   if (!in[0].link) {
     GPU_link(mat, "world_position_get", &in[0].link);

@@ -2065,6 +2065,7 @@ void UI_block_draw(const bContext *C, uiBlock *block)
   ui_fontscale(&style.grouplabel.points, block->aspect);
   ui_fontscale(&style.widgetlabel.points, block->aspect);
   ui_fontscale(&style.widget.points, block->aspect);
+  ui_fontscale(&style.tooltip.points, block->aspect);
 
   /* scale block min/max to rect */
   rcti rect;
@@ -2334,13 +2335,13 @@ void ui_but_v3_get(uiBut *but, float vec[3])
     }
   }
   else if (but->pointype == UI_BUT_POIN_CHAR) {
-    const char *cp = (char *)but->poin;
+    const char *cp = but->poin;
     vec[0] = float(cp[0]) / 255.0f;
     vec[1] = float(cp[1]) / 255.0f;
     vec[2] = float(cp[2]) / 255.0f;
   }
   else if (but->pointype == UI_BUT_POIN_FLOAT) {
-    const float *fp = (float *)but->poin;
+    const float *fp = reinterpret_cast<float *>(but->poin);
     copy_v3_v3(vec, fp);
   }
   else {
@@ -2365,30 +2366,28 @@ void ui_but_v3_set(uiBut *but, const float vec[3])
     PropertyRNA *prop = but->rnaprop;
 
     if (RNA_property_type(prop) == PROP_FLOAT) {
-      int tot;
-      int a;
+      int tot = RNA_property_array_length(&but->rnapoin, prop);
 
-      tot = RNA_property_array_length(&but->rnapoin, prop);
       BLI_assert(tot > 0);
       if (tot == 3) {
         RNA_property_float_set_array(&but->rnapoin, prop, vec);
       }
       else {
         tot = min_ii(tot, 3);
-        for (a = 0; a < tot; a++) {
+        for (int a = 0; a < tot; a++) {
           RNA_property_float_set_index(&but->rnapoin, prop, a, vec[a]);
         }
       }
     }
   }
   else if (but->pointype == UI_BUT_POIN_CHAR) {
-    char *cp = (char *)but->poin;
+    char *cp = but->poin;
     cp[0] = char(lround(vec[0] * 255.0f));
     cp[1] = char(lround(vec[1] * 255.0f));
     cp[2] = char(lround(vec[2] * 255.0f));
   }
   else if (but->pointype == UI_BUT_POIN_FLOAT) {
-    float *fp = (float *)but->poin;
+    float *fp = reinterpret_cast<float *>(but->poin);
     copy_v3_v3(fp, vec);
   }
 }

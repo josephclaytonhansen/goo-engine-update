@@ -276,6 +276,12 @@ static void rna_userdef_theme_update_icons(Main *bmain, Scene *scene, PointerRNA
   rna_userdef_theme_update(bmain, scene, ptr);
 }
 
+static void rna_userdef_theme_update_gawain(Main *bmain, Scene *scene, PointerRNA *ptr)
+{
+  /* Update gawain/GPU rendering system when theme changes */
+  rna_userdef_theme_update(bmain, scene, ptr);
+}
+
 /* also used by buffer swap switching */
 static void rna_userdef_gpu_update(Main * /*bmain*/, Scene * /*scene*/, PointerRNA * /*ptr*/)
 {
@@ -1420,6 +1426,13 @@ static void rna_def_userdef_theme_ui_style(BlenderRNA *brna)
   RNA_def_property_struct_type(prop, "ThemeFontStyle");
   RNA_def_property_ui_text(prop, "Widget Style", "");
   RNA_def_property_update(prop, 0, "rna_userdef_theme_update");
+
+  prop = RNA_def_property(srna, "tooltip", PROP_POINTER, PROP_NONE);
+  RNA_def_property_flag(prop, PROP_NEVER_NULL);
+  RNA_def_property_pointer_sdna(prop, nullptr, "tooltip");
+  RNA_def_property_struct_type(prop, "ThemeFontStyle");
+  RNA_def_property_ui_text(prop, "Tooltip Style", "");
+  RNA_def_property_update(prop, 0, "rna_userdef_theme_update");
 }
 
 static void rna_def_userdef_theme_ui_wcol(BlenderRNA *brna)
@@ -1906,6 +1919,12 @@ static void rna_def_userdef_theme_ui(BlenderRNA *brna)
   RNA_def_property_array(prop, 4);
   RNA_def_property_ui_text(prop, "File Folders", "Color of folders in the file browser");
   RNA_def_property_update(prop, 0, "rna_userdef_theme_update");
+
+  prop = RNA_def_property(srna, "icon_autokey", PROP_FLOAT, PROP_COLOR_GAMMA);
+  RNA_def_property_float_sdna(prop, nullptr, "icon_autokey");
+  RNA_def_property_array(prop, 4);
+  RNA_def_property_ui_text(prop, "Auto Keying", "Color of the auto keying indicator icon");
+  RNA_def_property_update(prop, 0, "rna_userdef_gpu_update");
 
   prop = RNA_def_property(srna, "icon_border_intensity", PROP_FLOAT, PROP_FACTOR);
   RNA_def_property_float_sdna(prop, nullptr, "icon_border_intensity");

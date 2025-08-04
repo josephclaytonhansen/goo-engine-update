@@ -95,6 +95,7 @@ typedef struct uiStyle {
   uiFontStyle grouplabel;
   uiFontStyle widgetlabel;
   uiFontStyle widget;
+  uiFontStyle tooltip;
 
   float panelzoom;
 
@@ -202,11 +203,12 @@ typedef struct ThemeUI {
   unsigned char icon_shading[4];
   /** File folders. */
   unsigned char icon_folder[4];
+  /** Auto Keying. */
+  unsigned char icon_autokey[4];
   /** Intensity of the border icons. >0 will render an border around themed
    * icons. */
   float icon_border_intensity;
   float panel_roundness;
-  char _pad2[4];
 
 } ThemeUI;
 

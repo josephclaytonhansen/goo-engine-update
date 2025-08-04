@@ -1601,7 +1601,10 @@ static void drawAutoKeyWarning(TransInfo *t, ARegion *region)
   xco -= U.widget_unit;
   yco -= int(printable_size[1]) / 2;
 
-  UI_icon_draw(xco, yco, ICON_REC);
+  /* Get the autokey theme color and draw the icon with it. */
+  uchar autokey_color[4];
+  UI_GetThemeColor4ubv(TH_ICON_AUTOKEY, autokey_color);
+  UI_icon_draw_ex(xco, yco, ICON_RECORD_ON, 1.0f, 1.0f, 0.0f, autokey_color, false, nullptr);
 
   GPU_blend(GPU_BLEND_NONE);
 }

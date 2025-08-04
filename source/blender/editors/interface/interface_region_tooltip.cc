@@ -1179,7 +1179,7 @@ static ARegion *ui_tooltip_create_with_data(bContext *C,
   region->type = &type;
 
   /* Set font, get bounding-box. */
-  data->fstyle = style->widget; /* copy struct */
+  data->fstyle = style->tooltip; /* copy struct */
   ui_fontscale(&data->fstyle.points, aspect);
 
   UI_fontstyle_set(&data->fstyle);
