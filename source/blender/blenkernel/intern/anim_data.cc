@@ -200,6 +200,10 @@ bool BKE_animdata_set_action(ReportList *reports, ID *id, bAction *act)
 
 bool BKE_animdata_action_editable(const AnimData *adt)
 {
+  /* No animation data means no action is editable */
+  if (adt == nullptr) {
+    return false;
+  }
   /* Active action is only editable when it is not a tweaking strip. */
   const bool is_tweaking_strip = (adt->flag & ADT_NLA_EDIT_ON) || adt->actstrip != nullptr ||
                                  adt->tmpact != nullptr;

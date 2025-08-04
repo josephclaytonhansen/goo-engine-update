@@ -1850,6 +1850,13 @@ void uiTemplateAction(uiLayout *layout,
    * PointerRNA.
    */
   AnimData *adt = BKE_animdata_from_id(id);
+  
+  /* Ensure AnimData exists if the ID can have animation data, since the user
+   * might want to assign an action through this template. */
+  if (adt == nullptr && id_can_have_animdata(id)) {
+    adt = BKE_animdata_ensure_id(id);
+  }
+  
   PointerRNA adt_ptr = RNA_pointer_create(id, &RNA_AnimData, adt);
 
   int flag = UI_ID_BROWSE | UI_ID_RENAME | UI_ID_DELETE;
