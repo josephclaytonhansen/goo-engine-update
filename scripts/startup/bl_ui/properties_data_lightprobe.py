@@ -3,8 +3,6 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 from bpy.types import Panel
-from rna_prop_ui import PropertyPanel
-from .space_properties import PropertiesAnimationMixin
 
 
 class DataButtonsPanel:
@@ -266,10 +264,6 @@ class DATA_PT_lightprobe_display(DataButtonsPanel, Panel):
             sub.prop(probe, "show_parallax")
 
 
-class DATA_PT_lightprobe_animation(DataButtonsPanel, PropertiesAnimationMixin, PropertyPanel, Panel):
-    _animated_id_context_property = 'lightprobe'
-
-
 classes = (
     DATA_PT_context_lightprobe,
     DATA_PT_lightprobe,
@@ -277,7 +271,6 @@ classes = (
     DATA_PT_lightprobe_visibility,
     DATA_PT_lightprobe_parallax,
     DATA_PT_lightprobe_display,
-    DATA_PT_lightprobe_animation,
 )
 
 if __name__ == "__main__":  # only for live edit.

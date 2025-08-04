@@ -1804,23 +1804,6 @@ static void rna_SpaceImageEditor_zoom_get(PointerRNA *ptr, float *values)
   }
 }
 
-static float rna_SpaceImageEditor_zoom_percentage_get(PointerRNA *ptr)
-{
-  SpaceImage *sima = (SpaceImage *)ptr->data;
-  ScrArea *area;
-  ARegion *region;
-  float zoom[2] = {1.0f, 1.0f};
-
-  /* Find #ARegion. */
-  area = rna_area_from_space(ptr); /* can be nullptr */
-  region = BKE_area_find_region_type(area, RGN_TYPE_WINDOW);
-  if (region) {
-    ED_space_image_get_zoom(sima, region, &zoom[0], &zoom[1]);
-  }
-  
-  return zoom[0] * 100.0f;
-}
-
 static void rna_SpaceImageEditor_cursor_location_get(PointerRNA *ptr, float *values)
 {
   SpaceImage *sima = (SpaceImage *)ptr->data;
@@ -4500,12 +4483,6 @@ static void rna_def_space_view3d_overlay(BlenderRNA *brna)
   RNA_def_property_ui_text(prop, "Show Statistics", "Display scene statistics overlay text");
   RNA_def_property_update(prop, NC_SPACE | ND_SPACE_VIEW3D, nullptr);
 
-  /* show camera composition guides */
-  prop = RNA_def_property(srna, "show_camera_guides", PROP_BOOLEAN, PROP_NONE);
-  RNA_def_property_boolean_sdna(prop, nullptr, "flag2", V3D_SHOW_CAMERA_GUIDES);
-  RNA_def_property_ui_text(prop, "Show Camera Guides", "Show camera composition guides");
-  RNA_def_property_update(prop, NC_SPACE | ND_SPACE_VIEW3D, nullptr);
-
   prop = RNA_def_property(srna, "show_extras", PROP_BOOLEAN, PROP_NONE);
   RNA_def_property_boolean_negative_sdna(
       prop, nullptr, "overlay.flag", V3D_OVERLAY_HIDE_OBJECT_XTRAS);
@@ -4876,9 +4853,14 @@ static void rna_def_space_view3d_overlay(BlenderRNA *brna)
   RNA_def_property_ui_text(prop, "Show Annotation", "Show annotations for this view");
   RNA_def_property_update(prop, NC_SPACE | ND_SPACE_VIEW3D, nullptr);
 
+  prop = RNA_def_property(srna, "show_camera_guides", PROP_BOOLEAN, PROP_NONE);
+  RNA_def_property_boolean_sdna(prop, nullptr, "flag2", V3D_SHOW_CAMERA_GUIDES);
+  RNA_def_property_ui_text(prop, "Show Camera Guides", "Show camera guides");
+  RNA_def_property_update(prop, NC_SPACE | ND_SPACE_VIEW3D, nullptr);
+
   prop = RNA_def_property(srna, "show_camera_passepartout", PROP_BOOLEAN, PROP_NONE);
   RNA_def_property_boolean_sdna(prop, nullptr, "flag2", V3D_SHOW_CAMERA_PASSEPARTOUT);
-  RNA_def_property_ui_text(prop, "Passepartout", "Show camera passepartout");
+  RNA_def_property_ui_text(prop, "Show Passepartout", "Show camera passepartout");
   RNA_def_property_update(prop, NC_SPACE | ND_SPACE_VIEW3D, nullptr);
 
   prop = RNA_def_property(srna, "use_gpencil_fade_objects", PROP_BOOLEAN, PROP_NONE);
@@ -5639,11 +5621,6 @@ static void rna_def_space_image(BlenderRNA *brna)
   RNA_def_property_clear_flag(prop, PROP_EDITABLE);
   RNA_def_property_float_funcs(prop, "rna_SpaceImageEditor_zoom_get", nullptr, nullptr);
   RNA_def_property_ui_text(prop, "Zoom", "Zoom factor");
-
-  prop = RNA_def_property(srna, "zoom_percentage", PROP_FLOAT, PROP_PERCENTAGE);
-  RNA_def_property_clear_flag(prop, PROP_EDITABLE);
-  RNA_def_property_float_funcs(prop, "rna_SpaceImageEditor_zoom_percentage_get", nullptr, nullptr);
-  RNA_def_property_ui_text(prop, "Zoom Percentage", "Zoom factor as percentage");
 
   /* image draw */
   prop = RNA_def_property(srna, "show_repeat", PROP_BOOLEAN, PROP_NONE);

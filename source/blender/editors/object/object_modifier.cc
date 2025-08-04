@@ -1269,17 +1269,6 @@ static int modifier_add_exec(bContext *C, wmOperator *op)
   return OPERATOR_FINISHED;
 }
 
-static int modifier_add_invoke(bContext *C, wmOperator *op, const wmEvent *event)
-{
-  if (event->modifier & KM_ALT || CTX_wm_view3d(C)) {
-    RNA_boolean_set(op->ptr, "use_selected_objects", true);
-  }
-  if (!RNA_struct_property_is_set(op->ptr, "type")) {
-    return WM_menu_invoke(C, op, event);
-  }
-  return modifier_add_exec(C, op);
-}
-
 static const EnumPropertyItem *modifier_add_itemf(bContext *C,
                                                   PointerRNA * /*ptr*/,
                                                   PropertyRNA * /*prop*/,
@@ -1338,7 +1327,7 @@ void OBJECT_OT_modifier_add(wmOperatorType *ot)
   ot->idname = "OBJECT_OT_modifier_add";
 
   /* api callbacks */
-  ot->invoke = modifier_add_invoke;
+  ot->invoke = WM_menu_invoke;
   ot->exec = modifier_add_exec;
   ot->poll = ED_operator_object_active_editable;
 
@@ -1578,21 +1567,14 @@ void OBJECT_OT_modifier_remove(wmOperatorType *ot)
 static int modifiers_clear_exec(bContext *C, wmOperator * /*op*/)
 {
   Main *bmain = CTX_data_main(C);
+  Scene *scene = CTX_data_scene(C);
 
   CTX_DATA_BEGIN (C, Object *, object, selected_editable_objects) {
-    /* Clear all modifiers from the object */
-    while (!BLI_listbase_is_empty(&object->modifiers)) {
-      ModifierData *md = static_cast<ModifierData *>(object->modifiers.first);
-      BKE_modifier_remove_from_list(object, md);
-      BKE_modifier_free(md);
-    }
-    
-    DEG_id_tag_update(&object->id, ID_RECALC_GEOMETRY);
+    ED_object_modifier_clear(bmain, scene, object);
     WM_main_add_notifier(NC_OBJECT | ND_MODIFIER | NA_REMOVED, object);
   }
   CTX_DATA_END;
 
-  DEG_relations_tag_update(bmain);
   return OPERATOR_FINISHED;
 }
 
@@ -2251,21 +2233,34 @@ void OBJECT_OT_modifier_copy_to_selected(wmOperatorType *ot)
 static int object_modifiers_copy_exec(bContext *C, wmOperator *op)
 {
   Main *bmain = CTX_data_main(C);
+  Scene *scene = CTX_data_scene(C);
   Object *active_object = ED_object_active_context(C);
+
+  if (!active_object) {
+    return OPERATOR_CANCELLED;
+  }
+
+  int num_copied = 0;
 
   CTX_DATA_BEGIN (C, Object *, object, selected_objects) {
     if (object == active_object) {
       continue;
     }
+    
     LISTBASE_FOREACH (ModifierData *, md, &active_object->modifiers) {
-      BKE_object_copy_modifier(bmain, CTX_data_scene(C), object, active_object, md);
-      WM_event_add_notifier(C, NC_OBJECT | ND_MODIFIER | NA_ADDED, object);
-      DEG_id_tag_update(&object->id, ID_RECALC_TRANSFORM | ID_RECALC_GEOMETRY | ID_RECALC_ANIMATION);
+      if (BKE_object_copy_modifier(bmain, scene, object, active_object, md)) {
+        num_copied++;
+        WM_event_add_notifier(C, NC_OBJECT | ND_MODIFIER | NA_ADDED, object);
+        DEG_id_tag_update(&object->id, ID_RECALC_GEOMETRY | ID_RECALC_ANIMATION);
+      }
     }
   }
   CTX_DATA_END;
 
-  DEG_relations_tag_update(bmain);
+  if (num_copied > 0) {
+    DEG_relations_tag_update(bmain);
+  }
+
   return OPERATOR_FINISHED;
 }
 

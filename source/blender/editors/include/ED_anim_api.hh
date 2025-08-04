@@ -503,6 +503,12 @@ void ANIM_animdata_update(bAnimContext *ac, ListBase *anim_data);
 void ANIM_animdata_freelist(ListBase *anim_data);
 
 /**
+ * Deselect all selected keyframes in all open animation editors
+ * (Graph Editor and Dope Sheet).
+ */
+void ANIM_deselect_keys_in_animation_editors(bContext *C);
+
+/**
  * Check if the given animation container can contain grease pencil layer keyframes.
  */
 bool ANIM_animdata_can_have_greasepencil(const eAnimCont_Types type);

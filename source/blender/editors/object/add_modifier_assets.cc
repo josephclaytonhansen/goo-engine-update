@@ -323,14 +323,6 @@ static int modifier_add_asset_exec(bContext *C, wmOperator *op)
   return OPERATOR_FINISHED;
 }
 
-static int modifier_add_asset_invoke(bContext *C, wmOperator *op, const wmEvent *event)
-{
-  if (event->modifier & KM_ALT || CTX_wm_view3d(C)) {
-    RNA_boolean_set(op->ptr, "use_selected_objects", true);
-  }
-  return modifier_add_asset_exec(C, op);
-}
-
 static std::string modifier_add_asset_get_description(bContext *C,
                                                       wmOperatorType * /*ot*/,
                                                       PointerRNA *ptr)
@@ -352,7 +344,6 @@ static void OBJECT_OT_modifier_add_node_group(wmOperatorType *ot)
   ot->description = "Add a procedural operation/effect to the active object";
   ot->idname = "OBJECT_OT_modifier_add_node_group";
 
-  ot->invoke = modifier_add_asset_invoke;
   ot->exec = modifier_add_asset_exec;
   ot->poll = ED_operator_object_active_editable;
   ot->get_description = modifier_add_asset_get_description;

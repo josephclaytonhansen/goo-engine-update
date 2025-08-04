@@ -142,11 +142,6 @@ static void rna_AnimData_action_set(PointerRNA *ptr, PointerRNA value, ReportLis
 {
   ID *ownerId = ptr->owner_id;
 
-  /* Ensure AnimData exists before setting action */
-  if (ownerId && id_can_have_animdata(ownerId)) {
-    BKE_animdata_ensure_id(ownerId);
-  }
-
   /* set action */
   BKE_animdata_set_action(nullptr, ownerId, static_cast<bAction *>(value.data));
 }

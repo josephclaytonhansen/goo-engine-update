@@ -12,6 +12,7 @@
 extern "C" {
 #endif
 
+struct Object;
 struct StructRNA;
 struct bContext;
 struct wmOperator;
