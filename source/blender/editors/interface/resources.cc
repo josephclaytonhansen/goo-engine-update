@@ -1446,6 +1446,9 @@ bool UI_GetIconThemeColor4ubv(int colorid, uchar col[4])
   if (colorid == TH_ICON_FUND) {
     /* Always color development fund icon. */
   }
+  else if (colorid == TH_ICON_AUTOKEY) {
+    /* Always color auto-keying icon to indicate recording state. */
+  }
   else if (!((g_theme_state.spacetype == SPACE_OUTLINER &&
               g_theme_state.regionid == RGN_TYPE_WINDOW) ||
              (g_theme_state.spacetype == SPACE_PROPERTIES &&

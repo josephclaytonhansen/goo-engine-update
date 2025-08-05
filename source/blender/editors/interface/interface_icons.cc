@@ -1285,6 +1285,16 @@ void UI_icons_init()
   init_internal_icons();
   init_brush_icons();
   init_event_icons();
+
+  /* Override RECORD_ON icon to use autokey theme color */
+  Icon *icon = BKE_icon_get(ICON_RECORD_ON);
+  if (icon) {
+    DrawInfo *di = icon_ensure_drawinfo(icon);
+    if (di) {
+      di->type = ICON_TYPE_MONO_TEXTURE;
+      di->data.texture.theme_color = TH_ICON_AUTOKEY;
+    }
+  }
 #endif
 }
 
@@ -2125,7 +2135,14 @@ static void icon_draw_size(float x,
       rgba_uchar_to_float(color, (const uchar *)mono_rgba);
     }
     else {
-      UI_GetThemeColor4fv(TH_TEXT, color);
+      /* Check if icon has a specific theme color, otherwise use text color */
+      uchar icon_color[4];
+      if (di->data.texture.theme_color && UI_GetIconThemeColor4ubv(di->data.texture.theme_color, icon_color)) {
+        rgba_uchar_to_float(color, icon_color);
+      }
+      else {
+        UI_GetThemeColor4fv(TH_TEXT, color);
+      }
     }
 
     mul_v4_fl(color, alpha);
