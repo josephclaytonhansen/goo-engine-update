@@ -2278,6 +2278,7 @@ bool BKE_scene_camera_switch_update(Scene *scene)
 {
 #ifdef DURIAN_CAMERA_SWITCH
   Object *camera = BKE_scene_camera_switch_find(scene);
+  BKE_scene_camera_resolution_update(scene);
   if (camera && (camera != scene->camera)) {
     scene->camera = camera;
     DEG_id_tag_update(&scene->id, ID_RECALC_SYNC_TO_EVAL);
