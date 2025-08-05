@@ -100,7 +100,6 @@ set(SRC
   nodes/node_shader_subsurface_scattering.cc
   nodes/node_shader_tangent.cc
   nodes/node_shader_tex_brick.cc
-  nodes/node_shader_tex_gabor.cc 
   nodes/node_shader_tex_checker.cc
   nodes/node_shader_tex_coord.cc
   nodes/node_shader_tex_environment.cc

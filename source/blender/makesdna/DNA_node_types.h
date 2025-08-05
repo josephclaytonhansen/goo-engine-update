@@ -1360,14 +1360,6 @@ typedef struct NodeTexMagic {
   char _pad[4];
 } NodeTexMagic;
 
-
-typedef struct NodeTexGabor {
-  NodeTexBase base;
-  char type;
-  char _pad[7];
-} NodeTexGabor;
-
-
 typedef struct NodeShaderAttribute {
   char name[64];
   int type;
@@ -2318,11 +2310,6 @@ enum {
 enum {
   SHD_MATH_CLAMP = 1,
 };
-
-typedef enum NodeGaborType {
-  SHD_GABOR_TYPE_2D = 0,
-  SHD_GABOR_TYPE_3D = 1,
-} NodeGaborType;
 
 typedef enum NodeMathOperation {
   NODE_MATH_ADD = 0,
