@@ -1058,7 +1058,7 @@ class VIEW3D_HT_header(Header):
             sub.popover(panel="VIEW3D_PT_overlay_bones", text="", icon='POSE_HLT')
 
         row = layout.row()
-        row.active = (object_mode == 'EDIT') or (shading.type in {'WIREFRAME', 'SOLID'})
+        row.active = object_mode in {'EDIT', 'POSE'} or shading.type in {'WIREFRAME', 'SOLID'}
 
         # While exposing `shading.show_xray(_wireframe)` is correct.
         # this hides the key shortcut from users: #70433.
@@ -6005,7 +6005,7 @@ class VIEW3D_MT_shading_ex_pie(Menu):
 
         # Note this duplicates "view3d.toggle_xray" logic, so we can see the active item: #58661.
         if context.pose_object:
-            pie.prop(view.overlay, "show_xray_bone", icon='XRAY')
+            pie.prop(view.overlay, "show_xray_bone", icon='XRAY_BONE')
         else:
             xray_active = (
                 (context.mode == 'EDIT_MESH') or
@@ -6704,7 +6704,7 @@ class VIEW3D_PT_shading_options(Panel):
             row.prop(shading, "show_xray_wireframe", text="")
             sub = row.row()
             sub.active = shading.show_xray_wireframe
-            sub.prop(shading, "xray_alpha_wireframe", text="X-Ray")
+            sub.prop(shading, "xray_alpha_wireframe", text="Wireframe X-Ray")
         elif shading.type == 'SOLID':
             row.prop(shading, "show_xray", text="")
             sub = row.row()
@@ -7477,7 +7477,7 @@ class VIEW3D_PT_overlay_bones(Panel):
             row.prop(overlay, "show_xray_bone", text="")
             sub = row.row()
             sub.active = display_all and overlay.show_xray_bone
-            sub.prop(overlay, "xray_alpha_bone", text="Fade Geometry")
+            sub.prop(overlay, "xray_alpha_bone", text="Bone X-Ray")
         elif mode == 'PAINT_WEIGHT':
             row = col.row()
             row.prop(overlay, "show_xray_bone")
