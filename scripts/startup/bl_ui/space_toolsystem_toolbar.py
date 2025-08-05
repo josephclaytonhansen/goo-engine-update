@@ -425,7 +425,7 @@ class _defs_view3d_select:
             props = tool.operator_properties("view3d.select_box")
             row = layout.row()
             row.use_property_split = False
-            row.prop(props, "mode", text="", expand=True, icon_only=True)
+            
         return dict(
             idname="builtin.select_box",
             label="Select Box",
