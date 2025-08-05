@@ -87,6 +87,7 @@ void register_shader_nodes()
   register_node_type_sh_subsurface_scattering();
   register_node_type_sh_tangent();
   register_node_type_sh_tex_brick();
+  register_node_type_sh_tex_gabor(); 
   register_node_type_sh_tex_checker();
   register_node_type_sh_tex_coord();
   register_node_type_sh_tex_environment();

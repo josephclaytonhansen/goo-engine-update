@@ -85,6 +85,7 @@ void register_node_type_sh_shadertorgb();
 void register_node_type_sh_squeeze();
 void register_node_type_sh_subsurface_scattering();
 void register_node_type_sh_tangent();
+void register_node_type_sh_tex_gabor(); 
 void register_node_type_sh_tex_brick();
 void register_node_type_sh_tex_checker();
 void register_node_type_sh_tex_coord();
