@@ -590,6 +590,7 @@ set(GLSL_SRC
   shaders/material/gpu_shader_material_wireframe.glsl
   shaders/material/gpu_shader_material_world_normals.glsl
   shaders/material/gpu_shader_material_world_position.glsl
+  shaders/material/gpu_shader_material_view_position.glsl
 
   shaders/gpu_shader_gpencil_stroke_vert.glsl
   shaders/gpu_shader_gpencil_stroke_vert_no_geom.glsl

@@ -312,6 +312,8 @@ set(SRC
   engines/gpencil/gpencil_object.hh
   engines/gpencil/gpencil_shader.hh
   engines/gpencil/gpencil_vfx.hh
+  engines/gpencil/shaders/infos/gpencil_info.hh
+  engines/gpencil/shaders/infos/gpencil_vfx_info.hh
   engines/image/image_batches.hh
   engines/image/image_buffer_cache.hh
   engines/image/image_drawing_mode.hh
@@ -727,6 +729,9 @@ set(GLSL_SRC
   engines/gpencil/shaders/gpencil_depth_merge_frag.glsl
   engines/gpencil/shaders/gpencil_depth_merge_vert.glsl
   engines/gpencil/shaders/gpencil_vfx_frag.glsl
+  engines/gpencil/shaders/grease_pencil_vert.glsl
+  engines/gpencil/shaders/grease_pencil_frag.glsl
+  engines/gpencil/shaders/grease_pencil_depth_merge_vert.glsl
 
   engines/gpencil/gpencil_defines.h
   engines/gpencil/gpencil_shader_shared.h
