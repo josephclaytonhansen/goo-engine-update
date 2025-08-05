@@ -33,6 +33,7 @@ static void sh_node_light_info_declare(NodeDeclarationBuilder &b)
 {
   b.add_output<decl::Color>("Light Color");
   b.add_output<decl::Float>("Light Power");
+  b.add_output<decl::Float>("Perceptual Power");
   // b.add_output<decl::Float>("Light Distance"); // Temporarily removed - causes crash
 }
 
@@ -63,6 +64,7 @@ static int node_shader_gpu_light_info(GPUMaterial *mat,
   /* Always use safe defaults to avoid crashes during material compilation */
   float light_color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
   float light_power = 1.0f;
+  float perceptual_power = 1.0f;
   
   /* Only try to access object data if everything is valid */
   if (data && data->light_object != nullptr && 
