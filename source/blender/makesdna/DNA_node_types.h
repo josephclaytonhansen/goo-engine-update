@@ -1500,6 +1500,13 @@ typedef struct NodeTexHexagon {
   int use_clamp;
 } NodeTexHexagon;
 
+typedef struct NodeTwirl {
+  NodeTexBase base;
+  float amount;
+  float center[2];
+  char _pad[4];
+} NodeTwirl;
+
 typedef struct NodeShaderColorPalette {
   /** Pointer to the Palette datablock containing colors. */
   struct Palette *palette;

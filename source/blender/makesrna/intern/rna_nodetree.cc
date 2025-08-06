@@ -5434,6 +5434,13 @@ static void def_sh_light_info(StructRNA *srna)
   RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_Node_update");
 }
 
+static void def_sh_twirl(StructRNA *srna)
+{
+  PropertyRNA *prop;
+  RNA_def_struct_sdna_from(srna, "NodeTwirl", "storage");
+  def_sh_tex(srna);
+}
+
 static void def_sh_tex_hexagon(StructRNA *srna)
 {
   static const EnumPropertyItem prop_hexagon_coords_items[] = {
