@@ -41,6 +41,7 @@ void register_shader_nodes()
   register_node_type_sh_color_palette();
   register_node_type_sh_light_info();
   register_node_type_sh_twirl();
+  register_node_type_sh_water_ripples();
   register_node_type_sh_tex_hexagon();
   register_node_type_sh_curve_float();
   register_node_type_sh_curve_rgb();
