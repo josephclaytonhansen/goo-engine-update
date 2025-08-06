@@ -1,0 +1,173 @@
+#pragma BLENDER_REQUIRE(gpu_shader_material_common.glsl)
+#pragma BLENDER_REQUIRE(gpu_shader_common_math_utils.glsl)
+#pragma BLENDER_REQUIRE(gpu_shader_common_math_constants.glsl)
+
+/* Utility functions */
+float bias_function(float x, float b)
+{
+    float min_b = 1.0 / 100.0;
+    float max_b = 99.0 / 100.0;
+    float safe_b = clamp(b, min_b, max_b);
+    return x / ((1.0/safe_b - 2.0) * (1.0 - x) + 1.0);
+}
+
+/* Hash functions for procedural generation */
+float hash12(vec2 p, float hash_scale)
+{
+    vec3 p3 = fract(vec3(p.xyx) * hash_scale);
+    vec3 add_val = p3.yzx + 19.19;
+    p3 += dot(p3, add_val);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
+vec2 hash22(vec2 p, vec3 hash_scale)
+{
+    vec3 p3 = fract(vec3(p.xyx) * hash_scale);
+    vec3 add_val = p3.yzx + 19.19;
+    p3 += dot(p3, add_val);
+    return fract((p3.xx + p3.yz) * p3.zy);
+}
+
+void node_water_ripples(
+    vec3 vector,
+    vec3 input_normal,
+    float time,
+    float mode,
+    float scale,
+    float intensity,
+    float speed,
+    float detail,
+    float bias_amount,
+    out vec3 normal,
+    out float mask
+)
+{
+    vec2 uv = vector.xy * max(scale, 1.0/1000.0);
+    float h = 0.0;
+   
+    if (mode < 5.0/10.0) {
+        /* DROPS MODE */
+        int divisions = int(detail * 8.0 + 2.0);
+        divisions = clamp(divisions, 2, 8);
+        
+        for (int iy = 0; iy < 8; iy++) {
+            if (iy >= divisions) break;
+            for (int ix = 0; ix < 16; ix++) {
+                if (ix >= divisions * 2) break;
+                
+                /* Generate pseudo-random variations */
+                vec2 noise_coord = vec2(float(ix), float(iy)) / float(divisions);
+                float hash_scale = 1031.0 / 10000.0;
+                vec4 t = vec4(
+                    hash12(noise_coord, hash_scale),
+                    hash12(noise_coord + vec2(1.0/10.0, 0.0), hash_scale),
+                    hash12(noise_coord + vec2(0.0, 1.0/10.0), hash_scale),
+                    hash12(noise_coord + vec2(1.0/10.0, 1.0/10.0), hash_scale)
+                );
+                
+                /* Droplet positions */
+                float div_minus_one = float(divisions - 1);
+                div_minus_one = max(div_minus_one, 1.0);
+                vec2 p = vec2(float(ix), float(iy)) * (1.0 / div_minus_one);
+                float pos_offset = 75.0 / 100.0;
+                p += (pos_offset / div_minus_one) * (t.xy * 2.0 - 1.0);
+                
+                /* Distance calculation */
+                vec2 v = uv - p;
+                float min_dot = 1.0 / 1000.0;
+                float d = pow(max(dot(v, v), min_dot), 7.0/10.0);
+                
+                /* Animation */
+                float anim_mult = 2.0 / 10.0;
+                float n = time * speed * 5.0 * (t.w + anim_mult) - t.z * 6.0;
+                float n_mult = 1.0 / 10.0;
+                n *= n_mult + t.w;
+                n = mod(n, 10.0 + t.z * 3.0 + 10.0);
+                float min_n = 1.0 / 1000.0;
+                n = max(n, min_n);
+                
+                float x = d * 99.0;
+                float two_pi_n = 2.0 * M_PI * n;
+                float T = (x < two_pi_n) ? 1.0 : 0.0;
+                float e = max(1.0 - (n / 10.0), 0.0);
+                float min_denom = 1.0 / 1000.0;
+                float F = e * x / max(two_pi_n, min_denom);
+                float pi_half = M_PI * 5.0 / 10.0;
+                float s = sin(x - two_pi_n - pi_half);
+                s = s * 5.0/10.0 + 5.0/10.0;
+                s = bias_function(s, bias_amount);
+                float denom_offset = 11.0 / 10.0;
+                s = (F * s) / (x + denom_offset) * T;
+                float h_mult = 5.0 / 10.0;
+                h += s * 100.0 * (h_mult + t.w) * intensity;
+            }
+        }
+        
+        /* For drops mode, create normal from height field */
+        vec3 ripple_normal = normalize(vec3(0.0, 0.0, 1.0));
+        float normal_blend = 1.0 / 10.0;
+        normal = normalize(mix(input_normal, ripple_normal, clamp(h * normal_blend * intensity, 0.0, 1.0)));
+        float mask_mult = 1.0 / 100.0;
+        mask = clamp(h * mask_mult, 0.0, 1.0);
+        
+    } else {
+        /* RIPPLES MODE */
+        int max_radius = int(detail * 3.0 + 1.0);
+        max_radius = clamp(max_radius, 1, 3);
+        
+        vec2 p0 = floor(uv);
+        vec2 circles = vec2(0.0);
+       
+        for (int j = -3; j <= 3; j++) {
+            if (abs(j) > max_radius) continue;
+            for (int i = -3; i <= 3; i++) {
+                if (abs(i) > max_radius) continue;
+               
+                vec2 pi = p0 + vec2(float(i), float(j));
+                float hash_scale1 = 1031.0 / 10000.0;
+                float hash_scale2 = 1030.0 / 10000.0;
+                float hash_scale3 = 973.0 / 10000.0;
+                vec2 p = pi + hash22(pi, vec3(hash_scale1, hash_scale2, hash_scale3));
+               
+                float t = fract(speed * time + hash12(pi, hash_scale1));
+               
+                vec2 v = p - uv;
+                float d = length(v) - (float(max_radius) + 1.0) * t;
+               
+                float h_val = 1.0 / 1000.0;
+                float d1 = d - h_val;
+                float d2 = d + h_val;
+               
+                float smooth1 = -6.0 / 10.0;
+                float smooth2 = -3.0 / 10.0;
+                float p1 = sin(31.0 * d1) *
+                          smoothstep(smooth1, smooth2, d1) *
+                          smoothstep(0.0, smooth2, d1);
+                float p2 = sin(31.0 * d2) *
+                          smoothstep(smooth1, smooth2, d2) *
+                          smoothstep(0.0, smooth2, d2);
+               
+                float ripple_fade = (1.0 - t) * (1.0 - t);
+                
+                /* Safe vector normalization */
+                vec2 norm_v = vec2(0.0, 1.0);
+                float v_length = length(v);
+                float min_len = 1.0 / 1000.0;
+                if (v_length > min_len) {
+                    norm_v = v / v_length;
+                }
+                circles += norm_v * ((p2 - p1) / (2.0 * h_val) * ripple_fade);
+            }
+        }
+       
+        circles *= intensity;
+        h = length(circles);
+       
+        /* Blend with input normal */
+        float circles_len_sq = dot(circles, circles);
+        float normal_z = sqrt(max(0.0, 1.0 - circles_len_sq));
+        vec3 ripple_normal = normalize(vec3(circles, normal_z));
+        normal = normalize(input_normal + ripple_normal * intensity);
+        mask = h;
+    }
+}
