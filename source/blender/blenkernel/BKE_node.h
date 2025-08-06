@@ -985,8 +985,11 @@ void BKE_nodetree_remove_layer_n(struct bNodeTree *ntree, struct Scene *scene, i
 #define SH_NODE_SDF_NOISE 805
 #define SH_NODE_SET_DEPTH 806
 #define SH_NODE_CURVATURE 807
-#define SH_NODE_COLOR_PALETTE 808
-#define SH_NODE_LIGHT_INFO 809
+
+/* Fruitbat Nodes */
+#define SH_NODE_COLOR_PALETTE 900
+#define SH_NODE_LIGHT_INFO 901
+#define SH_NODE_TEX_HEXAGON 902
 
 /** \} */
 

@@ -1491,6 +1491,15 @@ typedef struct NodeShaderOutputAOV {
   char name[64];
 } NodeShaderOutputAOV;
 
+
+typedef struct NodeTexHexagon {
+  NodeTexBase base;
+  int coord_mode;
+  int value_mode;
+  int direction;
+  int use_clamp;
+} NodeTexHexagon;
+
 typedef struct NodeShaderColorPalette {
   /** Pointer to the Palette datablock containing colors. */
   struct Palette *palette;
@@ -2231,6 +2240,18 @@ enum {
   SHD_SKY_PREETHAM = 0,
   SHD_SKY_HOSEK = 1,
   SHD_SKY_NISHITA = 2,
+};
+
+/* Hexagon node coords. */
+enum {
+  SHD_HEXAGON_COORDS_XY = 0,
+  SHD_HEXAGON_COORDS_HEX = 1,
+};
+/* Hexagon node value mode. */
+enum {
+  SHD_HEXAGON_VALUE_HEX = 0,
+  SHD_HEXAGON_VALUE_SDF = 1,
+  SHD_HEXAGON_VALUE_DOT = 2,
 };
 
 /* environment texture */
