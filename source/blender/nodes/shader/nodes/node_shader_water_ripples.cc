@@ -26,7 +26,7 @@ static void node_declare(NodeDeclarationBuilder &b)
     b.add_input<decl::Float>("Time").default_value(0.0f);
     
     // ADD MODE AS INPUT SOCKET - this will solve the caching issue
-    b.add_input<decl::Float>("Mode").default_value(0.0f).min(0.0f).max(3.0f);
+    b.add_input<decl::Float>("Mode").default_value(0.0f).min(0.0f).max(3.0f).unavailable();
     
     // Main controls
     b.add_input<decl::Float>("Scale").default_value(1.0f).min(-10.0f).max(10.0f);
