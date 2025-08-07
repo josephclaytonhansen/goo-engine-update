@@ -1510,7 +1510,6 @@ typedef struct NodeTwirl {
 typedef struct NodeWaterRipples {
   NodeTexBase base;
   float vector[3];
-  float normal[3];
   float time;
   /** See eNodeWaterRipplesMode. */
   int mode;
@@ -1519,12 +1518,13 @@ typedef struct NodeWaterRipples {
   float speed;
   float detail;
   float bias;
-  char _pad[4];
 } NodeWaterRipples;
 
 typedef enum eNodeWaterRipplesMode {
   NODE_WATER_RIPPLES_DROPS = 0,
   NODE_WATER_RIPPLES_RIPPLES = 1,
+  NODE_WATER_RIPPLES_FLOW = 2,
+  NODE_WATER_RIPPLES_CAUSTIC = 3
 } eNodeWaterRipplesMode;
 
 typedef struct NodeShaderColorPalette {

@@ -429,8 +429,10 @@ const EnumPropertyItem rna_enum_node_sdf_op_items[] = {
 };
 
 static const EnumPropertyItem rna_enum_node_water_ripples_mode_items[] = {
-    {NODE_WATER_RIPPLES_DROPS, "DROPS", 0, "Drops", "Water drops mode"},
-    {NODE_WATER_RIPPLES_RIPPLES, "RIPPLES", 0, "Ripples", "Continuous ripples mode"},
+    {NODE_WATER_RIPPLES_DROPS, "DROPS", 0, "Drops", "Water droplets"},
+    {NODE_WATER_RIPPLES_RIPPLES, "RIPPLES", 0, "Ripples", "Continuous ripples"},
+    {NODE_WATER_RIPPLES_FLOW, "FLOW", 0, "Flow", "Flowing water"},
+    {NODE_WATER_RIPPLES_CAUSTIC, "CAUSTIC", 0, "Caustic", "Caustic effect"},
     {0, nullptr, 0, nullptr, nullptr},
 };
 
@@ -5456,9 +5458,11 @@ static void def_sh_water_ripples(StructRNA *srna)
   prop = RNA_def_property(srna, "mode", PROP_ENUM, PROP_NONE);
   RNA_def_property_enum_sdna(prop, nullptr, "mode");
   RNA_def_property_enum_items(prop, rna_enum_node_water_ripples_mode_items);
-  RNA_def_property_ui_text(prop, "Mode", "Water ripples mode: Drops or Ripples");
-  RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_Node_update");
+  RNA_def_property_ui_text(prop, "Mode", "Water ripples mode");
+  RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_ShaderNode_socket_update");
 }
+
+
 
 static void def_sh_tex_hexagon(StructRNA *srna)
 {
