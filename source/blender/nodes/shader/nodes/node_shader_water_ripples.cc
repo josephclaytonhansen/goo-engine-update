@@ -1,8 +1,7 @@
+// Modified node_shader_water_ripples.cc
 #include "node_util.hh"
-
 #include "UI_interface.hh"
 #include "UI_resources.hh"
-
 #include "node_shader_util.hh"
 
 namespace blender::nodes::node_shader_water_ripples_cc {
@@ -10,11 +9,11 @@ namespace blender::nodes::node_shader_water_ripples_cc {
 static void node_shader_init_water_ripples(bNodeTree * /*ntree*/, bNode *node)
 {
   NodeWaterRipples *storage = MEM_cnew<NodeWaterRipples>("NodeWaterRipples");
-  storage->mode = NODE_WATER_RIPPLES_DROPS; // Set your desired default mode here
+  storage->mode = NODE_WATER_RIPPLES_DROPS;
   node->storage = storage;
 }
 
-    static void node_layout(uiLayout *layout, bContext * /*C*/, PointerRNA *ptr)
+static void node_layout(uiLayout *layout, bContext * /*C*/, PointerRNA *ptr)
 {
   uiLayout *col = uiLayoutColumn(layout, false);
   uiItemR(col, ptr, "mode", UI_ITEM_R_SPLIT_EMPTY_NAME, nullptr, ICON_NONE);
@@ -26,8 +25,10 @@ static void node_declare(NodeDeclarationBuilder &b)
     b.add_input<decl::Vector>("Vector").default_value({0.0f, 0.0f, 0.0f});
     b.add_input<decl::Float>("Time").default_value(0.0f);
     
-    // Mode and main controls (now using enum with 3 modes)
+    // ADD MODE AS INPUT SOCKET - this will solve the caching issue
+    b.add_input<decl::Float>("Mode").default_value(0.0f).min(0.0f).max(3.0f);
     
+    // Main controls
     b.add_input<decl::Float>("Scale").default_value(1.0f).min(-10.0f).max(10.0f);
     b.add_input<decl::Float>("Intensity").default_value(1.0f).min(-10.0f).max(10.0f);
     b.add_input<decl::Float>("Speed").default_value(1.0f).min(-5.0f).max(5.0f);
@@ -45,10 +46,21 @@ static int gpu_shader_water_ripples(GPUMaterial *mat,
                                    GPUNodeStack *in,
                                    GPUNodeStack *out)
 {
+    // Don't pass mode as constant anymore - it's now an input socket
+    return GPU_stack_link(mat, node, "node_water_ripples", in, out);
+}
+
+static void node_update(bNodeTree *ntree, bNode *node)
+{
     NodeWaterRipples *storage = (NodeWaterRipples *)node->storage;
-    float mode = storage ? (float)(storage->mode) : 0.0f;
-    printf("[WaterRipples GPU] storage->mode = %d, mode = %f\n", storage ? storage->mode : -1, mode);
-    return GPU_stack_link(mat, node, "node_water_ripples", in, out, GPU_constant(&mode));
+    if (!storage) return;
+    
+    // Set the default value of the Mode socket based on the enum
+    bNodeSocket *mode_socket = nodeFindSocket(node, SOCK_IN, "Mode");
+    if (mode_socket && mode_socket->default_value) {
+        bNodeSocketValueFloat *mode_val = (bNodeSocketValueFloat *)mode_socket->default_value;
+        mode_val->value = (float)storage->mode;
+    }
 }
 
 } // namespace blender::nodes::node_shader_water_ripples_cc
@@ -62,8 +74,9 @@ void register_node_type_sh_water_ripples(void)
     ntype.declare = file_ns::node_declare;
     ntype.gpu_fn = file_ns::gpu_shader_water_ripples;
     ntype.draw_buttons = file_ns::node_layout;
-    ntype.initfunc = blender::nodes::node_shader_water_ripples_cc::node_shader_init_water_ripples;
-
+    ntype.initfunc = file_ns::node_shader_init_water_ripples;
+    ntype.updatefunc = file_ns::node_update;
+    
     node_type_storage(
         &ntype,
         "NodeWaterRipples",

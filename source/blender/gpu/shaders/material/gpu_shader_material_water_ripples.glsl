@@ -198,11 +198,33 @@ void node_water_ripples(
         /* Output distorted vector from ripple displacement */
         distorted_vector = vector + vec3(circles * intensity * 0.1, 0.0);
         mask = h;
+
+            } else if (imode == 2) {
+        /* FLOW MODE - new flowing water effect */
+        vec2 flow_uv = uv;
+        float time_scaled = time * speed;
+        
+        // Create flowing wave pattern
+        float wave1 = sin(flow_uv.x * detail * 10.0 + time_scaled * 2.0) * 0.1;
+        float wave2 = cos(flow_uv.y * detail * 8.0 + time_scaled * 1.5) * 0.15;
+        
+        // Combine waves for flowing effect
+        vec2 flow_offset = vec2(
+            wave1 + sin(flow_uv.y * detail * 5.0 + time_scaled) * 0.05,
+            wave2 + cos(flow_uv.x * detail * 6.0 + time_scaled * 0.8) * 0.08
+        );
+        
+        // Apply intensity scaling
+        flow_offset *= intensity * 0.1;
+        
+        distorted_vector = vector + vec3(flow_offset, 0.0);
+        mask = clamp(length(flow_offset) * 10.0, 0.0, 1.0);
+
     } else if (imode == 3) {
         /* CAUSTIC MODE (fixed for Blender GLSL) */
-        vec2 p = uv;
+        vec2 p = uv * scale;
         float a = 1.0;
-        float scale_safe = max(scale, 1e-3);
+        float scale_safe = max(bias_amount, 1e-3);
         vec3 k = vec3(p.x / scale_safe * detail, p.y / scale_safe * detail, sin(time * 0.2));
         mat3 m = mat3(-2,-1,2, 3,-2,1, 1,2,2) * 0.3;
         // Repeat 3 times as in original logic

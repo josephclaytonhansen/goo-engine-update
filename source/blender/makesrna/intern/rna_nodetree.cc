@@ -5462,6 +5462,8 @@ static void def_sh_water_ripples(StructRNA *srna)
   RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_ShaderNode_socket_update");
 }
 
+
+
 static void def_sh_tex_hexagon(StructRNA *srna)
 {
   static const EnumPropertyItem prop_hexagon_coords_items[] = {
