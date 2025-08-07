@@ -43,17 +43,16 @@ void node_water_ripples(
 {
     vec2 uv = vector.xy * max(scale, 1.0/1000.0);
     float h = 0.0;
-   
-    if (mode == 0.0) {
+    int imode = int(mode + 0.5);
+
+    if (imode == 0) {
         /* DROPS MODE */
         int divisions = int(detail * 8.0 + 2.0);
         divisions = clamp(divisions, 2, 8);
-        
         for (int iy = 0; iy < 8; iy++) {
             if (iy >= divisions) break;
             for (int ix = 0; ix < 16; ix++) {
                 if (ix >= divisions * 2) break;
-                
                 /* Generate pseudo-random variations */
                 vec2 noise_coord = vec2(float(ix), float(iy)) / float(divisions);
                 float hash_scale = 1031.0 / 10000.0;
@@ -154,34 +153,27 @@ void node_water_ripples(
         distorted_vector = vector + vec3(gradient * intensity * 0.01, 0.0);
         mask = clamp(h * 1.0/100.0, 0.0, 1.0);
         
-    } else if (mode == 1.0) {
+    } else if (imode == 1) {
         /* RIPPLES MODE */
         int max_radius = int(detail * 3.0 + 1.0);
         max_radius = clamp(max_radius, 1, 3);
-        
         vec2 p0 = floor(uv);
         vec2 circles = vec2(0.0);
-       
         for (int j = -3; j <= 3; j++) {
             if (abs(j) > max_radius) continue;
             for (int i = -3; i <= 3; i++) {
                 if (abs(i) > max_radius) continue;
-               
                 vec2 pi = p0 + vec2(float(i), float(j));
                 float hash_scale1 = 1031.0 / 10000.0;
                 float hash_scale2 = 1030.0 / 10000.0;
                 float hash_scale3 = 973.0 / 10000.0;
                 vec2 p = pi + hash22(pi, vec3(hash_scale1, hash_scale2, hash_scale3));
-               
                 float t = fract(speed * time + hash12(pi, hash_scale1));
-               
                 vec2 v = p - uv;
                 float d = length(v) - (float(max_radius) + 1.0) * t;
-               
                 float h_val = 1.0 / 1000.0;
                 float d1 = d - h_val;
                 float d2 = d + h_val;
-               
                 float smooth1 = -6.0 / 10.0;
                 float smooth2 = -3.0 / 10.0;
                 float p1 = sin(31.0 * d1) *
@@ -190,9 +182,7 @@ void node_water_ripples(
                 float p2 = sin(31.0 * d2) *
                           smoothstep(smooth1, smooth2, d2) *
                           smoothstep(0.0, smooth2, d2);
-               
                 float ripple_fade = (1.0 - t) * (1.0 - t);
-                
                 /* Safe vector normalization */
                 vec2 norm_v = vec2(0.0, 1.0);
                 float v_length = length(v);
@@ -203,30 +193,31 @@ void node_water_ripples(
                 circles += norm_v * ((p2 - p1) / (2.0 * h_val) * ripple_fade);
             }
         }
-       
         circles *= intensity;
         h = length(circles);
-       
         /* Output distorted vector from ripple displacement */
         distorted_vector = vector + vec3(circles * intensity * 0.1, 0.0);
         mask = h;
-    } else if (mode == 3.0) {
-        /* CAUSTIC MODE */
-        vec2 p = uv; // uv is already scaled by 'scale'
+    } else if (imode == 3) {
+        /* CAUSTIC MODE (fixed for Blender GLSL) */
+        vec2 p = uv;
         float a = 1.0;
-        vec3 k = vec3(p / scale * detail + sin(vec3(time * 0.2)));
-        // F macro, repeated 3 times as in your code
-        a = min(a, length(0.5 - fract(k.xyw *= mat3(-2,-1,2, 3,-2,1, 1,2,2) * 0.3)));
-        a = min(a, length(0.5 - fract(k.xyw *= mat3(-2,-1,2, 3,-2,1, 1,2,2) * 0.3)));
-        a = min(a, length(0.5 - fract(k.xyw *= mat3(-2,-1,2, 3,-2,1, 1,2,2) * 0.3)));
+        // Build a vec3 from p and time
+        vec3 k = vec3(p / max(scale, 1e-3) * detail, sin(time * 0.2));
+        mat3 m = mat3(-2,-1,2, 3,-2,1, 1,2,2) * 0.3;
+        // F macro, repeated 3 times
+        k = m * k;
+        a = min(a, length(0.5 - fract(k)));
+        k = m * k;
+        a = min(a, length(0.5 - fract(k)));
+        k = m * k;
+        a = min(a, length(0.5 - fract(k)));
         float caustic = pow(a, detail) * 25.0 * intensity;
-        distorted_vector = vector + vec3(0.0, 0.0, 0.0);
+        distorted_vector = vector;
         mask = clamp(caustic, 0.0, 1.0);
-
     } else {
         /* TEXTURE DISTORTION MODE */
         vec2 base_uv = uv;
-        
         /* Generate noise texture using hash functions */
         float hash_scale = 1031.0 / 10000.0;
         vec2 noise_uv = uv * scale;
@@ -234,7 +225,6 @@ void node_water_ripples(
             hash12(noise_uv, hash_scale),
             hash12(noise_uv + vec2(0.1, 0.1), hash_scale)
         );
-        
         /* Apply distortion based on detail parameter */
         if (detail > 0.5) {
             /* High detail mode - smooth flowing distortion */
@@ -247,14 +237,11 @@ void node_water_ripples(
                          intensity * 0.01 * sin(time * speed);
             base_uv += vec2(noise * intensity * 0.4);
         }
-        
         /* Calculate distortion vector */
         vec2 distortion = base_uv - uv;
         float distortion_magnitude = length(distortion);
-        
         /* Output distorted vector */
         distorted_vector = vec3(base_uv, vector.z);
-        
         /* Output distortion magnitude as mask */
         mask = clamp(distortion_magnitude * intensity * 10.0, 0.0, 1.0);
     }
