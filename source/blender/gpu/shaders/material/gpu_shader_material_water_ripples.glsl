@@ -202,10 +202,10 @@ void node_water_ripples(
         /* CAUSTIC MODE (fixed for Blender GLSL) */
         vec2 p = uv;
         float a = 1.0;
-        // Build a vec3 from p and time
-        vec3 k = vec3(p / max(scale, 1e-3) * detail, sin(time * 0.2));
+        float scale_safe = max(scale, 1e-3);
+        vec3 k = vec3(p.x / scale_safe * detail, p.y / scale_safe * detail, sin(time * 0.2));
         mat3 m = mat3(-2,-1,2, 3,-2,1, 1,2,2) * 0.3;
-        // F macro, repeated 3 times
+        // Repeat 3 times as in original logic
         k = m * k;
         a = min(a, length(0.5 - fract(k)));
         k = m * k;
