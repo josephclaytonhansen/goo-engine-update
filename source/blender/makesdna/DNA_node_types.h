@@ -1507,6 +1507,13 @@ typedef struct NodeTwirl {
   char _pad[4];
 } NodeTwirl;
 
+typedef struct NodeTexGabor {
+  NodeTexBase base;
+  int anisotropic;     /* 0 = isotropic, 1 = anisotropic */
+  int jittering;       /* 0 = regular grid, 1 = jittered placement */
+  char _pad[8];        /* Padding for alignment */
+} NodeTexGabor;
+
 typedef struct NodeWaterRipples {
   NodeTexBase base;
   float vector[3];
