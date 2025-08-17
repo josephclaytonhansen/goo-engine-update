@@ -50,6 +50,7 @@ class TOPBAR_HT_upper_bar(Header):
             layout.template_running_jobs()
 
         # Active workspace view-layer is retrieved through window, not through workspace.
+        row.prop(scene, "camera", text="", icon='CAMERA_DATA')
         layout.template_ID(window, "scene", new="scene.new", unlink="scene.delete")
 
         row = layout.row(align=True)
@@ -58,8 +59,6 @@ class TOPBAR_HT_upper_bar(Header):
             scene, "view_layers",
             new="scene.view_layer_add",
             unlink="scene.view_layer_remove")
-        
-        row.prop(scene, "camera", text="", icon='CAMERA_DATA')
 
 
 class TOPBAR_PT_tool_settings_extra(Panel):
