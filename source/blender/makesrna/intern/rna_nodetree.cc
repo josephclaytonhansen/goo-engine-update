@@ -2888,9 +2888,10 @@ static void rna_NodeGroup_node_tree_set(PointerRNA *ptr,
   }
 }
 
-static bool rna_NodeShaderLightInfo_light_object_poll(PointerRNA * /*ptr*/, const PointerRNA value)
+static bool rna_ShaderNodeLightInfo_object_poll(PointerRNA *ptr, PointerRNA value)
 {
-  return (static_cast<Object *>(value.data))->type == OB_LAMP;
+  Object *ob = (Object *)value.data;
+  return (ob->type == OB_LAMP);
 }
 
 static bool rna_NodeGroup_node_tree_poll(PointerRNA *ptr, const PointerRNA value)
@@ -5431,14 +5432,13 @@ static void def_sh_light_info(StructRNA *srna)
 {
   PropertyRNA *prop;
 
-  RNA_def_struct_sdna_from(srna, "NodeShaderLightInfo", "storage");
-
-  prop = RNA_def_property(srna, "light_object", PROP_POINTER, PROP_NONE);
-  RNA_def_property_pointer_sdna(prop, NULL, "light_object");
+  prop = RNA_def_property(srna, "object", PROP_POINTER, PROP_NONE);
+  RNA_def_property_pointer_sdna(prop, NULL, "id");
   RNA_def_property_struct_type(prop, "Object");
-  RNA_def_property_pointer_funcs(prop, nullptr, nullptr, nullptr, "rna_NodeShaderLightInfo_light_object_poll");
-  RNA_def_property_flag(prop, PROP_EDITABLE);
-  RNA_def_property_ui_text(prop, "Light Object", "Light object to get information from");
+  RNA_def_property_pointer_funcs(prop, NULL, NULL, NULL, "rna_ShaderNodeLightInfo_object_poll");
+  RNA_def_property_flag(prop, PROP_EDITABLE | PROP_ID_REFCOUNT);
+  RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
+  RNA_def_property_ui_text(prop, "Object", "Light object to get info from");
   RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_Node_update");
 }
 
