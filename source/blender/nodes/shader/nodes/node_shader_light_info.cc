@@ -108,17 +108,10 @@ void register_node_type_sh_light_info(void)
   sh_node_type_base(&ntype, SH_NODE_LIGHT_INFO, "Light Info", NODE_CLASS_INPUT);
   ntype.declare = file_ns::sh_node_light_info_declare;
   
-  /* Set up the node to use ID datablock linking */
-  ntype.idname = "ShaderNodeLightInfo";
-  ntype.flag |= NODE_BACKGROUND;  // Optional: if you want it in background category
-  
   /* Register functions */
   ntype.initfunc = file_ns::node_shader_init_light_info;
   ntype.draw_buttons = file_ns::node_shader_draw_light_info;
   ntype.gpu_fn = file_ns::node_shader_gpu_light_info;
-  
-  /* Enable ID linking for this node type */
-  ntype.type = SH_NODE_LIGHT_INFO;
   
   nodeRegisterType(&ntype);
 }
