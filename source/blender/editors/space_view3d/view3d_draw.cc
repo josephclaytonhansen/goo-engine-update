@@ -628,7 +628,7 @@ static void drawviewborder(Scene *scene, Depsgraph *depsgraph, ARegion *region, 
 
     immUniform1i("colors_len", 0); /* "simple" mode */
     immUniform1f("dash_width", 6.0f);
-    immUniform1f("udash_factor", 0.5f);
+    immUniform1f("udash_factor", 1.0f);
 
     /* outer line not to confuse with object selection */
     if (v3d->flag2 & V3D_LOCK_CAMERA) {
@@ -796,6 +796,8 @@ static void drawrenderborder(ARegion *region, View3D *v3d)
 {
    Camera *ca = nullptr;
   RegionView3D *rv3d = static_cast<RegionView3D *>(region->regiondata);
+
+  if (v3d->camera == nullptr) {
     return;
   }
   if (v3d->camera->type == OB_CAMERA) {
@@ -814,9 +816,9 @@ static void drawrenderborder(ARegion *region, View3D *v3d)
   immUniform2f("viewport_size", viewport_size[2], viewport_size[3]);
 
   immUniform1i("colors_len", 0); /* "simple" mode */
-  immUniform1f("dash_width", 6.0f);
-  immUniform1f("udash_factor", 0.5f);
   immUniformColor4fv(ca->composition_guide_color);
+  immUniform1f("dash_width", 6.0f);
+  immUniform1f("udash_factor", 1.0f);
 
   imm_draw_box_wire_2d(shdr_pos,
                        v3d->render_border.xmin * region->winx,
