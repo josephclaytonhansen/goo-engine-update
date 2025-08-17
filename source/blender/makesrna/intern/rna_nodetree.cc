@@ -2888,6 +2888,11 @@ static void rna_NodeGroup_node_tree_set(PointerRNA *ptr,
   }
 }
 
+static bool rna_NodeShaderLightInfo_light_object_poll(PointerRNA * /*ptr*/, const PointerRNA value)
+{
+  return (static_cast<Object *>(value.data))->type == OB_LAMP;
+}
+
 static bool rna_NodeGroup_node_tree_poll(PointerRNA *ptr, const PointerRNA value)
 {
   bNodeTree *ntree = reinterpret_cast<bNodeTree *>(ptr->owner_id);
@@ -5422,12 +5427,19 @@ static void def_sh_color_palette(StructRNA *srna)
   RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_Node_update");
 }
 
-/* Empty RNA definition - using built-in node->id field instead of custom storage */
 static void def_sh_light_info(StructRNA *srna)
 {
-  /* No custom properties needed - using the built-in node->id field */
-  /* The uiTemplateID in the draw function will automatically bind to node->id */
-  (void)srna; /* Suppress unused parameter warning */
+  PropertyRNA *prop;
+
+  RNA_def_struct_sdna_from(srna, "NodeShaderLightInfo", "storage");
+
+  prop = RNA_def_property(srna, "light_object", PROP_POINTER, PROP_NONE);
+  RNA_def_property_pointer_sdna(prop, NULL, "light_object");
+  RNA_def_property_struct_type(prop, "Object");
+  RNA_def_property_pointer_funcs(prop, nullptr, nullptr, nullptr, "rna_NodeShaderLightInfo_light_object_poll");
+  RNA_def_property_flag(prop, PROP_EDITABLE);
+  RNA_def_property_ui_text(prop, "Light Object", "Light object to get information from");
+  RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_Node_update");
 }
 
 static void def_sh_twirl(StructRNA *srna)

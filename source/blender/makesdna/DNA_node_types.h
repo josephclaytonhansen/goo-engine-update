@@ -1545,6 +1545,12 @@ typedef struct NodeShaderColorPalette {
   int last_sync_version;
 } NodeShaderColorPalette;
 
+typedef struct NodeShaderLightInfo {
+  /** Pointer to the Light object to get information from. */
+  struct Object *light_object;
+  char _pad[8];
+} NodeShaderLightInfo;
+
 typedef struct NodeSunBeams {
   float source[2];
 
