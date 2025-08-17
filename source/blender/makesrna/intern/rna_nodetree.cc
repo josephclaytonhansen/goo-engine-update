@@ -5449,6 +5449,24 @@ static void def_sh_twirl(StructRNA *srna)
   def_sh_tex(srna);
 }
 
+static void def_sh_tex_gabor(StructRNA *srna)
+{
+  PropertyRNA *prop;
+
+  RNA_def_struct_sdna_from(srna, "NodeTexGabor", "storage");
+  def_sh_tex(srna);
+
+  prop = RNA_def_property(srna, "anisotropic", PROP_BOOLEAN, PROP_NONE);
+  RNA_def_property_boolean_sdna(prop, nullptr, "anisotropic", 1);
+  RNA_def_property_ui_text(prop, "Anisotropic", "Use anisotropic (directional) instead of isotropic (circular) kernels");
+  RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_ShaderNode_socket_update");
+
+  prop = RNA_def_property(srna, "jittering", PROP_BOOLEAN, PROP_NONE);
+  RNA_def_property_boolean_sdna(prop, nullptr, "jittering", 1);
+  RNA_def_property_ui_text(prop, "Jittering", "Use jittered instead of regular grid placement");
+  RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_ShaderNode_socket_update");
+}
+
 static void def_sh_water_ripples(StructRNA *srna)
 {
   PropertyRNA *prop;

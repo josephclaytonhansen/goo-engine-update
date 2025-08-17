@@ -130,6 +130,7 @@ DefNode(ShaderNode,     SH_NODE_SHADER_INFO,        def_sh_shader_info,     "SHA
 DefNode(ShaderNode,     SH_NODE_COLOR_PALETTE,      def_sh_color_palette,   "COLOR_PALETTE",      ColorPalette,     "Color Palette",      "A grid of colors for NPR workflows")
 DefNode(ShaderNode,     SH_NODE_LIGHT_INFO,         def_sh_light_info,      "LIGHT_INFO",         LightInfo,        "Light Info",         "Get information from a selected light object")
 DefNode(ShaderNode,     SH_NODE_TWIRL,         def_sh_twirl,      "TWIRL",         Twirl,        "Twirl",         "Twirl the input vector around a center point by a specified amount")
+DefNode(ShaderNode,     SH_NODE_TEX_GABOR,         def_sh_tex_gabor,      "TEX_GABOR",         TexGabor,        "Gabor Texture",         "Generate a Gabor texture pattern")
 DefNode(ShaderNode, SH_NODE_WATER_RIPPLES, def_sh_water_ripples, "WATER_RIPPLES", WaterRipples, "Water Ripples", "Generate concentric ripples simulating water surface disturbances")
 DefNode(ShaderNode,     SH_NODE_TEX_HEXAGON,        def_sh_tex_hexagon,     "TEX_HEXAGON",        TexHexagon,       "Hex Grid Texture",  ""       )
 DefNode(ShaderNode,     SH_NODE_SCREENSPACE_INFO,   0,                      "SCREENSPACEINFO",    ScreenspaceInfo,  "Screenspace Info",  "Sample internal colour and depth buffers")

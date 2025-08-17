@@ -656,7 +656,7 @@ static void drawviewborder(Scene *scene, Depsgraph *depsgraph, ARegion *region, 
   /* safety border */
   if (ca && (v3d->flag2 & V3D_SHOW_CAMERA_GUIDES)) {
     GPU_blend(GPU_BLEND_ALPHA);
-    immUniformThemeColorAlpha(TH_VIEW_OVERLAY, 0.75f);
+    immUniformColor4fv(ca->composition_guide_color);
 
     if (ca->dtx & CAM_DTX_CENTER) {
       float x3, y3;
