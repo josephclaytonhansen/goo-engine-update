@@ -1651,27 +1651,6 @@ static BMOpDefine bmo_create_icosphere_def = {
 };
 
 /*
- * Create Suzanne.
- *
- * Creates a monkey (standard blender primitive).
- */
-static BMOpDefine bmo_create_monkey_def = {
-  "create_monkey",
-  /*slot_types_in*/
-  {{"matrix",    BMO_OP_SLOT_MAT},  /* matrix to multiply the new geometry with */
-   {"calc_uvs",  BMO_OP_SLOT_BOOL}, /* calculate default UVs */
-   {{'\0'}},
-  },
-  /*slot_types_out*/
-  {{"verts.out", BMO_OP_SLOT_ELEMENT_BUF, {BM_VERT}}, /* output verts */
-   {{'\0'}},
-  },
-  bmo_create_monkey_exec,
-  (BMO_OPTYPE_FLAG_NORMALS_CALC |
-   BMO_OPTYPE_FLAG_SELECT_FLUSH),
-};
-
-/*
  * Create Cone.
  *
  * Creates a cone with variable depth at both ends
@@ -2143,7 +2122,6 @@ const BMOpDefine *bmo_opdefines[] = {
     &bmo_create_cube_def,
     &bmo_create_grid_def,
     &bmo_create_icosphere_def,
-    &bmo_create_monkey_def,
     &bmo_create_uvsphere_def,
     &bmo_create_vert_def,
     &bmo_delete_def,
