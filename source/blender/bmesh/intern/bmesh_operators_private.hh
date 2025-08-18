@@ -31,7 +31,6 @@ void bmo_create_cone_exec(BMesh *bm, BMOperator *op);
 void bmo_create_cube_exec(BMesh *bm, BMOperator *op);
 void bmo_create_grid_exec(BMesh *bm, BMOperator *op);
 void bmo_create_icosphere_exec(BMesh *bm, BMOperator *op);
-void bmo_create_monkey_exec(BMesh *bm, BMOperator *op);
 void bmo_create_uvsphere_exec(BMesh *bm, BMOperator *op);
 void bmo_create_vert_exec(BMesh *bm, BMOperator *op);
 void bmo_delete_exec(BMesh *bm, BMOperator *op);
