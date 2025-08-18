@@ -2392,6 +2392,7 @@ class VIEW3D_MT_mesh_add(Menu):
         layout.separator()
 
         layout.operator("mesh.primitive_grid_add", text="Grid", icon='MESH_GRID')
+        layout.operator("mesh.primitive_monkey_add", text="Monkey", icon='MESH_MONKEY')
 
         layout.template_node_operator_asset_menu_items(catalog_path="Add")
 
@@ -2582,6 +2583,7 @@ class VIEW3D_MT_grease_pencil_add(Menu):
         layout = self.layout
         layout.operator("object.grease_pencil_add", text="Empty", icon='EMPTY_AXIS').type = 'EMPTY'
         layout.operator("object.grease_pencil_add", text="Stroke", icon='STROKE').type = 'STROKE'
+        layout.operator("object.grease_pencil_add", text="Suzanne", icon='MONKEY').type = 'MONKEY'
 
 
 class VIEW3D_MT_add(Menu):

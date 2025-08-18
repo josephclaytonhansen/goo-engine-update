@@ -376,6 +376,10 @@ void ED_gpencil_stroke_init_data(bGPDstroke *gps,
  */
 void ED_gpencil_create_blank(bContext *C, Object *ob, float mat[4][4]);
 /**
+ * Add a 2D Suzanne.
+ */
+void ED_gpencil_create_monkey(bContext *C, Object *ob, float mat[4][4]);
+/**
  * Add a Simple stroke with colors.
  */
 void ED_gpencil_create_stroke(bContext *C, Object *ob, float mat[4][4]);

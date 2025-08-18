@@ -288,6 +288,7 @@ set(ICON_NAMES
   mesh_uvsphere
   mesh_icosphere
   mesh_grid
+  mesh_monkey
   mesh_cylinder
   mesh_torus
   mesh_cone
@@ -660,6 +661,7 @@ set(ICON_NAMES
   matplane
   matsphere
   matcube
+  monkey
   curves
   aliased
   antialiased

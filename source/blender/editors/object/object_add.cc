@@ -1426,6 +1426,10 @@ static int object_gpencil_add_exec(bContext *C, wmOperator *op)
         ob_name = CTX_DATA_(BLT_I18NCONTEXT_ID_GPENCIL, "GPencil");
         break;
       }
+      case GP_MONKEY: {
+        ob_name = CTX_DATA_(BLT_I18NCONTEXT_ID_GPENCIL, "Suzanne");
+        break;
+      }
       case GP_STROKE: {
         ob_name = CTX_DATA_(BLT_I18NCONTEXT_ID_GPENCIL, "Stroke");
         break;
@@ -1468,6 +1472,17 @@ static int object_gpencil_add_exec(bContext *C, wmOperator *op)
       ED_object_new_primitive_matrix(C, ob, loc, rot, scale, mat);
 
       ED_gpencil_create_stroke(C, ob, mat);
+      break;
+    }
+    case GP_MONKEY: {
+      float radius = RNA_float_get(op->ptr, "radius");
+      float scale[3];
+      copy_v3_fl(scale, radius);
+      float mat[4][4];
+
+      ED_object_new_primitive_matrix(C, ob, loc, rot, scale, mat);
+
+      ED_gpencil_create_monkey(C, ob, mat);
       break;
     }
     case GREASE_PENCIL_LINEART_SCENE:
@@ -1666,6 +1681,10 @@ static int object_grease_pencil_add_exec(bContext *C, wmOperator *op)
       ob_name = CTX_DATA_(BLT_I18NCONTEXT_ID_GPENCIL, "Stroke");
       break;
     }
+    case GP_MONKEY: {
+      ob_name = CTX_DATA_(BLT_I18NCONTEXT_ID_GPENCIL, "Suzanne");
+      break;
+    }
     case GREASE_PENCIL_LINEART_OBJECT:
     case GREASE_PENCIL_LINEART_SCENE:
     case GREASE_PENCIL_LINEART_COLLECTION: {
@@ -1693,6 +1712,16 @@ static int object_grease_pencil_add_exec(bContext *C, wmOperator *op)
       ED_object_new_primitive_matrix(C, object, loc, rot, scale, mat.ptr());
 
       greasepencil::create_stroke(*bmain, *object, mat, scene->r.cfra);
+      break;
+    }
+    case GP_MONKEY: {
+      const float radius = RNA_float_get(op->ptr, "radius");
+      const float3 scale(radius);
+
+      float4x4 mat;
+      ED_object_new_primitive_matrix(C, object, loc, rot, scale, mat.ptr());
+
+      greasepencil::create_suzanne(*bmain, *object, mat, scene->r.cfra);
       break;
     }
     case GREASE_PENCIL_LINEART_OBJECT:
