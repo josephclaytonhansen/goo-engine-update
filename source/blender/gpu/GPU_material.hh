@@ -58,6 +58,7 @@ enum eGPUType {
 
   /* GLSL Struct types */
   GPU_CLOSURE = 1007,
+  GPU_TEX_HANDLE = 1008,
 
   /* Opengl Attributes */
   GPU_ATTR = 3001,

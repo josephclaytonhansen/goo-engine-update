@@ -575,6 +575,9 @@ struct GPUSource {
           if (type == "Closure") {
             return GPU_CLOSURE;
           }
+          if (type == "TextureHandle") {
+            return GPU_TEX_HANDLE;
+          }
           return GPU_NONE;
         };
 
