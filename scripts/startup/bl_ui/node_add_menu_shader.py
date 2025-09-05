@@ -54,6 +54,7 @@ class NODE_MT_category_shader_input(Menu):
         layout = self.layout
 
         node_add_menu.add_node_type(layout, "ShaderNodeAmbientOcclusion")
+        node_add_menu.add_node_type(layout, "ShaderNodeInputAOV")
         node_add_menu.add_node_type(layout, "ShaderNodeAttribute")
         node_add_menu.add_node_type(layout, "ShaderNodeBevel")
         node_add_menu.add_node_type(layout, "ShaderNodeCameraData")
