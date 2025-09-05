@@ -328,6 +328,8 @@ static bool eyedropper_colorband_poll(bContext *C)
   return false;
 }
 
+namespace blender::ui {
+
 void UI_OT_eyedropper_colorramp(wmOperatorType *ot)
 {
   /* identifiers */
@@ -367,3 +369,5 @@ void UI_OT_eyedropper_colorramp_point(wmOperatorType *ot)
 
   /* properties */
 }
+
+}  // namespace blender::ui

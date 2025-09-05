@@ -1495,8 +1495,13 @@ void UI_OT_eyedropper_color(wmOperatorType *ot);
 
 /* interface_eyedropper_colorband.c */
 
+namespace blender::ui {
 void UI_OT_eyedropper_colorramp(wmOperatorType *ot);
 void UI_OT_eyedropper_colorramp_point(wmOperatorType *ot);
+
+void UI_OT_eyedropper_bone(wmOperatorType *ot);
+
+}  // namespace blender::ui
 
 /* interface_eyedropper_datablock.c */
 

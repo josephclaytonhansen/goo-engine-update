@@ -389,7 +389,7 @@ endif()
 
 
 # Modifiers
-option(WITH_MOD_FLUID "Enable Mantaflow Fluid Simulation Framework" ON)
+option(WITH_MOD_FLUID "Enable Mantaflow Fluid Simulation Framework" OFF)
 option(WITH_MOD_REMESH "Enable Remesh Modifier" ON)
 option(WITH_MOD_OCEANSIM "Enable Ocean Modifier" ON)
 
@@ -414,7 +414,7 @@ option(WITH_USD "Enable Universal Scene Description (USD) Support" ON)
 option(WITH_MATERIALX "Enable MaterialX Support" ON)
 
 # Hydra render engine
-option(WITH_HYDRA "Enable Hydra render engine" ON)
+option(WITH_HYDRA "Enable Hydra render engine" OFF)
 
 # RTL Languages, Complex Shaping, OpenType Features
 option(WITH_FRIBIDI "Enable features relying on fribidi" OFF)
@@ -422,7 +422,7 @@ option(WITH_HARFBUZZ "Enable features relying on harfbuzz" OFF)
 
 # 3D format support
 # Disable opencollada when we don't have precompiled libs
-option(WITH_OPENCOLLADA "Enable OpenCollada Support (http://www.opencollada.org)" ON)
+option(WITH_OPENCOLLADA "Enable OpenCollada Support (http://www.opencollada.org)" OFF)
 option(WITH_IO_WAVEFRONT_OBJ "Enable Wavefront-OBJ 3D file format support (*.obj)" ON)
 option(WITH_IO_PLY "Enable PLY 3D file format support (*.ply)" ON)
 option(WITH_IO_STL "Enable STL 3D file format support (*.stl)" ON)
@@ -482,7 +482,7 @@ mark_as_advanced(WITH_SYSTEM_GFLAGS)
 mark_as_advanced(WITH_SYSTEM_GLOG)
 
 # Freestyle
-option(WITH_FREESTYLE "Enable Freestyle (advanced edges rendering)" ON)
+option(WITH_FREESTYLE "Enable Freestyle (advanced edges rendering)" OFF)
 
 # Libraries.
 if(UNIX AND NOT APPLE)
@@ -573,9 +573,9 @@ mark_as_advanced(WITH_CPU_SIMD)
 # Cycles
 option(WITH_CYCLES "Enable Cycles Render Engine" ON)
 option(WITH_CYCLES_OSL "Build Cycles with OpenShadingLanguage support" ON)
-option(WITH_CYCLES_PATH_GUIDING "Build Cycles with path guiding support" ON)
-option(WITH_CYCLES_EMBREE "Build Cycles with Embree support" ON)
-option(WITH_CYCLES_LOGGING "Build Cycles with logging support" ON)
+option(WITH_CYCLES_PATH_GUIDING "Build Cycles with path guiding support" OFF)
+option(WITH_CYCLES_EMBREE "Build Cycles with Embree support" OFF)
+option(WITH_CYCLES_LOGGING "Build Cycles with logging support" OFF)
 option(WITH_CYCLES_DEBUG "Build Cycles with options useful for debugging (e.g., MIS)" OFF)
 
 option(WITH_CYCLES_STANDALONE "Build Cycles standalone application" OFF)
@@ -752,7 +752,7 @@ endif()
 if("${BLENDER_VERSION_CYCLE}" STREQUAL "alpha")
   set(WITH_EXPERIMENTAL_FEATURES ON)
 else()
-  set(WITH_EXPERIMENTAL_FEATURES OFF)
+  set(WITH_EXPERIMENTAL_FEATURES ON)
 endif()
 
 # Unit testing
