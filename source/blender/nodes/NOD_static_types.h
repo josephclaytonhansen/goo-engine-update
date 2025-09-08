@@ -119,7 +119,6 @@ DefNode(ShaderNode,     SH_NODE_VECTOR_DISPLACEMENT,def_sh_vector_displacement,"
 DefNode(ShaderNode,     SH_NODE_TEX_IES,            def_sh_tex_ies,         "TEX_IES",            TexIES,           "IES Texture",       "Used to match real world lights with IES files, which store the directional intensity distribution of light sources")
 DefNode(ShaderNode,     SH_NODE_TEX_WHITE_NOISE,    def_sh_tex_white_noise, "TEX_WHITE_NOISE",    TexWhiteNoise,    "White Noise Texture","Return a random value or color based on an input seed")
 DefNode(ShaderNode,     SH_NODE_OUTPUT_AOV,         def_sh_output_aov,      "OUTPUT_AOV",         OutputAOV,        "AOV Output",        "Arbitrary Output Variables.\nProvide custom render passes for arbitrary shader node outputs")
-DefNode(ShaderNode,     SH_NODE_INPUT_AOV,          def_sh_input_aov,       "INPUT_AOV",          InputAOV,         "AOV Input",         "Arbitrary Output Variables Input.\nRead AOV data from previous render passes")
 DefNode(ShaderNode,     SH_NODE_SDF_PRIMITIVE,      def_sh_sdf_primitive,   "SDF_PRIMITIVE",      SdfPrimitive,     "Sdf Primitive",     ""       )
 DefNode(ShaderNode,     SH_NODE_SDF_OP,             def_sh_sdf_op,          "SDF_OP",             SdfOp,            "Sdf Operator",      ""       )
 DefNode(ShaderNode,     SH_NODE_SDF_VECTOR_OP,      def_sh_sdf_vector_op,   "SDF_VECTOR_OP",      SdfVectorOp,      "Sdf Vector Operator",""      )

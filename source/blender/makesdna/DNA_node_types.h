@@ -1491,10 +1491,6 @@ typedef struct NodeShaderOutputAOV {
   char name[64];
 } NodeShaderOutputAOV;
 
-typedef struct NodeShaderInputAOV {
-  char name[64];
-} NodeShaderInputAOV;
-
 
 typedef struct NodeTexHexagon {
   NodeTexBase base;
