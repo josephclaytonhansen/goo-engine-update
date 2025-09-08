@@ -5482,12 +5482,12 @@ static void def_sh_water_ripples(StructRNA *srna)
 
 static void def_sh_blur(StructRNA *srna)
 {
-  def_sh_tex(srna);
+  /* No additional properties needed for blur node */
 }
 
 static void def_sh_sharpen(StructRNA *srna)
 {
-  def_sh_tex(srna);
+  /* No additional properties needed for sharpen node */
 }
 
 
