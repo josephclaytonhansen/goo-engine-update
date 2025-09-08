@@ -38,6 +38,8 @@ void register_node_type_sh_color_palette();
 void register_node_type_sh_light_info();
 void register_node_type_sh_twirl();
 void register_node_type_sh_water_ripples();
+void register_node_type_sh_blur();
+void register_node_type_sh_sharpen();
 void register_node_type_sh_tex_hexagon();
 void register_node_type_sh_tex_gabor();
 void register_node_type_sh_curve_float();

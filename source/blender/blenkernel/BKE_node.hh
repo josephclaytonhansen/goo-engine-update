@@ -993,6 +993,8 @@ void BKE_nodetree_remove_layer_n(struct bNodeTree *ntree, struct Scene *scene, i
 
 /* Not really Fruitbat but it fits*/
 #define SH_NODE_TEX_GABOR 905
+#define SH_NODE_BLUR 906
+#define SH_NODE_SHARPEN 907
 
 /** \} */
 

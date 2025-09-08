@@ -596,6 +596,8 @@ set(GLSL_SRC
 
   shaders/material/gpu_shader_material_twirl.glsl
   shaders/material/gpu_shader_material_water_ripples.glsl
+  shaders/material/gpu_shader_material_blur.glsl
+  shaders/material/gpu_shader_material_sharpen.glsl
 
   shaders/gpu_shader_gpencil_stroke_vert.glsl
   shaders/gpu_shader_gpencil_stroke_vert_no_geom.glsl
