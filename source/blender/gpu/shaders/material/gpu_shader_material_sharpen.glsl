@@ -1,52 +1,62 @@
 #pragma BLENDER_REQUIRE(gpu_shader_common_math_utils.glsl)
 
+// YUV conversion matrices
+const mat3 YUVFromRGB = mat3(
+    vec3(0.299, -0.14713, 0.615),
+    vec3(0.587, -0.28886, -0.51499),
+    vec3(0.114, 0.436, -0.10001)
+);
+
+const mat3 RGBFromYUV = mat3(
+    vec3(1.0, 1.0, 1.0),
+    vec3(0.0, -0.394, 2.03211),
+    vec3(1.13983, -0.580, 0.0)
+);
+
+float extractLuma(vec3 c)
+{
+    return c.r * 0.299 + c.g * 0.587 + c.b * 0.114;
+}
+
 void node_sharpen(vec4 color, vec3 vector, float gain, vec3 img_size, out vec4 result)
 {
-    // Sharpen effect by enhancing local contrast and details
+    // Note: This is a procedural sharpen effect for material shaders
+    // For true texture sharpen, use compositor nodes instead
     
-    if (gain <= 0.001) {
-        result = color;
-        return;
+    vec3 yuv = YUVFromRGB * color.rgb;
+    
+    vec2 imgSize = img_size.xy;
+    
+    float accumY = 0.0;
+    
+    // Apply sharpening kernel using texture coordinates for variation
+    for(int i = -1; i <= 1; ++i) {
+        for(int j = -1; j <= 1; ++j) {
+            vec2 offset = vec2(float(i), float(j)) / imgSize;
+            vec2 sample_coord = vector.xy + offset;
+            
+            // Create procedural variation based on coordinates
+            vec3 sample_color = color.rgb;
+            
+            if (i != 0 || j != 0) {
+                // Apply coordinate-based variation to simulate neighboring pixels
+                float coord_variation = sin(sample_coord.x * 200.0) * cos(sample_coord.y * 200.0) * 0.05;
+                sample_color *= (1.0 + coord_variation);
+            }
+            
+            float s = extractLuma(sample_color);
+            float notCentre = min(float(i*i + j*j), 1.0);
+            accumY += s * (9.0 - notCentre * 10.0);
+        }
     }
     
-    // Normalize gain
-    float sharpen_strength = clamp(gain * 0.5, 0.0, 2.0);
+    accumY /= 9.0;
     
-    vec3 original_color = color.rgb;
-    float luminance = dot(original_color, vec3(0.299, 0.587, 0.114));
+    // Apply gain
+    accumY = (accumY + yuv.x) * gain;
     
-    // Create detail enhancement using high-frequency patterns
-    vec2 uv = vector.xy;
+    // Convert back to RGB
+    vec3 sharpened_rgb = RGBFromYUV * vec3(accumY, yuv.y, yuv.z);
     
-    // Generate edge-like patterns at different scales
-    float detail = 0.0;
-    detail += sin(uv.x * 100.0) * cos(uv.y * 100.0) * 0.05;
-    detail += sin(uv.x * 200.0) * cos(uv.y * 200.0) * 0.025;
-    detail += sin(uv.x * 50.0) * cos(uv.y * 150.0) * 0.03;
-    
-    // Apply unsharp mask technique
-    // 1. Create a "blurred" version by reducing local contrast
-    vec3 blurred_approx = original_color * 0.9 + vec3(luminance * 0.1);
-    
-    // 2. Find the difference (edge information)
-    vec3 edge_info = original_color - blurred_approx;
-    
-    // 3. Add the edge information back with gain
-    vec3 sharpened = original_color + edge_info * sharpen_strength;
-    
-    // 4. Add high-frequency detail enhancement
-    sharpened += detail * sharpen_strength * 0.3;
-    
-    // 5. Preserve overall brightness by normalizing
-    float original_avg = (original_color.r + original_color.g + original_color.b) / 3.0;
-    float sharpened_avg = (sharpened.r + sharpened.g + sharpened.b) / 3.0;
-    
-    if (sharpened_avg > 0.001) {
-        sharpened *= original_avg / sharpened_avg;
-    }
-    
-    // Clamp to valid range
-    sharpened = clamp(sharpened, 0.0, 1.0);
-    
-    result = vec4(sharpened, color.a);
+    result = vec4(sharpened_rgb, color.a);
 }
