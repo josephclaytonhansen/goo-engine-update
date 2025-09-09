@@ -992,6 +992,7 @@ void BKE_nodetree_remove_layer_n(struct bNodeTree *ntree, struct Scene *scene, i
 #define SH_NODE_TEX_HEXAGON 902
 #define SH_NODE_TWIRL 903
 #define SH_NODE_WATER_RIPPLES 904
+#define SH_NODE_OKLAB_COLOR_RAMP 907
 
 /* Not really Fruitbat but it fits*/
 #define SH_NODE_TEX_GABOR 905
