@@ -5,7 +5,7 @@ namespace blender::nodes::node_shader_blur_cc {
 static void node_declare(NodeDeclarationBuilder &b)
 {
   b.add_input<decl::Color>("Color").default_value({1.0f, 1.0f, 1.0f, 1.0f});
-  b.add_input<decl::Vector>("Vector").implicit_field(implicit_field_inputs::texture);
+  b.add_input<decl::Vector>("Vector").implicit_field(implicit_field_inputs::position);
   b.add_input<decl::Float>("Radius").default_value(5.0f).min(0.0f).max(100.0f);
   b.add_input<decl::Int>("Samples").default_value(35).min(1).max(100);
   b.add_input<decl::Int>("LOD").default_value(2).min(0).max(8);
