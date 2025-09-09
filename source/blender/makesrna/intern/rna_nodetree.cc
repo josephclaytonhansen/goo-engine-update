@@ -5444,6 +5444,7 @@ static void def_sh_light_info(StructRNA *srna)
 
 static void def_sh_twirl(StructRNA *srna)
 {
+  PropertyRNA *prop;
   RNA_def_struct_sdna_from(srna, "NodeTwirl", "storage");
   def_sh_tex(srna);
 }

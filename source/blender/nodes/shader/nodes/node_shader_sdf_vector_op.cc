@@ -22,15 +22,11 @@
  */
 
 #include "RNA_enum_types.hh"
-#include "RNA_access.hh"
-
-#include "BLI_string.h"
 
 #include "UI_interface.hh"
 #include "UI_resources.hh"
 
 #include "../node_shader_util.hh"
-#include "node_util.hh"
 
 using namespace blender::bke;
 
