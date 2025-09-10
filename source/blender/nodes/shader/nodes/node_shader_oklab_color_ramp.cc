@@ -192,58 +192,69 @@ static int gpu_shader_oklab_valtorgb(GPUMaterial *mat,
                                      GPUNodeStack *out)
 {
   ColorBand *coba = (ColorBand *)node->storage;
+
+  /* For OKLab interpolation, we use direct interpolation for simple cases
+   * and OKLab-based texture generation for complex cases */
+  
+  /* Simple case optimization for 2 stops or less */
+  if (coba->tot <= 2) {
+    if (coba->tot == 1) {
+      /* Single color */
+      return GPU_stack_link(mat,
+                            node,
+                            "oklab_valtorgb_opti_constant",
+                            in,
+                            out,
+                            GPU_constant(&coba->data[0].pos),
+                            GPU_uniform(&coba->data[0].r),
+                            GPU_uniform(&coba->data[0].r));
+    }
+    
+    /* Two stops - use OKLab interpolation */
+    float mul_bias[2];
+    mul_bias[0] = 1.0f / (coba->data[1].pos - coba->data[0].pos);
+    mul_bias[1] = -mul_bias[0] * coba->data[0].pos;
+    
+    /* Always use linear interpolation for OKLab, as we handle the interpolation method ourselves */
+    return GPU_stack_link(mat,
+                          node,
+                          "oklab_valtorgb_opti_linear",
+                          in,
+                          out,
+                          GPU_uniform(mul_bias),
+                          GPU_uniform(&coba->data[0].r),
+                          GPU_uniform(&coba->data[1].r));
+  }
+
+  /* For complex colorbands (3+ stops), generate a texture using OKLab evaluation */
   float *array, layer;
   int size;
-
-  /* Common / easy case optimization. */
-  if ((coba->tot <= 2) && (coba->color_mode == COLBAND_BLEND_RGB)) {
-    float mul_bias[2];
-    switch (coba->ipotype) {
-      case COLBAND_INTERP_LINEAR:
-        mul_bias[0] = 1.0f / (coba->data[1].pos - coba->data[0].pos);
-        mul_bias[1] = -mul_bias[0] * coba->data[0].pos;
-        return GPU_stack_link(mat,
-                              node,
-                              "oklab_valtorgb_opti_linear",
-                              in,
-                              out,
-                              GPU_uniform(mul_bias),
-                              GPU_uniform(&coba->data[0].r),
-                              GPU_uniform(&coba->data[1].r));
-      case COLBAND_INTERP_CONSTANT:
-        mul_bias[1] = max_ff(coba->data[0].pos, coba->data[1].pos);
-        return GPU_stack_link(mat,
-                              node,
-                              "oklab_valtorgb_opti_constant",
-                              in,
-                              out,
-                              GPU_uniform(&mul_bias[1]),
-                              GPU_uniform(&coba->data[0].r),
-                              GPU_uniform(&coba->data[1].r));
-      case COLBAND_INTERP_EASE:
-        mul_bias[0] = 1.0f / (coba->data[1].pos - coba->data[0].pos);
-        mul_bias[1] = -mul_bias[0] * coba->data[0].pos;
-        return GPU_stack_link(mat,
-                              node,
-                              "oklab_valtorgb_opti_ease",
-                              in,
-                              out,
-                              GPU_uniform(mul_bias),
-                              GPU_uniform(&coba->data[0].r),
-                              GPU_uniform(&coba->data[1].r));
-      default:
-        break;
-    }
+  
+  /* Generate the texture array using our OKLab evaluation instead of regular RGB */
+  size = 257; /* Standard colorband texture size */
+  array = (float *)MEM_mallocN(sizeof(float) * size * 4, "OKLab Colorband Array");
+  
+  for (int i = 0; i < size; i++) {
+    float pos = (float)i / (float)(size - 1);
+    float color[4];
+    
+    /* Use our OKLab evaluation function */
+    BKE_colorband_evaluate_oklab(coba, pos, color);
+    
+    array[i * 4 + 0] = color[0]; /* R */
+    array[i * 4 + 1] = color[1]; /* G */
+    array[i * 4 + 2] = color[2]; /* B */
+    array[i * 4 + 3] = color[3]; /* A */
   }
-
-  BKE_colorband_evaluate_table_rgba(coba, &array, &size);
+  
   GPUNodeLink *tex = GPU_color_band(mat, size, array, &layer);
 
+  /* Use regular texture sampling since we've already done OKLab interpolation in the texture */
   if (coba->ipotype == COLBAND_INTERP_CONSTANT) {
-    return GPU_stack_link(mat, node, "oklab_valtorgb_nearest", in, out, tex, GPU_constant(&layer));
+    return GPU_stack_link(mat, node, "valtorgb_nearest", in, out, tex, GPU_constant(&layer));
   }
 
-  return GPU_stack_link(mat, node, "oklab_valtorgb", in, out, tex, GPU_constant(&layer));
+  return GPU_stack_link(mat, node, "valtorgb", in, out, tex, GPU_constant(&layer));
 }
 
 class OKLabColorBandFunction : public mf::MultiFunction {
