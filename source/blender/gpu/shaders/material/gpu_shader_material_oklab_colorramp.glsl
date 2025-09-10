@@ -122,12 +122,12 @@ void oklab_valtorgb_opti_ease(
 // but interpolate in OKLab space instead of RGB
 void oklab_valtorgb(float fac, sampler1DArray colormap, float layer, out vec4 outcol, out float outalpha)
 {
+  // Clamp the factor to valid range
+  fac = clamp(fac, 0.0, 1.0);
+  
   // Get the texture size to determine sample positions
   ivec2 tex_size = textureSize(colormap, 0);
   float max_index = float(tex_size.x - 1);
-  
-  // Clamp the factor to valid range
-  fac = clamp(fac, 0.0, 1.0);
   
   // Calculate the exact position in the color band
   float exact_pos = fac * max_index;
@@ -135,16 +135,15 @@ void oklab_valtorgb(float fac, sampler1DArray colormap, float layer, out vec4 ou
   int upper_index = min(lower_index + 1, int(max_index));
   float interp_factor = exact_pos - float(lower_index);
   
-  // Sample the colors at the two positions
+  // Sample the colors at the two adjacent positions
   vec4 color1 = texelFetch(colormap, ivec2(lower_index, int(layer)), 0);
   vec4 color2 = texelFetch(colormap, ivec2(upper_index, int(layer)), 0);
   
-  // Interpolate in OKLab space for better color transitions
-  if (lower_index == upper_index) {
-    // Exact match, no interpolation needed
+  // If we're exactly at a color stop, no interpolation needed
+  if (lower_index == upper_index || interp_factor == 0.0) {
     outcol = color1;
   } else {
-    // Perform OKLab interpolation
+    // Perform OKLab interpolation between the two adjacent stops
     outcol = oklab_mix(color1, color2, interp_factor);
   }
   
