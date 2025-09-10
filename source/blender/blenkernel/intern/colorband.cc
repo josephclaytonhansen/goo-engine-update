@@ -769,7 +769,14 @@ bool BKE_colorband_evaluate_oklab(const ColorBand *coba, float in, float out[4])
   float factor = (in - left->pos) / (right->pos - left->pos);
   factor = clamp_f(factor, 0.0f, 1.0f);
   
-  /* Convert colors to Linear sRGB first */
+  /* Apply ease interpolation if needed (same as original colorband) */
+  if (coba->ipotype == COLBAND_INTERP_EASE) {
+    const float fac2 = factor * factor;
+    factor = 3.0f * fac2 - 2.0f * fac2 * factor;
+  }
+  
+  /* For OKLab interpolation, we need to convert to Linear space first, then OKLab */
+  /* The colorband data is stored in sRGB space */
   float left_srgb[3] = {left->r, left->g, left->b};
   float right_srgb[3] = {right->r, right->g, right->b};
   float left_linear[3], right_linear[3];

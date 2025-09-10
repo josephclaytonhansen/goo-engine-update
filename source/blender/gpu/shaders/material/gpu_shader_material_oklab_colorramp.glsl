@@ -15,10 +15,10 @@ vec3 linear_srgb_to_oklab(vec3 c)
     float m = 0.2119034982 * c.x + 0.6806995451 * c.y + 0.1073969566 * c.z;
     float s = 0.0883024619 * c.x + 0.2817188376 * c.y + 0.6299787005 * c.z;
 
-    // Apply cube root (approximated with pow for GLSL compatibility)
-    float l_ = sign(l) * pow(abs(l), 1.0/3.0);
-    float m_ = sign(m) * pow(abs(m), 1.0/3.0);
-    float s_ = sign(s) * pow(abs(s), 1.0/3.0);
+    // Apply cube root - use same logic as CPU version
+    float l_ = (l >= 0.0) ? pow(l, 1.0/3.0) : -pow(-l, 1.0/3.0);
+    float m_ = (m >= 0.0) ? pow(m, 1.0/3.0) : -pow(-m, 1.0/3.0);
+    float s_ = (s >= 0.0) ? pow(s, 1.0/3.0) : -pow(-s, 1.0/3.0);
 
     // Convert to OKLab
     return vec3(
@@ -122,31 +122,19 @@ void oklab_valtorgb_opti_ease(
 // but interpolate in OKLab space instead of RGB
 void oklab_valtorgb(float fac, sampler1DArray colormap, float layer, out vec4 outcol, out float outalpha)
 {
-  // Clamp the factor to valid range
+  // Go back to proper texture sampling, but use the compute_color_map_coordinate function
+  // for proper sampling alignment
   fac = clamp(fac, 0.0, 1.0);
-  
-  // Get the texture size to determine sample positions
-  ivec2 tex_size = textureSize(colormap, 0);
-  float max_index = float(tex_size.x - 1);
-  
-  // Calculate the exact position in the color band
-  float exact_pos = fac * max_index;
-  int lower_index = int(floor(exact_pos));
-  int upper_index = min(lower_index + 1, int(max_index));
-  float interp_factor = exact_pos - float(lower_index);
-  
-  // Sample the colors at the two adjacent positions
-  vec4 color1 = texelFetch(colormap, ivec2(lower_index, int(layer)), 0);
-  vec4 color2 = texelFetch(colormap, ivec2(upper_index, int(layer)), 0);
-  
-  // If we're exactly at a color stop, no interpolation needed
-  if (lower_index == upper_index || interp_factor == 0.0) {
-    outcol = color1;
-  } else {
-    // Perform OKLab interpolation between the two adjacent stops
-    outcol = oklab_mix(color1, color2, interp_factor);
-  }
-  
+  outcol = texture(colormap, vec2(compute_color_map_coordinate(fac), layer));
+  outalpha = outcol.a;
+}
+
+void oklab_valtorgb_ease(float fac, sampler1DArray colormap, float layer, out vec4 outcol, out float outalpha)
+{
+  // For complex colorbands, the ease interpolation is already baked into the texture
+  // by BKE_colorband_evaluate_oklab, so we just need to do regular linear sampling
+  fac = clamp(fac, 0.0, 1.0);
+  outcol = texture(colormap, vec2(compute_color_map_coordinate(fac), layer));
   outalpha = outcol.a;
 }
 

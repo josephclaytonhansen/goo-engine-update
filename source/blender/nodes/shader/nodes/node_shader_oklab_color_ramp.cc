@@ -193,52 +193,54 @@ static int gpu_shader_oklab_valtorgb(GPUMaterial *mat,
 {
   ColorBand *coba = (ColorBand *)node->storage;
 
-  /* For OKLab interpolation, we use direct interpolation for simple cases
-   * and OKLab-based texture generation for complex cases */
+  /* For OKLab, use direct GPU calculation for 1-2 stops (which work perfectly) */
+  /* and texture approach for 3+ stops (with improved CPU OKLab evaluation) */
   
-  /* Simple case optimization for 2 stops or less */
-  if (coba->tot <= 2) {
-    if (coba->tot == 1) {
-      /* Single color */
-      return GPU_stack_link(mat,
-                            node,
-                            "oklab_valtorgb_opti_constant",
-                            in,
-                            out,
-                            GPU_constant(&coba->data[0].pos),
-                            GPU_uniform(&coba->data[0].r),
-                            GPU_uniform(&coba->data[0].r));
-    }
-    
-    /* Two stops - use OKLab interpolation */
+  if (coba->tot == 1) {
+    /* Single color */
+    return GPU_stack_link(mat,
+                          node,
+                          "oklab_valtorgb_opti_constant",
+                          in,
+                          out,
+                          GPU_constant(&coba->data[0].pos),
+                          GPU_uniform(&coba->data[0].r),
+                          GPU_uniform(&coba->data[0].r));
+  }
+  
+  if (coba->tot == 2) {
+    /* Two stops - use direct OKLab interpolation with Ease (this works perfectly) */
     float mul_bias[2];
     mul_bias[0] = 1.0f / (coba->data[1].pos - coba->data[0].pos);
     mul_bias[1] = -mul_bias[0] * coba->data[0].pos;
     
-    /* Always use linear interpolation for OKLab, as we handle the interpolation method ourselves */
     return GPU_stack_link(mat,
                           node,
-                          "oklab_valtorgb_opti_linear",
+                          "oklab_valtorgb_opti_ease",
                           in,
                           out,
                           GPU_uniform(mul_bias),
                           GPU_uniform(&coba->data[0].r),
                           GPU_uniform(&coba->data[1].r));
   }
-
-  /* For complex colorbands (3+ stops), generate a texture using OKLab evaluation */
+  
+  /* For 3+ stops, use texture approach with improved OKLab evaluation */
   float *array, layer;
   int size;
   
-  /* Generate the texture array using our OKLab evaluation instead of regular RGB */
-  size = 257; /* Standard colorband texture size */
+  /* Generate the texture array using our OKLab evaluation with ease interpolation */
+  size = 257; /* Standard colorband texture size - must match compute_color_map_coordinate */
   array = (float *)MEM_mallocN(sizeof(float) * size * 4, "OKLab Colorband Array");
+  
+  /* Force ease interpolation mode for texture generation since you want only ease */
+  int original_ipotype = coba->ipotype;
+  const_cast<ColorBand*>(coba)->ipotype = COLBAND_INTERP_EASE;
   
   for (int i = 0; i < size; i++) {
     float pos = (float)i / (float)(size - 1);
     float color[4];
     
-    /* Use our OKLab evaluation function */
+    /* Use our OKLab evaluation function with EASE interpolation */
     BKE_colorband_evaluate_oklab(coba, pos, color);
     
     array[i * 4 + 0] = color[0]; /* R */
@@ -247,14 +249,13 @@ static int gpu_shader_oklab_valtorgb(GPUMaterial *mat,
     array[i * 4 + 3] = color[3]; /* A */
   }
   
+  /* Restore original interpolation mode */
+  const_cast<ColorBand*>(coba)->ipotype = original_ipotype;
+  
   GPUNodeLink *tex = GPU_color_band(mat, size, array, &layer);
 
-  /* Use regular texture sampling since we've already done OKLab interpolation in the texture */
-  if (coba->ipotype == COLBAND_INTERP_CONSTANT) {
-    return GPU_stack_link(mat, node, "valtorgb_nearest", in, out, tex, GPU_constant(&layer));
-  }
-
-  return GPU_stack_link(mat, node, "valtorgb", in, out, tex, GPU_constant(&layer));
+  /* Use simple linear texture sampling since ease and OKLab are baked into texture */
+  return GPU_stack_link(mat, node, "oklab_valtorgb", in, out, tex, GPU_constant(&layer));
 }
 
 class OKLabColorBandFunction : public mf::MultiFunction {
