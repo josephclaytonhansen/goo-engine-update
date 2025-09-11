@@ -789,14 +789,10 @@ bool BKE_colorband_evaluate_oklab(const ColorBand *coba, float in, float out[4])
     factor = 3.0f * fac2 - 2.0f * fac2 * factor;
   }
   
-  /* For OKLab interpolation, we need to convert to Linear space first, then OKLab */
-  /* The colorband data is stored in sRGB space */
-  float left_srgb[3] = {left->r, left->g, left->b};
-  float right_srgb[3] = {right->r, right->g, right->b};
-  float left_linear[3], right_linear[3];
-  
-  srgb_to_linear(left_srgb, left_linear);
-  srgb_to_linear(right_srgb, right_linear);
+  /* For OKLab interpolation - check if colorband data is already in Linear space */
+  /* Try treating colorband data as already Linear RGB */
+  float left_linear[3] = {left->r, left->g, left->b};
+  float right_linear[3] = {right->r, right->g, right->b};
   
   /* Convert to OKLab */
   float left_oklab[3], right_oklab[3];

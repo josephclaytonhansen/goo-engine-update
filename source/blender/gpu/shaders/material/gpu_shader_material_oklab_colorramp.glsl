@@ -78,9 +78,9 @@ vec4 oklab_mix(vec4 color1, vec4 color2, float factor)
     // Clamp factor to [0,1] range
     factor = clamp(factor, 0.0, 1.0);
     
-    // Convert sRGB colors to Linear
-    vec3 linear1 = srgb_to_linear(color1.rgb);
-    vec3 linear2 = srgb_to_linear(color2.rgb);
+    // Treat input colors as already Linear RGB (Blender's internal color space)
+    vec3 linear1 = color1.rgb;
+    vec3 linear2 = color2.rgb;
     
     // Convert Linear sRGB to OKLab
     vec3 oklab1 = linear_srgb_to_oklab(linear1);
