@@ -15,10 +15,10 @@ vec3 linear_srgb_to_oklab(vec3 c)
     float m = 0.2119034982 * c.x + 0.6806995451 * c.y + 0.1073969566 * c.z;
     float s = 0.0883024619 * c.x + 0.2817188376 * c.y + 0.6299787005 * c.z;
 
-    // Apply cube root - use same logic as CPU version
-    float l_ = (l >= 0.0) ? pow(l, 1.0/3.0) : -pow(-l, 1.0/3.0);
-    float m_ = (m >= 0.0) ? pow(m, 1.0/3.0) : -pow(-m, 1.0/3.0);
-    float s_ = (s >= 0.0) ? pow(s, 1.0/3.0) : -pow(-s, 1.0/3.0);
+    // Apply cube root - use sign + pow for better precision matching cbrtf
+    float l_ = sign(l) * pow(abs(l) + 1e-10, 1.0/3.0);
+    float m_ = sign(m) * pow(abs(m) + 1e-10, 1.0/3.0);
+    float s_ = sign(s) * pow(abs(s) + 1e-10, 1.0/3.0);
 
     // Convert to OKLab
     return vec3(
@@ -41,11 +41,19 @@ vec3 oklab_to_linear_srgb(vec3 c)
     float s = s_ * s_ * s_;
 
     // Convert back to Linear sRGB
-    return vec3(
+    vec3 linear_rgb = vec3(
         +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
         -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
         -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
     );
+    
+    // Apply gamut mapping if any component is out of range [0,1]
+    float max_component = max(max(linear_rgb.r, linear_rgb.g), linear_rgb.b);
+    if (max_component > 1.0) {
+        linear_rgb = linear_rgb / max_component;
+    }
+    
+    return max(vec3(0.0), linear_rgb); // Clamp negatives
 }
 
 // Standard sRGB to Linear conversion
@@ -81,16 +89,13 @@ vec4 oklab_mix(vec4 color1, vec4 color2, float factor)
     // Interpolate in OKLab space
     vec3 oklab_mixed = mix(oklab1, oklab2, factor);
     
-    // Convert back to Linear sRGB
+    // Convert back to Linear sRGB (output in Linear space for Blender's shader system)
     vec3 linear_mixed = oklab_to_linear_srgb(oklab_mixed);
-    
-    // Convert back to sRGB
-    vec3 srgb_mixed = linear_to_srgb(linear_mixed);
     
     // Mix alpha linearly
     float alpha_mixed = mix(color1.a, color2.a, factor);
     
-    return vec4(clamp(srgb_mixed, 0.0, 1.0), alpha_mixed);
+    return vec4(clamp(linear_mixed, 0.0, 1.0), alpha_mixed);
 }
 
 // OKLab-specific optimization functions (based on regular valtorgb functions)

@@ -652,7 +652,7 @@ bool BKE_colorband_element_remove(ColorBand *coba, int index)
   return true;
 }
 
-/* OKLab color space conversion functions */
+/* OKLab color space conversion functions - Using official reference implementation */
 static void linear_srgb_to_oklab(const float *linear_rgb, float *oklab)
 {
   /* Convert Linear sRGB to LMS (cone response) */
@@ -660,10 +660,10 @@ static void linear_srgb_to_oklab(const float *linear_rgb, float *oklab)
   float m = 0.2119034982f * linear_rgb[0] + 0.6806995451f * linear_rgb[1] + 0.1073969566f * linear_rgb[2];
   float s = 0.0883024619f * linear_rgb[0] + 0.2817188376f * linear_rgb[1] + 0.6299787005f * linear_rgb[2];
 
-  /* Apply cube root */
-  float l_ = (l >= 0.0f) ? powf(l, 1.0f/3.0f) : -powf(-l, 1.0f/3.0f);
-  float m_ = (m >= 0.0f) ? powf(m, 1.0f/3.0f) : -powf(-m, 1.0f/3.0f);
-  float s_ = (s >= 0.0f) ? powf(s, 1.0f/3.0f) : -powf(-s, 1.0f/3.0f);
+  /* Apply cube root - use cbrtf for better precision (from official reference) */
+  float l_ = cbrtf(l);
+  float m_ = cbrtf(m);
+  float s_ = cbrtf(s);
 
   /* Convert to OKLab */
   oklab[0] = 0.2104542553f * l_ + 0.7936177850f * m_ - 0.0040720468f * s_;
@@ -687,6 +687,20 @@ static void oklab_to_linear_srgb(const float *oklab, float *linear_rgb)
   linear_rgb[0] = +4.0767416621f * l - 3.3077115913f * m + 0.2309699292f * s;
   linear_rgb[1] = -1.2684380046f * l + 2.6097574011f * m - 0.3413193965f * s;
   linear_rgb[2] = -0.0041960863f * l - 0.7034186147f * m + 1.7076147010f * s;
+  
+  /* Simple gamut mapping: find the scaling factor to bring colors into gamut */
+  float max_component = fmaxf(fmaxf(linear_rgb[0], linear_rgb[1]), linear_rgb[2]);
+  if (max_component > 1.0f) {
+    /* Scale down to fit in gamut while preserving ratios (preserves hue) */
+    linear_rgb[0] /= max_component;
+    linear_rgb[1] /= max_component;
+    linear_rgb[2] /= max_component;
+  }
+  
+  /* Clamp negative values */
+  linear_rgb[0] = fmaxf(0.0f, linear_rgb[0]);
+  linear_rgb[1] = fmaxf(0.0f, linear_rgb[1]);
+  linear_rgb[2] = fmaxf(0.0f, linear_rgb[2]);
 }
 
 static void srgb_to_linear(const float *srgb, float *linear)
@@ -799,17 +813,13 @@ bool BKE_colorband_evaluate_oklab(const ColorBand *coba, float in, float out[4])
   float mixed_linear[3];
   oklab_to_linear_srgb(mixed_oklab, mixed_linear);
   
-  /* Convert back to sRGB */
-  float mixed_srgb[3];
-  linear_to_srgb(mixed_linear, mixed_srgb);
-  
   /* Mix alpha linearly */
   float mixed_alpha = left->a + factor * (right->a - left->a);
   
-  /* Clamp and assign */
-  out[0] = clamp_f(mixed_srgb[0], 0.0f, 1.0f);
-  out[1] = clamp_f(mixed_srgb[1], 0.0f, 1.0f);
-  out[2] = clamp_f(mixed_srgb[2], 0.0f, 1.0f);
+  /* Output in Linear RGB space (what Blender's shader system expects) */
+  out[0] = clamp_f(mixed_linear[0], 0.0f, 1.0f);
+  out[1] = clamp_f(mixed_linear[1], 0.0f, 1.0f);
+  out[2] = clamp_f(mixed_linear[2], 0.0f, 1.0f);
   out[3] = clamp_f(mixed_alpha, 0.0f, 1.0f);
   
   return true;
