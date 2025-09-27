@@ -1315,7 +1315,7 @@ static char *eevee_get_defines(int options)
    * `eevee_get_vert/geom/frag_info(..)`
    *
    * CreateInfo's for EEVEE materials are declared in:
-   * `eevee/shaders/infos/eevee_legacy_material_info.hh`
+   * `gooengine/shaders/infos/eevee_legacy_material_info.hh`
    *
    * This function should only contain defines which alter behavior, but do not affect shader
    * resources. */

@@ -101,7 +101,7 @@
 
 #include "BLO_read_write.hh"
 
-#include "engines/eevee/eevee_lightcache.h"
+#include "engines/gooengine/eevee_lightcache.h"
 
 #include "IMB_colormanagement.hh"
 #include "IMB_imbuf.hh"

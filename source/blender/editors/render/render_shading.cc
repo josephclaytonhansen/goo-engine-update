@@ -95,7 +95,7 @@
 #include "RE_engine.h"
 #include "RE_pipeline.h"
 
-#include "engines/eevee/eevee_lightcache.h"
+#include "engines/gooengine/eevee_lightcache.h"
 #include "engines/eevee_next/eevee_lightcache.hh"
 
 #include "render_intern.hh" /* own include */

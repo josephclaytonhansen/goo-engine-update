@@ -90,7 +90,7 @@
 
 #include "engines/basic/basic_engine.h"
 #include "engines/compositor/compositor_engine.h"
-#include "engines/eevee/eevee_engine.h"
+#include "engines/gooengine/eevee_engine.h"
 #include "engines/eevee_next/eevee_engine.h"
 #include "engines/external/external_engine.h"
 #include "engines/gpencil/gpencil_engine.h"
