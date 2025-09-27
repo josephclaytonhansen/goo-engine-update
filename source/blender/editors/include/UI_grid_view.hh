@@ -167,10 +167,9 @@ class GridViewBuilder {
  public:
   GridViewBuilder(uiBlock &block);
 
-  void build_grid_view(const bContext &C,
-                       AbstractGridView &grid_view,
-                       uiLayout &layout,
-                       std::optional<StringRef> search_string = {});
+  /** Build \a grid_view into the previously provided block, clipped by \a view_bounds (view space,
+   * typically `View2D.cur`). */
+  void build_grid_view(AbstractGridView &grid_view, const View2D &v2d, uiLayout &layout);
 };
 
 /** \} */

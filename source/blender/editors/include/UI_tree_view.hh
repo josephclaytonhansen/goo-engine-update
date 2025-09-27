@@ -146,9 +146,6 @@ class AbstractTreeView : public AbstractView, public TreeViewItemContainer {
  protected:
   virtual void build_tree() = 0;
 
-  std::optional<uiViewState> persistent_state() const override;
-  void persistent_state_apply(const uiViewState &state) override;
-
  private:
   void foreach_view_item(FunctionRef<void(AbstractViewItem &)> iter_fn) const final;
   void update_children_from_old(const AbstractView &old_view) override;
@@ -404,11 +401,7 @@ class TreeViewItemDropTarget : public DropTargetInterface {
 
 class TreeViewBuilder {
  public:
-  static void build_tree_view(const bContext &C,
-                              AbstractTreeView &tree_view,
-                              uiLayout &layout,
-                              std::optional<StringRef> search_string = {},
-                              bool add_box = true);
+  static void build_tree_view(AbstractTreeView &tree_view, uiLayout &layout);
 
  private:
   static void ensure_min_rows_items(AbstractTreeView &tree_view);

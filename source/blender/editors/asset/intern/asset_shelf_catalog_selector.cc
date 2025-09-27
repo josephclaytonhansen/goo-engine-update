@@ -208,7 +208,7 @@ static void catalog_selector_panel_draw(const bContext *C, Panel *panel)
       "asset catalog tree view",
       std::make_unique<AssetCatalogSelectorTree>(*library, *shelf));
 
-  ui::TreeViewBuilder::build_tree_view(*C, *tree_view, *layout);
+  ui::TreeViewBuilder::build_tree_view(*tree_view, *layout);
 }
 
 void catalog_selector_panel_register(ARegionType *region_type)
