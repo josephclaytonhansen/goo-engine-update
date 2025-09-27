@@ -52,7 +52,6 @@
 #include "RNA_types.hh"
 
 #include "UI_interface.hh"
-#include "UI_abstract_view.hh"
 
 #include "interface_intern.hh"
 
@@ -2404,23 +2403,18 @@ static void UI_OT_list_start_filter(wmOperatorType *ot)
 /** \name UI View Start Filter Operator
  * \{ */
 
-static AbstractView *get_view_focused(bContext *C)
+static bool ui_view_focused_poll(bContext *C)
 {
   const wmWindow *win = CTX_wm_window(C);
   if (!(win && win->eventstate)) {
-    return nullptr;
+    return false;
   }
 
   const ARegion *region = CTX_wm_region(C);
   if (!region) {
-    return nullptr;
+    return false;
   }
-  return reinterpret_cast<AbstractView*>(UI_region_view_find_at(region, win->eventstate->xy, 0));
-}
-
-static bool ui_view_focused_poll(bContext *C)
-{
-  const AbstractView *view = get_view_focused(C);
+  const uiViewHandle *view = UI_region_view_find_at(region, win->eventstate->xy, 0);
   return view != nullptr;
 }
 
@@ -2495,72 +2489,6 @@ static void UI_OT_view_drop(wmOperatorType *ot)
 
   ot->invoke = ui_view_drop_invoke;
   ot->poll = ui_view_drop_poll;
-
-  ot->flag = OPTYPE_INTERNAL;
-}
-
-/** \} */
-
-/* -------------------------------------------------------------------- */
-/** \name UI View Drop Operator
- * \{ */
-
-static bool ui_view_scroll_poll(bContext *C)
-{
-  const AbstractView *view = get_view_focused(C);
-  if (!view) {
-    return false;
-  }
-
-  return view->supports_scrolling();
-}
-
-static int ui_view_scroll_invoke(bContext *C, wmOperator * /*op*/, const wmEvent *event)
-{
-  ARegion *region = CTX_wm_region(C);
-  int type = event->type;
-  bool invert_direction = false;
-
-  if (type == MOUSEPAN) {
-    int dummy_val;
-    ui_pan_to_scroll(event, &type, &dummy_val);
-
-    /* 'ui_pan_to_scroll' gives the absolute direction. */
-    if (event->flag & WM_EVENT_SCROLL_INVERT) {
-      invert_direction = true;
-    }
-  }
-
-  AbstractView *view = get_view_focused(C);
-  std::optional<ViewScrollDirection> direction =
-      [type, invert_direction]() -> std::optional<ViewScrollDirection> {
-    switch (type) {
-      case WHEELUPMOUSE:
-        return invert_direction ? ViewScrollDirection::DOWN : ViewScrollDirection::UP;
-      case WHEELDOWNMOUSE:
-        return invert_direction ? ViewScrollDirection::UP : ViewScrollDirection::DOWN;
-      default:
-        return std::nullopt;
-    }
-  }();
-  if (!direction) {
-    return OPERATOR_CANCELLED;
-  }
-
-  BLI_assert(view->supports_scrolling());
-  view->scroll(*direction);
-
-  ED_region_tag_redraw(region);
-  return OPERATOR_FINISHED;
-}
-
-static void UI_OT_view_scroll(wmOperatorType *ot)
-{
-  ot->name = "View Scroll";
-  ot->idname = "UI_OT_view_scroll";
-
-  ot->invoke = ui_view_scroll_invoke;
-  ot->poll = ui_view_scroll_poll;
 
   ot->flag = OPTYPE_INTERNAL;
 }
@@ -2710,7 +2638,6 @@ void ED_operatortypes_ui()
 
   WM_operatortype_append(UI_OT_view_start_filter);
   WM_operatortype_append(UI_OT_view_drop);
-  WM_operatortype_append(UI_OT_view_scroll);
   WM_operatortype_append(UI_OT_view_item_rename);
 
   WM_operatortype_append(UI_OT_override_type_set_button);
