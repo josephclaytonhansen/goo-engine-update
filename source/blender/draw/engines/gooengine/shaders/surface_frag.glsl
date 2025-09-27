@@ -87,7 +87,7 @@ void main()
   float holdout = saturate(1.0 - cl.holdout);
   float transmit = saturate(avg(cl.transmittance));
   float alpha = 1.0 - transmit;
-
+  
 #ifdef OBINFO_LIB
   int flag = int(abs(ObjectInfo.w));
   if ((flag & DRW_BASE_HOLDOUT) != 0) {

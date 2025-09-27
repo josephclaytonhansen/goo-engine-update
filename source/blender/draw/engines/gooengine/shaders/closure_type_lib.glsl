@@ -53,12 +53,12 @@ void calc_shader_info(vec3 position, vec3 normal, out vec4 half_light, out float
 void screenspace_info(vec3 viewPos, out vec4 scene_col, out float scene_depth);
 void screenspace_curvature(float iiterations, float sample_scale, float clamp_dist, vec3 scale, out float scene_curvature, out float scene_rim);
 
-
 void output_aov(vec4 color, float value, uint hash);
 vec3 coordinate_camera(vec3 P);
 vec3 coordinate_screen(vec3 P);
 vec3 coordinate_reflect(vec3 P, vec3 N);
 vec3 coordinate_incoming(vec3 P);
+float texture_lod_bias_get();
 
 /* Single BSDFs. */
 Closure closure_eval(ClosureDiffuse diffuse);

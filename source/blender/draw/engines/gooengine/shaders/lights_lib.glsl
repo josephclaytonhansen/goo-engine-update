@@ -207,7 +207,6 @@ float sample_cube_shadow(int shadow_id, vec3 P, bool match_shadow_id)
   vec2 coord = cubeFaceCoordEEVEE(cubevec, face, shadowCubeTexture);
   /* `tex_id == data_id` for cube shadow-map. */
   float tex_id = float(data_id);
-
   vec4 coord_f = vec4(coord, tex_id * 6.0 + face, dist);
 
 #ifdef USE_SHADOW_ID
