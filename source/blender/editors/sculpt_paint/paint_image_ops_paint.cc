@@ -23,8 +23,8 @@
 #include "ED_paint.hh"
 #include "ED_view3d.hh"
 
-#include "GPU_immediate.h"
-#include "GPU_state.h"
+#include "GPU_immediate.hh"
+#include "GPU_state.hh"
 
 #include "MEM_guardedalloc.h"
 
@@ -295,7 +295,7 @@ static PaintOperation *texture_paint_init(bContext *C, wmOperator *op, const flo
   /* initialize from context */
   if (CTX_wm_region_view3d(C)) {
     bool uvs, mat, tex, stencil;
-    if (!ED_paint_proj_mesh_data_check(scene, ob, &uvs, &mat, &tex, &stencil)) {
+    if (!ED_paint_proj_mesh_data_check(*scene, *ob, &uvs, &mat, &tex, &stencil)) {
       ED_paint_data_warning(op->reports, uvs, mat, tex, stencil);
       MEM_delete(pop);
       WM_event_add_notifier(C, NC_SCENE | ND_TOOLSETTINGS, nullptr);
@@ -325,7 +325,7 @@ static PaintOperation *texture_paint_init(bContext *C, wmOperator *op, const flo
 }
 
 static void paint_stroke_update_step(bContext *C,
-                                     wmOperator * /*op*/,
+                                     wmOperator *op,
                                      PaintStroke *stroke,
                                      PointerRNA *itemptr)
 {
@@ -348,7 +348,7 @@ static void paint_stroke_update_step(bContext *C,
 
   RNA_float_get_array(itemptr, "mouse", mouse);
   pressure = RNA_float_get(itemptr, "pressure");
-  eraser = RNA_boolean_get(itemptr, "pen_flip");
+  eraser = RNA_boolean_get(op->ptr, "pen_flip");
   size = RNA_float_get(itemptr, "size");
 
   /* stroking with fill tool only acts on stroke end */

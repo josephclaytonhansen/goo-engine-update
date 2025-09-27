@@ -8,7 +8,6 @@
 
 #pragma once
 
-/* Struct members on own line. */
 /* clang-format off */
 
 /* -------------------------------------------------------------------- */
@@ -41,11 +40,13 @@
     .contact_thickness = 0.2f, \
     .diff_fac = 1.0f, \
     .spec_fac = 1.0f, \
+    .transmission_fac = 1.0f, \
     .volume_fac = 1.0f, \
-    .att_dist = 40.0f,     \
     .light_group_bits = {0, 0, 0, 1}, \
-    .shadow_softness_factor = 1.0f, \
-    .shadow_trace_distance = 10.0f, \
+    .shadow_filter_radius = 1.0f, \
+    .shadow_maximum_resolution = 0.001f, \
+    .shadow_jitter_overblur = 10.0f, \
+    .att_dist = 40.0f, \
     .sun_angle = DEG2RADF(0.526f), \
     .area_spread = DEG2RADF(180.0f), \
   }

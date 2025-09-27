@@ -17,15 +17,21 @@
 
 struct AssetMetaData;
 struct ID;
-struct IDRemapper;
+
+namespace blender::bke::id {
+class IDRemapper;
+}
 
 namespace blender::asset_system {
 
 class AssetIdentifier;
+class AssetLibrary;
 class AssetRepresentation;
 
 class AssetStorage {
-  using StorageT = Set<std::unique_ptr<AssetRepresentation>>;
+  /* Uses shared pointers so the UI can aquire weak pointers. It can then ensure pointers are not
+   * dangling before accessing. */
+  using StorageT = Set<std::shared_ptr<AssetRepresentation>>;
 
   StorageT external_assets_;
   /* Store local ID assets separately for efficient lookups.
@@ -35,21 +41,21 @@ class AssetStorage {
 
  public:
   /** See #AssetLibrary::add_external_asset(). */
-  AssetRepresentation &add_external_asset(AssetIdentifier &&identifier,
-                                          StringRef name,
-                                          int id_type,
-                                          std::unique_ptr<AssetMetaData> metadata,
-                                          const AssetLibrary &owner_asset_library);
+  std::weak_ptr<AssetRepresentation> add_external_asset(AssetIdentifier &&identifier,
+                                                        StringRef name,
+                                                        int id_type,
+                                                        std::unique_ptr<AssetMetaData> metadata,
+                                                        const AssetLibrary &owner_asset_library);
   /** See #AssetLibrary::add_external_asset(). */
-  AssetRepresentation &add_local_id_asset(AssetIdentifier &&identifier,
-                                          ID &id,
-                                          const AssetLibrary &owner_asset_library);
+  std::weak_ptr<AssetRepresentation> add_local_id_asset(AssetIdentifier &&identifier,
+                                                        ID &id,
+                                                        const AssetLibrary &owner_asset_library);
 
   /** See #AssetLibrary::remove_asset(). */
   bool remove_asset(AssetRepresentation &asset);
 
   /** See #AssetLibrary::remap_ids_and_remove_nulled(). */
-  void remap_ids_and_remove_invalid(const IDRemapper &mappings);
+  void remap_ids_and_remove_invalid(const blender::bke::id::IDRemapper &mappings);
 };
 
 }  // namespace blender::asset_system

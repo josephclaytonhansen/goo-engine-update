@@ -21,8 +21,8 @@
 
 #include "MEM_guardedalloc.h"
 
-#include "BLT_lang.h"
-#include "BLT_translation.h"
+#include "BLT_lang.hh"
+#include "BLT_translation.hh"
 
 #include "RNA_types.hh"
 
@@ -416,7 +416,7 @@ static BLT_i18n_contexts_descriptor _contexts[] = BLT_I18NCONTEXTS_DESC;
 
 /* These fields are just empty placeholders, actual values get set in app_translations_struct().
  * This allows us to avoid many handwriting, and above all,
- * to keep all context definition stuff in BLT_translation.h! */
+ * to keep all context definition stuff in BLT_translation.hh! */
 static PyStructSequence_Field app_translations_contexts_fields[ARRAY_SIZE(_contexts)] = {
     {nullptr}};
 
@@ -512,7 +512,7 @@ PyDoc_STRVAR(
 static PyObject *app_translations_locales_get(PyObject * /*self*/, void * /*userdata*/)
 {
   PyObject *ret;
-  EnumPropertyItem *it, *items = BLT_lang_RNA_enum_properties();
+  const EnumPropertyItem *it, *items = BLT_lang_RNA_enum_properties();
   int num_locales = 0, pos = 0;
 
   if (items) {
@@ -613,6 +613,38 @@ static PyObject *app_translations_pgettext(BlenderAppTranslations * /*self*/,
                                            PyObject *kw)
 {
   return _py_pgettext(args, kw, BLT_pgettext);
+}
+
+PyDoc_STRVAR(app_translations_pgettext_n_doc,
+             ".. method:: pgettext_n(msgid, msgctxt=None)\n"
+             "\n"
+             "   Extract the given msgid to translation files. This is a no-op function that will "
+             "only mark the string to extract, but not perform the actual translation.\n"
+             "\n"
+             "   .. note::\n"
+             "      See :func:`pgettext` notes.\n"
+             "\n"
+             "   :arg msgid: The string to extract.\n"
+             "   :type msgid: string\n"
+             "   :arg msgctxt: The translation context (defaults to BLT_I18NCONTEXT_DEFAULT).\n"
+             "   :type msgctxt: string or None\n"
+             "   :return: The original string.\n"
+             "\n");
+static PyObject *app_translations_pgettext_n(BlenderAppTranslations * /*self*/,
+                                             PyObject *args,
+                                             PyObject *kw)
+{
+  static const char *kwlist[] = {"msgid", "msgctxt", NULL};
+  PyObject *msgid, *msgctxt;
+  // (void)_pgettext;
+
+  if (!PyArg_ParseTupleAndKeywords(
+          args, kw, "O|O:bpy.app.translations.pgettext", (char **)kwlist, &msgid, &msgctxt))
+  {
+    return nullptr;
+  }
+
+  return Py_INCREF_RET(msgid);
 }
 
 PyDoc_STRVAR(
@@ -776,6 +808,10 @@ static PyMethodDef app_translations_methods[] = {
      (PyCFunction)app_translations_pgettext,
      METH_VARARGS | METH_KEYWORDS | METH_STATIC,
      app_translations_pgettext_doc},
+    {"pgettext_n",
+     (PyCFunction)app_translations_pgettext_n,
+     METH_VARARGS | METH_KEYWORDS | METH_STATIC,
+     app_translations_pgettext_n_doc},
     {"pgettext_iface",
      (PyCFunction)app_translations_pgettext_iface,
      METH_VARARGS | METH_KEYWORDS | METH_STATIC,
@@ -831,9 +867,13 @@ static PyObject *app_translations_new(PyTypeObject *type, PyObject * /*args*/, P
   return (PyObject *)_translations;
 }
 
-static void app_translations_free(void *obj)
+static void app_translations_free(BlenderAppTranslations *self)
 {
-  PyObject_Del(obj);
+  Py_DECREF(self->contexts);
+  Py_DECREF(self->contexts_C_to_py);
+  Py_DECREF(self->py_messages);
+
+  PyObject_Del(self);
 #ifdef WITH_INTERNATIONAL
   _clear_translations_cache();
 #endif
@@ -848,7 +888,7 @@ PyDoc_STRVAR(
     "\n");
 static PyTypeObject BlenderAppTranslationsType = {
     /*ob_base*/ PyVarObject_HEAD_INIT(nullptr, 0)
-    /*tp_name*/ "bpy.app._translations_type",
+    /*tp_name*/ "bpy_app_translations",
     /*tp_basicsize*/ sizeof(BlenderAppTranslations),
     /*tp_itemsize*/ 0,
     /*tp_dealloc*/ nullptr,
@@ -885,7 +925,7 @@ static PyTypeObject BlenderAppTranslationsType = {
     /*tp_init*/ nullptr,
     /*tp_alloc*/ nullptr,
     /*tp_new*/ (newfunc)app_translations_new,
-    /*tp_free*/ app_translations_free,
+    /*tp_free*/ (freefunc)app_translations_free,
     /*tp_is_gc*/ nullptr,
     /*tp_bases*/ nullptr,
     /*tp_mro*/ nullptr,

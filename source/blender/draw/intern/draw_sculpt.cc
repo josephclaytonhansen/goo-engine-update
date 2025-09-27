@@ -16,6 +16,8 @@
 #include "BKE_paint.hh"
 #include "BKE_pbvh_api.hh"
 
+#include "bmesh_class.hh"
+
 #include "DRW_pbvh.hh"
 
 namespace blender::draw {
@@ -42,7 +44,7 @@ static Vector<SculptBatch> sculpt_batches_get_ex(const Object *ob,
                                                  const Span<pbvh::AttributeRequest> attrs)
 {
   /* PBVH should always exist for non-empty meshes, created by depsgraph eval. */
-  PBVH *pbvh = ob->sculpt ? ob->sculpt->pbvh : nullptr;
+  PBVH *pbvh = ob->sculpt ? ob->sculpt->pbvh.get() : nullptr;
   if (!pbvh) {
     return {};
   }
@@ -68,7 +70,7 @@ static Vector<SculptBatch> sculpt_batches_get_ex(const Object *ob,
   /* Transform clipping planes to object space. Transforming a plane with a
    * 4x4 matrix is done by multiplying with the transpose inverse.
    * The inverse cancels out here since we transform by inverse(obmat). */
-  float4x4 tmat = math::transpose(float4x4(ob->object_to_world));
+  float4x4 tmat = math::transpose(ob->object_to_world());
   for (int i : IndexRange(6)) {
     draw_planes[i] = tmat * draw_planes[i];
     update_planes[i] = draw_planes[i];
@@ -76,10 +78,10 @@ static Vector<SculptBatch> sculpt_batches_get_ex(const Object *ob,
 
   if (paint && (paint->flags & PAINT_SCULPT_DELAY_UPDATES)) {
     if (navigating) {
-      bke::pbvh::get_frustum_planes(pbvh, &update_frustum);
+      bke::pbvh::get_frustum_planes(*pbvh, &update_frustum);
     }
     else {
-      bke::pbvh::set_frustum_planes(pbvh, &update_frustum);
+      bke::pbvh::set_frustum_planes(*pbvh, &update_frustum);
     }
   }
 
@@ -101,7 +103,7 @@ static Vector<SculptBatch> sculpt_batches_get_ex(const Object *ob,
 
   Vector<SculptBatch> result_batches;
   bke::pbvh::draw_cb(*mesh,
-                     pbvh,
+                     *pbvh,
                      update_only_visible,
                      update_frustum,
                      draw_frustum,
@@ -120,6 +122,28 @@ static Vector<SculptBatch> sculpt_batches_get_ex(const Object *ob,
   return result_batches;
 }
 
+static const CustomData *get_cdata(const BMesh &bm, const bke::AttrDomain domain)
+{
+  switch (domain) {
+    case bke::AttrDomain::Point:
+      return &bm.vdata;
+    case bke::AttrDomain::Corner:
+      return &bm.ldata;
+    case bke::AttrDomain::Face:
+      return &bm.pdata;
+    default:
+      return nullptr;
+  }
+}
+
+static bool bmesh_attribute_exists(const BMesh &bm,
+                                   const bke::AttributeMetaData &meta_data,
+                                   const StringRef name)
+{
+  const CustomData *cdata = get_cdata(bm, meta_data.domain);
+  return cdata && CustomData_get_offset_named(cdata, meta_data.data_type, name) != -1;
+}
+
 Vector<SculptBatch> sculpt_batches_get(const Object *ob, SculptBatchFeature features)
 {
   Vector<pbvh::AttributeRequest, 16> attrs;
@@ -135,19 +159,30 @@ Vector<SculptBatch> sculpt_batches_get(const Object *ob, SculptBatchFeature feat
 
   const Mesh *mesh = BKE_object_get_original_mesh(ob);
   const bke::AttributeAccessor attributes = mesh->attributes();
+  const SculptSession &ss = *ob->sculpt;
 
+  /* If Dyntopo is enabled, the source of truth for an attribute existing or not is the BMesh, not
+   * the Mesh. */
   if (features & SCULPT_BATCH_VERTEX_COLOR) {
     if (const char *name = mesh->active_color_attribute) {
       if (const std::optional<bke::AttributeMetaData> meta_data = attributes.lookup_meta_data(
               name))
       {
-        attrs.append(pbvh::GenericRequest{name, meta_data->data_type, meta_data->domain});
+        if (ss.bm) {
+          if (bmesh_attribute_exists(*ss.bm, *meta_data, name)) {
+            attrs.append(pbvh::GenericRequest{name, meta_data->data_type, meta_data->domain});
+          }
+        }
+        else {
+          attrs.append(pbvh::GenericRequest{name, meta_data->data_type, meta_data->domain});
+        }
       }
     }
   }
 
   if (features & SCULPT_BATCH_UV) {
-    if (const char *name = CustomData_get_active_layer_name(&mesh->corner_data, CD_PROP_FLOAT2)) {
+    const CustomData *corner_data = ss.bm ? &ss.bm->ldata : &mesh->corner_data;
+    if (const char *name = CustomData_get_active_layer_name(corner_data, CD_PROP_FLOAT2)) {
       attrs.append(pbvh::GenericRequest{name, CD_PROP_FLOAT2, bke::AttrDomain::Corner});
     }
   }
@@ -163,7 +198,7 @@ Vector<SculptBatch> sculpt_batches_per_material_get(const Object *ob,
 
   DRW_Attributes draw_attrs;
   DRW_MeshCDMask cd_needed;
-  DRW_mesh_get_attributes(ob, mesh, materials.data(), materials.size(), &draw_attrs, &cd_needed);
+  DRW_mesh_get_attributes(*ob, *mesh, materials.data(), materials.size(), &draw_attrs, &cd_needed);
 
   Vector<pbvh::AttributeRequest, 16> attrs;
 

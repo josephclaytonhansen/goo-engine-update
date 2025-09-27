@@ -14,9 +14,9 @@
 
 #include <Python.h>
 
-#include "GPU_context.h"
-#include "GPU_framebuffer.h"
-#include "GPU_init_exit.h"
+#include "GPU_context.hh"
+#include "GPU_framebuffer.hh"
+#include "GPU_init_exit.hh"
 
 #include "../generic/py_capi_utils.h"
 #include "../generic/python_compat.h"
@@ -24,10 +24,10 @@
 
 #include "../mathutils/mathutils.h"
 
-#include "gpu_py.h"
-#include "gpu_py_buffer.h"
-#include "gpu_py_framebuffer.h" /* own include */
-#include "gpu_py_texture.h"
+#include "gpu_py.hh"
+#include "gpu_py_buffer.hh"
+#include "gpu_py_framebuffer.hh" /* own include */
+#include "gpu_py_texture.hh"
 
 /* -------------------------------------------------------------------- */
 /** \name GPUFrameBuffer Common Utilities
@@ -286,14 +286,14 @@ static bool pygpu_framebuffer_new_parse_arg(PyObject *o, GPUAttachment *r_attach
         return false;
       }
 
-      if (c_texture && _PyUnicode_EqualToASCIIString(key, c_texture)) {
+      if (c_texture && PyUnicode_CompareWithASCIIString(key, c_texture)) {
         /* Compare only once. */
         c_texture = nullptr;
         if (!bpygpu_ParseTexture(value, &tmp_attach.tex)) {
           return false;
         }
       }
-      else if (c_layer && _PyUnicode_EqualToASCIIString(key, c_layer)) {
+      else if (c_layer && PyUnicode_CompareWithASCIIString(key, c_layer)) {
         /* Compare only once. */
         c_layer = nullptr;
         tmp_attach.layer = PyLong_AsLong(value);
@@ -301,7 +301,7 @@ static bool pygpu_framebuffer_new_parse_arg(PyObject *o, GPUAttachment *r_attach
           return false;
         }
       }
-      else if (c_mip && _PyUnicode_EqualToASCIIString(key, c_mip)) {
+      else if (c_mip && PyUnicode_CompareWithASCIIString(key, c_mip)) {
         /* Compare only once. */
         c_mip = nullptr;
         tmp_attach.mip = PyLong_AsLong(value);
@@ -323,6 +323,8 @@ static bool pygpu_framebuffer_new_parse_arg(PyObject *o, GPUAttachment *r_attach
 
 static PyObject *pygpu_framebuffer__tp_new(PyTypeObject * /*self*/, PyObject *args, PyObject *kwds)
 {
+  BPYGPU_IS_INIT_OR_ERROR_OBJ;
+
   if (!GPU_context_active_get()) {
     PyErr_SetString(PyExc_RuntimeError, "No active GPU context found");
     return nullptr;

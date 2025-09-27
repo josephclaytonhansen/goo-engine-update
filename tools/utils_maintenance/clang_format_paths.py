@@ -98,7 +98,7 @@ def source_files_from_git(paths: Sequence[str], changed_only: bool) -> List[str]
     else:
         cmd = ("git", "ls-tree", "-r", "HEAD", *paths, "--name-only", "-z")
     files = subprocess.check_output(cmd).split(b'\0')
-    return [f.decode('ascii') for f in files]
+    return [f.decode('utf-8') for f in files]
 
 
 def convert_tabs_to_spaces(files: Sequence[str]) -> None:
@@ -133,7 +133,7 @@ def clang_format_ensure_version() -> Optional[Tuple[int, int, int]]:
     version_output = ""
     for i in range(2, -1, -1):
         clang_format_cmd = (
-            "clang-format-" + (".".join(["%d"] * i) % VERSION_MIN[:i])
+            "clang-format-" + (".".join(["{:d}"] * i).format(*VERSION_MIN[:i]))
             if i > 0 else
             "clang-format"
         )
@@ -150,7 +150,7 @@ def clang_format_ensure_version() -> Optional[Tuple[int, int, int]]:
     version = version.split("-")[0]
     # Ensure exactly 3 numbers.
     version_num: Tuple[int, int, int] = (tuple(int(n) for n in version.split(".")) + (0, 0, 0))[:3]  # type: ignore
-    print("Using %s (%d.%d.%d)..." % (CLANG_FORMAT_CMD, version_num[0], version_num[1], version_num[2]))
+    print("Using {:s} ({:d}.{:d}.{:d})...".format(CLANG_FORMAT_CMD, version_num[0], version_num[1], version_num[2]))
     return version_num
 
 
@@ -230,23 +230,13 @@ def main() -> None:
     if version < VERSION_MIN:
         print("Version of clang-format is too old:", version, "<", VERSION_MIN)
         sys.exit(1)
-    if version > VERSION_MAX_RECOMMENDED:
-        print(
-            "WARNING: Version of clang-format is too recent:",
-            version, ">", VERSION_MAX_RECOMMENDED,
-        )
-        print(
-            "You may want to install clang-format-%d.%d, "
-            "or use the precompiled libs repository." %
-            (VERSION_MAX_RECOMMENDED[0], VERSION_MAX_RECOMMENDED[1]),
-        )
 
     args = argparse_create().parse_args()
 
     use_default_paths = not (bool(args.paths) or bool(args.changed_only))
 
     paths = compute_paths(args.paths, use_default_paths)
-    print("Operating on:" + (" (%d changed paths)" % len(paths) if args.changed_only else ""))
+    print("Operating on:" + (" ({:d} changed paths)".format(len(paths)) if args.changed_only else ""))
     for p in paths:
         print(" ", p)
 
@@ -266,6 +256,20 @@ def main() -> None:
     if args.expand_tabs:
         convert_tabs_to_spaces(files + files_retab)
     clang_format(files)
+
+    if version > VERSION_MAX_RECOMMENDED:
+        print()
+        print(
+            "WARNING: Version of clang-format is too recent:",
+            version, ">", VERSION_MAX_RECOMMENDED,
+        )
+        print(
+            "You may want to install clang-format-{:d}.{:d}, "
+            "or use the precompiled libs repository.".format(
+                VERSION_MAX_RECOMMENDED[0], VERSION_MAX_RECOMMENDED[1],
+            ),
+        )
+        print()
 
 
 if __name__ == "__main__":

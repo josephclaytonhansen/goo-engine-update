@@ -18,7 +18,7 @@
 #include "BLI_string.h"
 #include "BLI_utildefines.h"
 
-#include "BKE_idprop.h"
+#include "BKE_idprop.hh"
 
 #include "DNA_ID.h" /* ID property definitions. */
 
@@ -27,7 +27,6 @@
 #include "IMB_imbuf.hh"
 #include "IMB_imbuf_types.hh"
 #include "IMB_metadata.hh"
-#include "imbuf.hh"
 
 #include <cstring>
 #include <jerror.h>
@@ -293,7 +292,9 @@ static ImBuf *ibJpegImageFromCinfo(
       jpeg_abort_decompress(cinfo);
       ibuf = IMB_allocImBuf(x, y, 8 * depth, 0);
     }
-    else if ((ibuf = IMB_allocImBuf(x, y, 8 * depth, IB_rect)) == nullptr) {
+    else if ((ibuf = IMB_allocImBuf(x, y, 8 * depth, IB_rect | IB_uninitialized_pixels)) ==
+             nullptr)
+    {
       jpeg_abort_decompress(cinfo);
     }
     else {
@@ -303,7 +304,7 @@ static ImBuf *ibJpegImageFromCinfo(
 
       for (y = ibuf->y - 1; y >= 0; y--) {
         jpeg_read_scanlines(cinfo, row_pointer, 1);
-        rect = ibuf->byte_buffer.data + 4 * y * ibuf->x;
+        rect = ibuf->byte_buffer.data + 4 * y * size_t(ibuf->x);
         buffer = row_pointer[0];
 
         switch (depth) {
@@ -586,7 +587,7 @@ static void write_jpeg(jpeg_compress_struct *cinfo, ImBuf *ibuf)
          * name and property value, followed by the nullptr-terminator
          * which isn't needed by JPEG but #BLI_snprintf_rlen requires it. */
         const int text_length_required = 7 + 2 + strlen(prop->name) + strlen(IDP_String(prop)) + 1;
-        if (text_length_required <= static_text_size) {
+        if (text_length_required > static_text_size) {
           text = static_cast<char *>(MEM_mallocN(text_length_required, "jpeg metadata field"));
           text_size = text_length_required;
         }
@@ -619,7 +620,7 @@ static void write_jpeg(jpeg_compress_struct *cinfo, ImBuf *ibuf)
       sizeof(JSAMPLE) * cinfo->input_components * cinfo->image_width, "jpeg row_pointer"));
 
   for (y = ibuf->y - 1; y >= 0; y--) {
-    rect = ibuf->byte_buffer.data + 4 * y * ibuf->x;
+    rect = ibuf->byte_buffer.data + 4 * y * size_t(ibuf->x);
     buffer = row_pointer[0];
 
     switch (cinfo->in_color_space) {

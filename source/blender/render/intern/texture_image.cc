@@ -22,10 +22,8 @@
 #include "IMB_imbuf_types.hh"
 
 #include "DNA_image_types.h"
-#include "DNA_scene_types.h"
 #include "DNA_texture_types.h"
 
-#include "BLI_blenlib.h"
 #include "BLI_math_color.h"
 #include "BLI_math_interp.hh"
 #include "BLI_math_vector.h"
@@ -52,7 +50,7 @@ static void boxsample(ImBuf *ibuf,
 /* x and y have to be checked for image size */
 static void ibuf_get_color(float col[4], ImBuf *ibuf, int x, int y)
 {
-  int ofs = y * ibuf->x + x;
+  const int64_t ofs = int64_t(y) * ibuf->x + x;
 
   if (ibuf->float_buffer.data) {
     if (ibuf->channels == 4) {
@@ -77,7 +75,7 @@ static void ibuf_get_color(float col[4], ImBuf *ibuf, int x, int y)
     col[2] = float(rect[2]) * (1.0f / 255.0f);
     col[3] = float(rect[3]) * (1.0f / 255.0f);
 
-    /* bytes are internally straight, however render pipeline seems to expect premul */
+    /* Bytes are internally straight, however render pipeline seems to expect pre-multiplied. */
     col[0] *= col[3];
     col[1] *= col[3];
     col[2] *= col[3];
@@ -652,7 +650,7 @@ static void boxsample(ImBuf *ibuf,
   }
 
   if (alphaclip != 1.0f) {
-    /* premul it all */
+    /* Pre-multiply it all. */
     texres->trgba[0] *= alphaclip;
     texres->trgba[1] *= alphaclip;
     texres->trgba[2] *= alphaclip;
@@ -725,7 +723,7 @@ static int ibuf_get_color_clip(float col[4], ImBuf *ibuf, int x, int y, int extf
   }
 
   if (ibuf->float_buffer.data) {
-    const float *fp = ibuf->float_buffer.data + (x + y * ibuf->x) * ibuf->channels;
+    const float *fp = ibuf->float_buffer.data + (x + int64_t(y) * ibuf->x) * ibuf->channels;
     if (ibuf->channels == 1) {
       col[0] = col[1] = col[2] = col[3] = *fp;
     }
@@ -737,7 +735,7 @@ static int ibuf_get_color_clip(float col[4], ImBuf *ibuf, int x, int y, int extf
     }
   }
   else {
-    const uchar *rect = ibuf->byte_buffer.data + 4 * (x + y * ibuf->x);
+    const uchar *rect = ibuf->byte_buffer.data + 4 * (x + int64_t(y) * ibuf->x);
     float inv_alpha_fac = (1.0f / 255.0f) * rect[3] * (1.0f / 255.0f);
     col[0] = rect[0] * inv_alpha_fac;
     col[1] = rect[1] * inv_alpha_fac;
@@ -910,7 +908,7 @@ static void alpha_clip_aniso(const ImBuf *ibuf,
     alphaclip = max_ff(alphaclip, 0.0f);
 
     if (alphaclip != 1.0f) {
-      /* premul it all */
+      /* Pre-multiply it all. */
       texres->trgba[0] *= alphaclip;
       texres->trgba[1] *= alphaclip;
       texres->trgba[2] *= alphaclip;

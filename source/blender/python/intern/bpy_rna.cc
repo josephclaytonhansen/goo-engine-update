@@ -51,14 +51,14 @@
 #include "MEM_guardedalloc.h"
 
 #include "BKE_context.hh"
-#include "BKE_global.h" /* evil G.* */
-#include "BKE_idprop.h"
+#include "BKE_global.hh" /* evil G.* */
+#include "BKE_idprop.hh"
 #include "BKE_idtype.hh"
 #include "BKE_main.hh"
-#include "BKE_report.h"
+#include "BKE_report.hh"
 
 /* Only for types. */
-#include "BKE_node.h"
+#include "BKE_node.hh"
 
 #include "DEG_depsgraph_query.hh"
 
@@ -359,22 +359,33 @@ static bool rna_id_write_error(PointerRNA *ptr, PyObject *key)
 #endif /* USE_PEDANTIC_WRITE */
 
 #ifdef USE_PEDANTIC_WRITE
+
+/* NOTE: Without the GIL, this can cause problems when called from threads, see: #127767. */
+
 bool pyrna_write_check()
 {
+  BLI_assert(PyGILState_Check());
+
   return !rna_disallow_writes;
 }
 
 void pyrna_write_set(bool val)
 {
+  BLI_assert(PyGILState_Check());
+
   rna_disallow_writes = !val;
 }
 #else  /* USE_PEDANTIC_WRITE */
 bool pyrna_write_check()
 {
+  BLI_assert(PyGILState_Check());
+
   return true;
 }
 void pyrna_write_set(bool /*val*/)
 {
+  BLI_assert(PyGILState_Check());
+
   /* pass */
 }
 #endif /* USE_PEDANTIC_WRITE */
@@ -1496,10 +1507,8 @@ int pyrna_pydict_to_props(PointerRNA *ptr,
     }
 
     if (kw == nullptr) {
-      PyErr_Format(PyExc_TypeError,
-                   "%.200s: no keywords, expected \"%.200s\"",
-                   error_prefix,
-                   arg_name ? arg_name : "<UNKNOWN>");
+      PyErr_Format(
+          PyExc_TypeError, "%.200s: no keywords, expected \"%.200s\"", error_prefix, arg_name);
       error_val = -1;
       break;
     }
@@ -2019,10 +2028,9 @@ static int pyrna_py_to_prop(
         Py_ssize_t seq_len, i;
         PyObject *item;
         PointerRNA itemptr;
-        ListBase *lb;
-        CollectionPointerLink *link;
+        CollectionVector *lb;
 
-        lb = (data) ? (ListBase *)data : nullptr;
+        lb = (data) ? (CollectionVector *)data : nullptr;
 
         /* Convert a sequence of dict's into a collection. */
         if (!PySequence_Check(value)) {
@@ -2065,10 +2073,7 @@ static int pyrna_py_to_prop(
           }
 
           if (lb) {
-            link = static_cast<CollectionPointerLink *>(
-                MEM_callocN(sizeof(CollectionPointerLink), "PyCollectionPointerLink"));
-            link->ptr = itemptr;
-            BLI_addtail(lb, link);
+            lb->items.append(itemptr);
           }
           else {
             RNA_property_collection_add(ptr, prop, &itemptr);
@@ -2354,7 +2359,7 @@ static int pyrna_prop_collection_ass_subscript_int(BPy_PropertyRNA *self,
 
   PYRNA_PROP_COLLECTION_ABS_INDEX(-1);
 
-  if (RNA_property_collection_assign_int(&self->ptr, self->prop, keynum_abs, ptr) == 0) {
+  if (!RNA_property_collection_assign_int(&self->ptr, self->prop, keynum_abs, ptr)) {
     const int len = RNA_property_collection_length(&self->ptr, self->prop);
     if (keynum_abs >= len) {
       PyErr_Format(PyExc_IndexError,
@@ -2903,7 +2908,7 @@ static int pyrna_prop_collection_ass_subscript(BPy_PropertyRNA *self,
 
   PyErr_Format(PyExc_TypeError,
                "bpy_prop_collection[key]: invalid key, "
-               "must be a string or an int, not %.200s",
+               "must be an int, not %.200s",
                Py_TYPE(key)->tp_name);
   return -1;
 }
@@ -4144,9 +4149,9 @@ static PyObject *pyrna_struct_bl_rna_get_subclass(PyObject *cls, PyObject *args)
 
   if (srna_base == &RNA_Node) {
     /* If the given idname is an alias, translate it to the proper idname. */
-    id = nodeTypeFindAlias(id);
+    id = blender::bke::nodeTypeFindAlias(id);
 
-    bNodeType *nt = nodeTypeFind(id);
+    blender::bke::bNodeType *nt = blender::bke::nodeTypeFind(id);
     if (nt) {
       PointerRNA ptr = RNA_pointer_create(nullptr, &RNA_Struct, nt->rna_ext.srna);
       return pyrna_struct_CreatePyObject(&ptr);
@@ -4441,9 +4446,10 @@ static PyObject *pyrna_struct_getattro(BPy_StructRNA *self, PyObject *pyname)
     }
     else {
       PointerRNA newptr;
-      ListBase newlb;
+      blender::Vector<PointerRNA> newlb;
       PropertyRNA *newprop;
       int newindex;
+      blender::StringRef newstr;
       short newtype;
 
       /* An empty string is used to implement #CTX_data_dir_get,
@@ -4451,12 +4457,11 @@ static PyObject *pyrna_struct_getattro(BPy_StructRNA *self, PyObject *pyname)
       eContextResult done;
       if (name[0]) {
         done = eContextResult(
-            CTX_data_get(C, name, &newptr, &newlb, &newprop, &newindex, &newtype));
+            CTX_data_get(C, name, &newptr, &newlb, &newprop, &newindex, &newstr, &newtype));
       }
       else {
         /* Fall through to built-in `getattr`. */
         done = CTX_RESULT_MEMBER_NOT_FOUND;
-        BLI_listbase_clear(&newlb);
       }
 
       if (done == CTX_RESULT_OK) {
@@ -4470,11 +4475,20 @@ static PyObject *pyrna_struct_getattro(BPy_StructRNA *self, PyObject *pyname)
               ret = pyrna_struct_CreatePyObject(&newptr);
             }
             break;
+          case CTX_DATA_TYPE_STRING: {
+            if (newstr.is_empty()) {
+              ret = Py_None;
+              Py_INCREF(ret);
+            }
+            else {
+              ret = PyUnicode_FromStringAndSize(newstr.data(), newstr.size());
+            }
+            break;
+          }
           case CTX_DATA_TYPE_COLLECTION: {
             ret = PyList_New(0);
-
-            LISTBASE_FOREACH (CollectionPointerLink *, link, &newlb) {
-              PyList_APPEND(ret, pyrna_struct_CreatePyObject(&link->ptr));
+            for (PointerRNA &ptr : newlb) {
+              PyList_APPEND(ret, pyrna_struct_CreatePyObject(&ptr));
             }
             break;
           }
@@ -4487,8 +4501,8 @@ static PyObject *pyrna_struct_getattro(BPy_StructRNA *self, PyObject *pyname)
               std::optional<std::string> path_str;
 
               if (newptr.owner_id) {
+                path_str = RNA_path_from_ID_to_property(&newptr, newprop);
                 idptr = RNA_id_pointer_create(newptr.owner_id);
-                path_str = RNA_path_from_ID_to_property(&idptr, newprop);
                 base_ptr = &idptr;
               }
               else {
@@ -4534,8 +4548,6 @@ static PyObject *pyrna_struct_getattro(BPy_StructRNA *self, PyObject *pyname)
         /* Lookup the subclass. raise an error if it's not found. */
         ret = PyObject_GenericGetAttr((PyObject *)self, pyname);
       }
-
-      BLI_freelistN(&newlb);
     }
   }
   else {
@@ -4709,22 +4721,20 @@ static int pyrna_struct_setattro(BPy_StructRNA *self, PyObject *pyname, PyObject
     }
 
     PointerRNA newptr;
-    ListBase newlb;
+    blender::Vector<PointerRNA> newlb;
     PropertyRNA *newprop;
     int newindex;
+    blender::StringRef newstr;
     short newtype;
 
     const eContextResult done = eContextResult(
-        CTX_data_get(C, name, &newptr, &newlb, &newprop, &newindex, &newtype));
+        CTX_data_get(C, name, &newptr, &newlb, &newprop, &newindex, &newstr, &newtype));
 
     if (done == CTX_RESULT_OK) {
       PyErr_Format(
           PyExc_AttributeError, "bpy_struct: Context property \"%.200s\" is read-only", name);
-      BLI_freelistN(&newlb);
       return -1;
     }
-
-    BLI_freelistN(&newlb);
   }
 
   /* pyrna_py_to_prop sets its own exceptions */
@@ -6400,15 +6410,11 @@ static PyObject *pyrna_param_to_py(PointerRNA *ptr, PropertyRNA *prop, void *dat
         break;
       }
       case PROP_COLLECTION: {
-        CollectionListBase *lb = (CollectionListBase *)data;
-        CollectionPointerLink *link;
-
+        CollectionVector *lb = (CollectionVector *)data;
         ret = PyList_New(0);
-
-        for (link = lb->first; link; link = link->next) {
-          PyList_APPEND(ret, pyrna_struct_CreatePyObject(&link->ptr));
+        for (PointerRNA &ptr_iter : lb->items) {
+          PyList_APPEND(ret, pyrna_struct_CreatePyObject(&ptr_iter));
         }
-
         break;
       }
       default:
@@ -8566,7 +8572,7 @@ static int bpy_class_validate_recursive(PointerRNA *dummy_ptr,
       continue;
     }
 
-    /* TODO(@ideasman42): Use Python3.7x _PyObject_LookupAttr(), also in the macro below. */
+    /* TODO(@ideasman42): Use #PyObject_GetOptionalAttr(), also in the macro below. */
     identifier = RNA_property_identifier(prop);
     item = PyObject_GetAttrString(py_class, identifier);
 
@@ -8674,7 +8680,7 @@ static int bpy_class_call(bContext *C, PointerRNA *ptr, FunctionRNA *func, Param
   bpy_context_set(C, &gilstate);
 
   if (!(is_staticmethod || is_classmethod)) {
-    /* Some datatypes (operator, render engine) can store PyObjects for re-use. */
+    /* Some data-types (operator, render engine) can store PyObjects for re-use. */
     if (ptr->data) {
       void **instance = RNA_struct_instance(ptr);
 
@@ -8969,8 +8975,10 @@ static void bpy_class_free(void *pyob_ptr)
   // PyDict_Clear(((PyTypeObject *)self)->tp_dict);
 
   /* Remove the RNA attribute instead. */
-  PyDict_DelItem(((PyTypeObject *)self)->tp_dict, bpy_intern_str_bl_rna);
-  if (PyErr_Occurred()) {
+
+  /* NOTE: it's important to use `delattr` instead of `PyDict_DelItem`
+   * to ensure the internal slots are updated (which is also used for assignment). */
+  if (PyObject_DelAttr(self, bpy_intern_str_bl_rna) == -1) {
     PyErr_Clear();
   }
 
@@ -9197,7 +9205,7 @@ static PyObject *pyrna_register_class(PyObject * /*self*/, PyObject *py_class)
 
   /* Call classed register method.
    * Note that zero falls through, no attribute, no error. */
-  switch (_PyObject_LookupAttr(py_class, bpy_intern_str_register, &py_cls_meth)) {
+  switch (PyObject_GetOptionalAttr(py_class, bpy_intern_str_register, &py_cls_meth)) {
     case 1: {
       PyObject *ret = PyObject_CallObject(py_cls_meth, nullptr);
       Py_DECREF(py_cls_meth);
@@ -9312,7 +9320,7 @@ static PyObject *pyrna_unregister_class(PyObject * /*self*/, PyObject *py_class)
 
   /* Call classed unregister method.
    * Note that zero falls through, no attribute, no error. */
-  switch (_PyObject_LookupAttr(py_class, bpy_intern_str_unregister, &py_cls_meth)) {
+  switch (PyObject_GetOptionalAttr(py_class, bpy_intern_str_unregister, &py_cls_meth)) {
     case 1: {
       PyObject *ret = PyObject_CallObject(py_cls_meth, nullptr);
       Py_DECREF(py_cls_meth);
@@ -9365,9 +9373,11 @@ static PyObject *pyrna_unregister_class(PyObject * /*self*/, PyObject *py_class)
   /* Call unregister. */
   unreg(CTX_data_main(C), srna); /* Calls bpy_class_free, this decref's py_class. */
 
-  PyDict_DelItem(((PyTypeObject *)py_class)->tp_dict, bpy_intern_str_bl_rna);
-  if (PyErr_Occurred()) {
-    PyErr_Clear();  // return nullptr;
+  /* Typically `bpy_class_free` will have removed, remove here just in case. */
+  if (UNLIKELY(PyDict_Contains(((PyTypeObject *)py_class)->tp_dict, bpy_intern_str_bl_rna))) {
+    if (PyDict_DelItem(((PyTypeObject *)py_class)->tp_dict, bpy_intern_str_bl_rna) == -1) {
+      PyErr_Clear();
+    }
   }
 
   Py_RETURN_NONE;

@@ -15,7 +15,7 @@
 
 #include "MEM_guardedalloc.h"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "BKE_action.h"
 
@@ -110,6 +110,11 @@ const EnumPropertyItem rna_enum_beztriple_keyframe_type_items[] = {
      ICON_KEYTYPE_JITTER_VEC,
      "Jitter",
      "A filler or baked keyframe for keying on ones, or some other purpose as needed"},
+    {BEZT_KEYTYPE_GENERATED,
+     "GENERATED",
+     ICON_KEYTYPE_GENERATED_VEC,
+     "Generated",
+     "A key generated automatically by a tool, not manually created"},
     {0, nullptr, 0, nullptr, nullptr},
 };
 
@@ -219,8 +224,8 @@ static StructRNA *rna_FModifierType_refine(PointerRNA *ptr)
 
 /* ****************************** */
 
-#  include "BKE_anim_data.h"
-#  include "BKE_fcurve.h"
+#  include "BKE_anim_data.hh"
+#  include "BKE_fcurve.hh"
 #  include "BKE_fcurve_driver.h"
 
 #  include "DEG_depsgraph.hh"
@@ -714,7 +719,7 @@ static void rna_FCurve_update_data_relations(Main *bmain, Scene * /*scene*/, Poi
   DEG_relations_tag_update(bmain);
 }
 
-/* RNA update callback for F-Curves to indicate that there are copy-on-write tagging/flushing
+/* RNA update callback for F-Curves to indicate that there are copy-on-evaluation tagging/flushing
  * needed (e.g. for properties that affect how animation gets evaluated).
  */
 static void rna_FCurve_update_eval(Main *bmain, Scene * /*scene*/, PointerRNA *ptr)
@@ -751,6 +756,7 @@ static void rna_FCurve_modifiers_remove(FCurve *fcu, ReportList *reports, Pointe
   }
 
   remove_fmodifier(&fcu->modifiers, fcm);
+  DEG_id_tag_update(fcm_ptr->owner_id, ID_RECALC_ANIMATION);
   RNA_POINTER_INVALIDATE(fcm_ptr);
 }
 
@@ -1055,15 +1061,19 @@ static void rna_FModifierStepped_frame_end_set(PointerRNA *ptr, float value)
 }
 
 static BezTriple *rna_FKeyframe_points_insert(
-    ID *id, FCurve *fcu, Main *bmain, float frame, float value, int keyframe_type, int flag)
+    ID *id, FCurve *fcu, Main *bmain, float frame, float value, int flag, int keyframe_type)
 {
   using namespace blender::animrig;
   KeyframeSettings settings = get_keyframe_settings(false);
   settings.keyframe_type = eBezTriple_KeyframeType(keyframe_type);
-  int index = insert_vert_fcurve(fcu, {frame, value}, settings, eInsertKeyFlags(flag));
+  const SingleKeyingResult result = insert_vert_fcurve(
+      fcu, {frame, value}, settings, eInsertKeyFlags(flag));
 
-  if ((fcu->bezt) && (index >= 0)) {
+  if ((fcu->bezt) && (result == SingleKeyingResult::SUCCESS)) {
     rna_tag_animation_update(bmain, id);
+
+    bool replace;
+    const int index = BKE_fcurve_bezt_binarysearch_index(fcu->bezt, frame, fcu->totvert, &replace);
 
     return fcu->bezt + index;
   }

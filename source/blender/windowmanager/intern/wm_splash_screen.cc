@@ -17,8 +17,6 @@
 #include <algorithm>
 #include <cstring>
 
-#include "CLG_log.h"
-
 #include "DNA_ID.h"
 #include "DNA_scene_types.h"
 #include "DNA_screen_types.h"
@@ -31,17 +29,16 @@
 #include "BKE_appdir.hh"
 #include "BKE_blender_version.h"
 #include "BKE_context.hh"
-#include "BKE_screen.hh"
 
-#include "BLT_translation.h"
-
-#include "BLF_api.hh"
+#include "BLT_translation.hh"
 
 #include "IMB_imbuf.hh"
 #include "IMB_imbuf_types.hh"
 
 #include "ED_datafiles.h"
 #include "ED_screen.hh"
+
+#include "RNA_access.hh"
 
 #include "UI_interface.hh"
 #include "UI_interface_icons.hh"
@@ -71,7 +68,7 @@ static void wm_block_splash_add_label(uiBlock *block, const char *label, int x, 
   UI_block_emboss_set(block, UI_EMBOSS_NONE);
 
   uiBut *but = uiDefBut(
-      block, UI_BTYPE_LABEL, 0, label, 0, y, x, UI_UNIT_Y, nullptr, 0, 0, 0, 0, nullptr);
+      block, UI_BTYPE_LABEL, 0, label, 0, y, x, UI_UNIT_Y, nullptr, 0, 0, nullptr);
   UI_but_drawflag_disable(but, UI_BUT_TEXT_LEFT);
   UI_but_drawflag_enable(but, UI_BUT_TEXT_RIGHT);
 
@@ -209,13 +206,36 @@ static void wm_block_splash_close_on_fileselect(bContext *C, void *arg1, void * 
   }
 }
 
+#if defined(__APPLE__)
+/* Check if Blender is running under Rosetta for the purpose of displaying a splash screen warning.
+ * From Apple's WWDC 2020 Session - Explore the new system architecture of Apple Silicon Macs.
+ * Timecode: 14:31 - https://developer.apple.com/videos/play/wwdc2020/10686/ */
+
+#  include <sys/sysctl.h>
+
+static int is_using_macos_rosetta()
+{
+  int ret = 0;
+  size_t size = sizeof(ret);
+
+  if (sysctlbyname("sysctl.proc_translated", &ret, &size, nullptr, 0) != -1) {
+    return ret;
+  }
+  /* If "sysctl.proc_translated" is not present then must be native. */
+  if (errno == ENOENT) {
+    return 0;
+  }
+  return -1;
+}
+#endif /* __APPLE__ */
+
 static uiBlock *wm_block_splash_create(bContext *C, ARegion *region, void * /*arg*/)
 {
   const uiStyle *style = UI_style_get_dpi();
 
   uiBlock *block = UI_block_begin(C, region, "splash", UI_EMBOSS);
 
-  /* note on UI_BLOCK_NO_WIN_CLIP, the window size is not always synchronized
+  /* Note on #UI_BLOCK_NO_WIN_CLIP, the window size is not always synchronized
    * with the OS when the splash shows, window clipping in this case gives
    * ugly results and clipping the splash isn't useful anyway, just disable it #32938. */
   UI_block_flag_enable(block, UI_BLOCK_LOOP | UI_BLOCK_KEEP_OPEN | UI_BLOCK_NO_WIN_CLIP);
@@ -260,9 +280,12 @@ static uiBlock *wm_block_splash_create(bContext *C, ARegion *region, void * /*ar
   if (cfgdir.has_value()) {
     BLI_path_join(userpref, sizeof(userpref), cfgdir->c_str(), BLENDER_USERPREF_FILE);
   }
+  else {
+    userpref[0] = '\0';
+  }
 
   /* Draw setup screen if no preferences have been saved yet. */
-  if (!BLI_exists(userpref)) {
+  if (!(userpref[0] && BLI_exists(userpref))) {
     mt = WM_menutype_find("WM_MT_splash_quick_setup", true);
 
     /* The #UI_BLOCK_QUICK_SETUP flag prevents the button text from being left-aligned,
@@ -278,6 +301,34 @@ static uiBlock *wm_block_splash_create(bContext *C, ARegion *region, void * /*ar
   if (mt) {
     UI_menutype_draw(C, mt, layout);
   }
+
+#if defined(__APPLE__)
+  if (is_using_macos_rosetta() > 0) {
+    uiItemS_ex(layout, 2.0f, LayoutSeparatorType::Line);
+
+    uiLayout *split = uiLayoutSplit(layout, 0.725, true);
+    uiLayout *row1 = uiLayoutRow(split, true);
+    uiLayout *row2 = uiLayoutRow(split, true);
+
+    uiItemL(row1, RPT_("Intel binary detected. Expect reduced performance."), ICON_ERROR);
+
+    PointerRNA op_ptr;
+    uiItemFullO(row2,
+                "WM_OT_url_open",
+                CTX_IFACE_(BLT_I18NCONTEXT_OPERATOR_DEFAULT, "Learn More"),
+                ICON_URL,
+                nullptr,
+                WM_OP_INVOKE_DEFAULT,
+                UI_ITEM_NONE,
+                &op_ptr);
+    RNA_string_set(
+        &op_ptr,
+        "url",
+        "https://docs.blender.org/manual/en/latest/getting_started/installing/macos.html");
+
+    uiItemS(layout);
+  }
+#endif
 
   UI_block_bounds_set_centered(block, 0);
 

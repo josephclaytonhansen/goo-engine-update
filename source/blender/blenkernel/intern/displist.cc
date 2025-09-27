@@ -15,12 +15,8 @@
 #include "DNA_curve_types.h"
 #include "DNA_mesh_types.h"
 #include "DNA_object_types.h"
-#include "DNA_scene_types.h"
-#include "DNA_vfont_types.h"
 
-#include "BLI_bitmap.h"
 #include "BLI_index_range.hh"
-#include "BLI_linklist.h"
 #include "BLI_listbase.h"
 #include "BLI_math_rotation.h"
 #include "BLI_memarena.h"
@@ -36,7 +32,6 @@
 #include "BKE_geometry_set.hh"
 #include "BKE_key.hh"
 #include "BKE_lib_id.hh"
-#include "BKE_mball.hh"
 #include "BKE_mesh.hh"
 #include "BKE_modifier.hh"
 #include "BKE_object.hh"
@@ -649,10 +644,11 @@ void BKE_curve_calc_modifiers_pre(Depsgraph *depsgraph,
 static bool do_curve_implicit_mesh_conversion(const Curve *curve,
                                               ModifierData *first_modifier,
                                               const Scene *scene,
-                                              const ModifierMode required_mode)
+                                              const ModifierMode required_mode,
+                                              const bool editmode)
 {
   /* Skip implicit filling and conversion to mesh when using "fast text editing". */
-  if (curve->flag & CU_FAST) {
+  if ((curve->flag & CU_FAST) && editmode) {
     return false;
   }
 
@@ -715,7 +711,9 @@ static blender::bke::GeometrySet curve_calc_modifiers_post(Depsgraph *depsgraph,
                          pretessellatePoint->next;
 
   blender::bke::GeometrySet geometry_set;
-  if (ob->type == OB_SURF || do_curve_implicit_mesh_conversion(cu, md, scene, required_mode)) {
+  if (ob->type == OB_SURF ||
+      do_curve_implicit_mesh_conversion(cu, md, scene, required_mode, editmode))
+  {
     Mesh *mesh = BKE_mesh_new_nomain_from_curve_displist(ob, dispbase);
     geometry_set.replace_mesh(mesh);
   }

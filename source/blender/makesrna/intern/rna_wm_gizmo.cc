@@ -17,7 +17,7 @@
 #include "BLI_listbase.h"
 #include "BLI_utildefines.h"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "RNA_access.hh"
 #include "RNA_define.hh"
@@ -43,13 +43,13 @@
 
 #  include "UI_interface.hh"
 
-#  include "BKE_global.h"
-#  include "BKE_idprop.h"
-#  include "BKE_workspace.h"
+#  include "BKE_global.hh"
+#  include "BKE_idprop.hh"
+#  include "BKE_workspace.hh"
 
 #  include "MEM_guardedalloc.h"
 
-#  include "GPU_state.h"
+#  include "GPU_state.hh"
 
 #  ifdef WITH_PYTHON
 #    include "BPY_extern.h"
@@ -221,7 +221,10 @@ static void rna_Gizmo_bl_idname_set(PointerRNA *ptr, const char *value)
   wmGizmo *data = static_cast<wmGizmo *>(ptr->data);
   char *str = (char *)data->type->idname;
   if (!str[0]) {
-    BLI_strncpy(str, value, MAX_NAME); /* utf8 already ensured */
+    /* Calling UTF8 copy is disputable since registering ensures the value isn't truncated.
+     * Use a UTF8 copy to ensure truncating never causes an incomplete UTF8 sequence,
+     * even before registration. */
+    BLI_strncpy_utf8(str, value, MAX_NAME);
   }
   else {
     BLI_assert_msg(0, "setting the bl_idname on a non-builtin operator");
@@ -642,7 +645,10 @@ static void rna_GizmoGroup_bl_idname_set(PointerRNA *ptr, const char *value)
   wmGizmoGroup *data = static_cast<wmGizmoGroup *>(ptr->data);
   char *str = (char *)data->type->idname;
   if (!str[0]) {
-    BLI_strncpy(str, value, MAX_NAME); /* utf8 already ensured */
+    /* Calling UTF8 copy is disputable since registering ensures the value isn't truncated.
+     * Use a UTF8 copy to ensure truncating never causes an incomplete UTF8 sequence,
+     * even before registration. */
+    BLI_strncpy_utf8(str, value, MAX_NAME);
   }
   else {
     BLI_assert_msg(0, "setting the bl_idname on a non-builtin operator");
@@ -654,17 +660,11 @@ static void rna_GizmoGroup_bl_label_set(PointerRNA *ptr, const char *value)
   wmGizmoGroup *data = static_cast<wmGizmoGroup *>(ptr->data);
   char *str = (char *)data->type->name;
   if (!str[0]) {
-    BLI_strncpy(str, value, MAX_NAME); /* utf8 already ensured */
+    BLI_strncpy_utf8(str, value, MAX_NAME);
   }
   else {
     BLI_assert_msg(0, "setting the bl_label on a non-builtin operator");
   }
-}
-
-static bool rna_GizmoGroup_has_reports_get(PointerRNA *ptr)
-{
-  wmGizmoGroup *gzgroup = static_cast<wmGizmoGroup *>(ptr->data);
-  return (gzgroup->reports && gzgroup->reports->list.first);
 }
 
 #  ifdef WITH_PYTHON
@@ -1082,7 +1082,7 @@ static void rna_def_gizmo(BlenderRNA *brna, PropertyRNA *cprop)
   RNA_def_function_return(func, parm);
 
   /* wmGizmo.handler */
-  static EnumPropertyItem tweak_actions[] = {
+  static const EnumPropertyItem tweak_actions[] = {
       {WM_GIZMO_TWEAK_PRECISE, "PRECISE", 0, "Precise", ""},
       {WM_GIZMO_TWEAK_SNAP, "SNAP", 0, "Snap", ""},
       {0, nullptr, 0, nullptr, nullptr},
@@ -1391,7 +1391,7 @@ static void rna_def_gizmogroup(BlenderRNA *brna)
   RNA_def_property_flag(prop, PROP_REGISTER_OPTIONAL);
 
   /* bl_options */
-  static EnumPropertyItem gizmogroup_flag_items[] = {
+  static const EnumPropertyItem gizmogroup_flag_items[] = {
       {WM_GIZMOGROUPTYPE_3D, "3D", 0, "3D", "Use in 3D viewport"},
       {WM_GIZMOGROUPTYPE_SCALE,
        "SCALE",
@@ -1500,14 +1500,6 @@ static void rna_def_gizmogroup(BlenderRNA *brna)
   RNA_def_property_string_funcs(
       prop, "rna_GizmoGroup_name_get", "rna_GizmoGroup_name_length", nullptr);
   RNA_def_property_ui_text(prop, "Name", "");
-
-  prop = RNA_def_property(srna, "has_reports", PROP_BOOLEAN, PROP_NONE);
-  RNA_def_property_clear_flag(prop, PROP_EDITABLE); /* this is 'virtual' property */
-  RNA_def_property_boolean_funcs(prop, "rna_GizmoGroup_has_reports_get", nullptr);
-  RNA_def_property_ui_text(
-      prop,
-      "Has Reports",
-      "GizmoGroup has a set of reports (warnings and errors) from last execution");
 
   RNA_define_verify_sdna(false); /* not in sdna */
 

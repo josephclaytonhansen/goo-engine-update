@@ -14,7 +14,7 @@
 # limitations under the License.
 ################################################################################
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 include(CMakeDependentOption)
 
 if(POLICY CMP0054)
@@ -40,6 +40,7 @@ set(SRC
 	src/devices/DefaultSynchronizer.cpp
 	src/devices/DeviceManager.cpp
 	src/devices/NULLDevice.cpp
+	src/devices/OpenCloseDevice.cpp
 	src/devices/ReadDevice.cpp
 	src/devices/SoftwareDevice.cpp
 	src/devices/ThreadedDevice.cpp
@@ -150,6 +151,7 @@ set(PUBLIC_HDR
 	include/devices/IHandle.h
 	include/devices/ISynchronizer.h
 	include/devices/NULLDevice.h
+	include/devices/OpenCloseDevice.h
 	include/devices/ReadDevice.h
 	include/devices/SoftwareDevice.h
 	include/devices/ThreadedDevice.h

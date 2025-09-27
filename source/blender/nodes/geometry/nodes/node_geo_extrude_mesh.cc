@@ -170,6 +170,12 @@ static void expand_mesh(Mesh &mesh,
     mesh.face_offset_indices[mesh.faces_num] = mesh.corners_num + loop_expand;
   }
   if (loop_expand != 0) {
+    if (mesh.corners_num == 0) {
+      mesh.attributes_for_write().add(
+          ".corner_vert", AttrDomain::Corner, CD_PROP_INT32, bke::AttributeInitConstruct());
+      mesh.attributes_for_write().add(
+          ".corner_edge", AttrDomain::Corner, CD_PROP_INT32, bke::AttributeInitConstruct());
+    }
     const int old_loops_num = mesh.corners_num;
     mesh.corners_num += loop_expand;
     CustomData_realloc(&mesh.corner_data, old_loops_num, mesh.corners_num);
@@ -1546,16 +1552,16 @@ static void node_rna(StructRNA *srna)
 
 static void node_register()
 {
-  static bNodeType ntype;
+  static blender::bke::bNodeType ntype;
   geo_node_type_base(&ntype, GEO_NODE_EXTRUDE_MESH, "Extrude Mesh", NODE_CLASS_GEOMETRY);
   ntype.declare = node_declare;
   ntype.initfunc = node_init;
   ntype.updatefunc = node_update;
   ntype.geometry_node_execute = node_geo_exec;
-  node_type_storage(
+  blender::bke::node_type_storage(
       &ntype, "NodeGeometryExtrudeMesh", node_free_standard_storage, node_copy_standard_storage);
   ntype.draw_buttons = node_layout;
-  nodeRegisterType(&ntype);
+  blender::bke::nodeRegisterType(&ntype);
 
   node_rna(ntype.rna_ext.srna);
 }

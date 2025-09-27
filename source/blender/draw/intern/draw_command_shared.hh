@@ -8,7 +8,7 @@
 
 #ifndef GPU_SHADER
 #  include "BLI_span.hh"
-#  include "GPU_shader_shared_utils.h"
+#  include "GPU_shader_shared_utils.hh"
 
 namespace blender::draw::command {
 
@@ -26,6 +26,12 @@ struct DrawGroup {
   /** Index of next #DrawGroup from the same header. */
   uint next;
 
+  /**
+   * IMPORTANT: All the following 3 members do not take multi-view into account.
+   * They only count the number of input instances. The command generation shader must multiply
+   * them by view_len to get the correct indices for resource ids.
+   */
+
   /** Index of the first instances after sorting. */
   uint start;
   /** Total number of instances (including inverted facing). Needed to issue the draw call. */
@@ -33,13 +39,16 @@ struct DrawGroup {
   /** Number of non inverted scaling instances in this Group. */
   uint front_facing_len;
 
-  /** #GPUBatch values to be copied to #DrawCommand after sorting (if not overridden). */
+  /** #gpu::Batch values to be copied to #DrawCommand after sorting (if not overridden). */
   int vertex_len;
   int vertex_first;
   int base_index;
 
-  /** Atomic counters used during command sorting. */
+  /** Atomic counters used during command sorting. GPU only. Reset on CPU. */
+
+  /* Counts visible and invisble instances. Create drawcalls when it reaches `DrawGroup::len`. */
   uint total_counter;
+  /* Counts only visible instance (counting multi-view). Used to issue the drawcalls. */
 
 #ifndef GPU_SHADER
 
@@ -50,7 +59,7 @@ struct DrawGroup {
       uint front_proto_len;
       uint back_proto_len;
       /** Needed to create the correct draw call. */
-      GPUBatch *gpu_batch;
+      gpu::Batch *gpu_batch;
 #  ifdef WITH_METAL_BACKEND
       GPUShader *gpu_shader;
 #  endif
@@ -76,7 +85,7 @@ BLI_STATIC_ASSERT_ALIGN(DrawGroup, 16)
  * #DrawPrototype might get merged into the same final #DrawCommand.
  */
 struct DrawPrototype {
-  /* Reference to parent DrawGroup to get the GPUBatch vertex / instance count. */
+  /* Reference to parent DrawGroup to get the gpu::Batch vertex / instance count. */
   uint group_id;
   /* Resource handle associated with this call. Also reference visibility. */
   uint resource_handle;

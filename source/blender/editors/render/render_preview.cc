@@ -27,7 +27,7 @@
 #include "BLI_time.h"
 #include "BLI_utildefines.h"
 
-#include "BLO_readfile.h"
+#include "BLO_readfile.hh"
 
 #include "DNA_brush_types.h"
 #include "DNA_camera_types.h"
@@ -48,9 +48,9 @@
 #include "BKE_brush.hh"
 #include "BKE_colortools.hh"
 #include "BKE_context.hh"
-#include "BKE_global.h"
+#include "BKE_global.hh"
 #include "BKE_icons.h"
-#include "BKE_idprop.h"
+#include "BKE_idprop.hh"
 #include "BKE_image.h"
 #include "BKE_layer.hh"
 #include "BKE_lib_id.hh"
@@ -61,7 +61,7 @@
 #include "BKE_object.hh"
 #include "BKE_pose_backup.h"
 #include "BKE_preview_image.hh"
-#include "BKE_scene.h"
+#include "BKE_scene.hh"
 #include "BKE_screen.hh"
 #include "BKE_texture.h"
 #include "BKE_world.h"
@@ -78,7 +78,7 @@
 
 #include "BIF_glutil.hh"
 
-#include "GPU_shader.h"
+#include "GPU_shader.hh"
 
 #include "RE_engine.h"
 #include "RE_pipeline.h"
@@ -275,7 +275,7 @@ const char *ED_preview_collection_name(const ePreviewType pr_type)
 
 static bool render_engine_supports_ray_visibility(const Scene *sce)
 {
-  return !STREQ(sce->r.engine, RE_engine_id_BLENDER_EEVEE);
+  return !STREQ(sce->r.engine, RE_engine_id_BLENDER_EEVEE_NEXT);
 }
 
 static void switch_preview_collection_visibility(ViewLayer *view_layer, const ePreviewType pr_type)
@@ -524,7 +524,7 @@ static Scene *preview_prepare_scene(
 
     if (id_type == ID_TE) {
       /* Texture is not actually rendered with engine, just set dummy value. */
-      STRNCPY(sce->r.engine, RE_engine_id_BLENDER_EEVEE);
+      STRNCPY(sce->r.engine, RE_engine_id_BLENDER_EEVEE_NEXT);
     }
 
     if (id_type == ID_MA) {
@@ -650,7 +650,7 @@ static Scene *preview_prepare_scene(
 /* new UI convention: draw is in pixel space already. */
 /* uses UI_BTYPE_ROUNDBOX button in block to get the rect */
 static bool ed_preview_draw_rect(
-    Scene *scene, ScrArea *area, int split, int first, rcti *rect, rcti *newrect)
+    Scene *scene, ScrArea *area, int split, int first, const rcti *rect, rcti *newrect)
 {
   Render *re;
   RenderView *rv;
@@ -719,7 +719,8 @@ static bool ed_preview_draw_rect(
   return ok;
 }
 
-void ED_preview_draw(const bContext *C, void *idp, void *parentp, void *slotp, rcti *rect)
+void ED_preview_draw(
+    const bContext *C, void *idp, void *parentp, void *slotp, uiPreview *ui_preview, rcti *rect)
 {
   if (idp) {
     Scene *scene = CTX_data_scene(C);
@@ -756,7 +757,7 @@ void ED_preview_draw(const bContext *C, void *idp, void *parentp, void *slotp, r
     /* start a new preview render job if signaled through sbuts->preview,
      * if no render result was found and no preview render job is running,
      * or if the job is running and the size of preview changed */
-    if ((sbuts != nullptr && sbuts->preview) ||
+    if ((sbuts != nullptr && sbuts->preview) || (ui_preview->tag & UI_PREVIEW_TAG_DIRTY) ||
         (!ok && !WM_jobs_test(wm, area, WM_JOB_TYPE_RENDER_PREVIEW)) ||
         (sp && (abs(sp->sizex - newx) >= 2 || abs(sp->sizey - newy) > 2)))
     {
@@ -764,6 +765,22 @@ void ED_preview_draw(const bContext *C, void *idp, void *parentp, void *slotp, r
         sbuts->preview = 0;
       }
       ED_preview_shader_job(C, area, id, parent, slot, newx, newy, PR_BUTS_RENDER);
+      ui_preview->tag &= ~UI_PREVIEW_TAG_DIRTY;
+    }
+  }
+}
+
+void ED_previews_tag_dirty_by_id(const Main &bmain, const ID &id)
+{
+  LISTBASE_FOREACH (const bScreen *, screen, &bmain.screens) {
+    LISTBASE_FOREACH (const ScrArea *, area, &screen->areabase) {
+      LISTBASE_FOREACH (const ARegion *, region, &area->regionbase) {
+        LISTBASE_FOREACH (uiPreview *, preview, &region->ui_previews) {
+          if (preview->id_session_uid == id.session_uid) {
+            preview->tag |= UI_PREVIEW_TAG_DIRTY;
+          }
+        }
+      }
     }
   }
 }
@@ -800,7 +817,7 @@ static Object *object_preview_camera_create(Main *preview_main,
 
   float rotmat[3][3];
   float dummy_scale[3];
-  mat4_to_loc_rot_size(camera->loc, rotmat, dummy_scale, preview_object->object_to_world);
+  mat4_to_loc_rot_size(camera->loc, rotmat, dummy_scale, preview_object->object_to_world().ptr());
 
   /* Camera is Y up, so needs additional rotations to obliquely face the front. */
   float drotmat[3][3];
@@ -1586,14 +1603,15 @@ static void icon_preview_startjob_all_sizes(void *customdata, wmJobWorkerStatus 
   LISTBASE_FOREACH (IconPreviewSize *, cur_size, &ip->sizes) {
     PreviewImage *prv = static_cast<PreviewImage *>(ip->owner);
     /* Is this a render job or a deferred loading job? */
-    const ePreviewRenderMethod pr_method = (prv->tag & PRV_TAG_DEFFERED) ? PR_ICON_DEFERRED :
-                                                                           PR_ICON_RENDER;
+    const ePreviewRenderMethod pr_method = (prv->runtime->deferred_loading_data) ?
+                                               PR_ICON_DEFERRED :
+                                               PR_ICON_RENDER;
 
     if (worker_status->stop) {
       break;
     }
 
-    if (prv->tag & PRV_TAG_DEFFERED_DELETE) {
+    if (prv->runtime->tag & PRV_TAG_DEFFERED_DELETE) {
       /* Non-thread-protected reading is not an issue here. */
       continue;
     }
@@ -1615,7 +1633,7 @@ static void icon_preview_startjob_all_sizes(void *customdata, wmJobWorkerStatus 
      * freeze the UI (e.g. on Eevee shader compilation). And since the result will never be stored
      * in a file, it's done every time the file is reloaded, so this becomes a frequent annoyance.
      */
-    if (!use_solid_render_mode && ip->id && ID_IS_LINKED(ip->id)) {
+    if (!use_solid_render_mode && ip->id && !ID_IS_EDITABLE(ip->id)) {
       continue;
     }
 
@@ -1703,15 +1721,15 @@ static void icon_preview_endjob(void *customdata)
 
   if (ip->owner) {
     PreviewImage *prv_img = static_cast<PreviewImage *>(ip->owner);
-    prv_img->tag &= ~PRV_TAG_DEFFERED_RENDERING;
+    prv_img->runtime->tag &= ~PRV_TAG_DEFFERED_RENDERING;
 
     LISTBASE_FOREACH (IconPreviewSize *, icon_size, &ip->sizes) {
       int size_index = icon_previewimg_size_index_get(icon_size, prv_img);
       BKE_previewimg_finish(prv_img, size_index);
     }
 
-    if (prv_img->tag & PRV_TAG_DEFFERED_DELETE) {
-      BLI_assert(prv_img->tag & PRV_TAG_DEFFERED);
+    if (prv_img->runtime->tag & PRV_TAG_DEFFERED_DELETE) {
+      BLI_assert(prv_img->runtime->deferred_loading_data);
       BKE_previewimg_deferred_release(prv_img);
     }
   }
@@ -1797,14 +1815,14 @@ void PreviewLoadJob::load_jobless(PreviewImage *preview, const eIconSizes icon_s
 
 void PreviewLoadJob::push_load_request(PreviewImage *preview, const eIconSizes icon_size)
 {
-  BLI_assert(preview->tag & PRV_TAG_DEFFERED);
+  BLI_assert(preview->runtime->deferred_loading_data);
   RequestedPreview requested_preview{};
   requested_preview.preview = preview;
   requested_preview.icon_size = icon_size;
 
   preview->flag[icon_size] |= PRV_RENDERING;
   /* Warn main thread code that this preview is being rendered and cannot be freed. */
-  preview->tag |= PRV_TAG_DEFFERED_RENDERING;
+  preview->runtime->tag |= PRV_TAG_DEFFERED_RENDERING;
 
   requested_previews_.push_back(requested_preview);
   BLI_thread_queue_push(todo_queue_, &requested_previews_.back());
@@ -1860,13 +1878,13 @@ void PreviewLoadJob::finish_request(RequestedPreview &request)
 {
   PreviewImage *preview = request.preview;
 
-  preview->tag &= ~PRV_TAG_DEFFERED_RENDERING;
+  preview->runtime->tag &= ~PRV_TAG_DEFFERED_RENDERING;
   BKE_previewimg_finish(preview, request.icon_size);
 
   BLI_assert_msg(BLI_thread_is_main(),
                  "Deferred releasing of preview images should only run on the main thread");
-  if (preview->tag & PRV_TAG_DEFFERED_DELETE) {
-    BLI_assert(preview->tag & PRV_TAG_DEFFERED);
+  if (preview->runtime->tag & PRV_TAG_DEFFERED_DELETE) {
+    BLI_assert(preview->runtime->deferred_loading_data);
     BKE_previewimg_deferred_release(preview);
   }
 }
@@ -1880,7 +1898,7 @@ void PreviewLoadJob::update_fn(void *customdata)
   {
     RequestedPreview &requested = *request_it;
     /* Skip items that are not done loading yet. */
-    if (requested.preview->tag & PRV_TAG_DEFFERED_RENDERING) {
+    if (requested.preview->runtime->tag & PRV_TAG_DEFFERED_RENDERING) {
       ++request_it;
       continue;
     }
@@ -1942,7 +1960,7 @@ void ED_preview_icon_render(
     const bContext *C, Scene *scene, PreviewImage *prv_img, ID *id, eIconSizes icon_size)
 {
   /* Deferred loading of previews from the file system. */
-  if (prv_img->tag & PRV_TAG_DEFFERED) {
+  if (prv_img->runtime->deferred_loading_data) {
     if (prv_img->flag[icon_size] & PRV_RENDERING) {
       /* Already in the queue, don't add it again. */
       return;
@@ -1986,7 +2004,7 @@ void ED_preview_icon_job(
     const bContext *C, PreviewImage *prv_img, ID *id, eIconSizes icon_size, const bool delay)
 {
   /* Deferred loading of previews from the file system. */
-  if (prv_img->tag & PRV_TAG_DEFFERED) {
+  if (prv_img->runtime->deferred_loading_data) {
     if (prv_img->flag[icon_size] & PRV_RENDERING) {
       /* Already in the queue, don't add it again. */
       return;

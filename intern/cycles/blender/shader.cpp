@@ -23,7 +23,7 @@
 #include "util/string.h"
 #include "util/task.h"
 
-#include "BKE_duplilist.h"
+#include "BKE_duplilist.hh"
 
 CCL_NAMESPACE_BEGIN
 
@@ -667,6 +667,9 @@ static ShaderNode *add_node(Scene *scene,
   else if (b_node.is_a(&RNA_ShaderNodeBsdfTransparent)) {
     node = graph->create_node<TransparentBsdfNode>();
   }
+  else if (b_node.is_a(&RNA_ShaderNodeBsdfRayPortal)) {
+    node = graph->create_node<RayPortalBsdfNode>();
+  }
   else if (b_node.is_a(&RNA_ShaderNodeBsdfSheen)) {
     BL::ShaderNodeBsdfSheen b_sheen_node(b_node);
     SheenBsdfNode *sheen = graph->create_node<SheenBsdfNode>();
@@ -794,11 +797,13 @@ static ShaderNode *add_node(Scene *scene,
       image->set_animated(is_image_animated(b_image_source, b_image_user));
       image->set_alpha_type(get_image_alpha_type(b_image));
 
-      array<int> tiles;
-      for (BL::UDIMTile &b_tile : b_image.tiles) {
-        tiles.push_back_slow(b_tile.number());
+      if (b_image_source == BL::Image::source_TILED) {
+        array<int> tiles;
+        for (BL::UDIMTile &b_tile : b_image.tiles) {
+          tiles.push_back_slow(b_tile.number());
+        }
+        image->set_tiles(tiles);
       }
-      image->set_tiles(tiles);
 
       /* builtin images will use callback-based reading because
        * they could only be loaded correct from blender side
@@ -1064,7 +1069,7 @@ static ShaderNode *add_node(Scene *scene,
   else if (b_node.is_a(&RNA_ShaderNodeOutputAOV)) {
     BL::ShaderNodeOutputAOV b_aov_node(b_node);
     OutputAOVNode *aov = graph->create_node<OutputAOVNode>();
-    aov->set_name(ustring(b_aov_node.name()));
+    aov->set_name(ustring(b_aov_node.aov_name()));
     node = aov;
   }
 
@@ -1592,7 +1597,7 @@ void BlenderSync::sync_world(BL::Depsgraph &b_depsgraph, BL::SpaceView3D &b_v3d,
   Integrator *integrator = scene->integrator;
   PointerRNA cscene = RNA_pointer_get(&b_scene.ptr, "cycles");
 
-  BL::World b_world = b_scene.world();
+  BL::World b_world = view_layer.world_override ? view_layer.world_override : b_scene.world();
 
   BlenderViewportParameters new_viewport_parameters(b_v3d, use_developer_ui);
 

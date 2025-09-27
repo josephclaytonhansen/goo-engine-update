@@ -27,8 +27,6 @@
 #include "bpy_props.h"
 #include "bpy_rna.h"
 
-#include "BKE_idprop.h"
-
 #include "RNA_access.hh"
 #include "RNA_define.hh" /* for defining our own rna */
 #include "RNA_enum_types.hh"
@@ -416,6 +414,33 @@ static void bpy_prop_assign_flag_override(PropertyRNA *prop, const int flag_over
   RNA_def_property_override_flag(prop, PropertyOverrideFlag(flag_override));
 }
 
+/* These utility functions de-duplicate boiler plate code used by most property callbacks.
+ * It's important they're at the beginning & end of the callbacks and both are always called. */
+
+struct BPyPropGIL_RNAWritable_State {
+  PyGILState_STATE gilstate;
+  bool is_write_ok;
+};
+
+static BPyPropGIL_RNAWritable_State bpy_prop_gil_rna_writable_begin()
+{
+  /* It's important to acquire the lock before reading other state information, see: #127767. */
+  const PyGILState_STATE gilstate = PyGILState_Ensure();
+  const bool is_write_ok = pyrna_write_check();
+  return {
+      /*gilstate*/ gilstate,
+      /*is_write_ok*/ is_write_ok,
+  };
+}
+
+static void bpy_prop_gil_rna_writable_end(const BPyPropGIL_RNAWritable_State &prop_state)
+{
+  if (!prop_state.is_write_ok) {
+    pyrna_write_set(false);
+  }
+  PyGILState_Release(prop_state.gilstate);
+}
+
 /** \} */
 
 /* -------------------------------------------------------------------- */
@@ -569,21 +594,20 @@ static void bpy_prop_array_matrix_swap_row_column_vn(float *values,
 /* callbacks */
 static void bpy_prop_update_fn(bContext *C, PointerRNA *ptr, PropertyRNA *prop)
 {
-  BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyGILState_STATE gilstate;
-  PyObject *py_func;
-  PyObject *args;
-  PyObject *self;
-  PyObject *ret;
+  bpy_context_set(C, &gilstate);
   const bool is_write_ok = pyrna_write_check();
-
-  BLI_assert(prop_store != nullptr);
-
   if (!is_write_ok) {
     pyrna_write_set(true);
   }
 
-  bpy_context_set(C, &gilstate);
+  BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
+  PyObject *py_func;
+  PyObject *args;
+  PyObject *self;
+  PyObject *ret;
+
+  BLI_assert(prop_store != nullptr);
 
   py_func = prop_store->py_data.update_fn;
 
@@ -610,11 +634,11 @@ static void bpy_prop_update_fn(bContext *C, PointerRNA *ptr, PropertyRNA *prop)
     Py_DECREF(ret);
   }
 
-  bpy_context_clear(C, &gilstate);
-
   if (!is_write_ok) {
     pyrna_write_set(false);
   }
+
+  bpy_context_clear(C, &gilstate);
 }
 
 /** \} */
@@ -625,27 +649,16 @@ static void bpy_prop_update_fn(bContext *C, PointerRNA *ptr, PropertyRNA *prop)
 
 static bool bpy_prop_boolean_get_fn(PointerRNA *ptr, PropertyRNA *prop)
 {
+  const BPyPropGIL_RNAWritable_State bpy_state = bpy_prop_gil_rna_writable_begin();
+
   BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyObject *py_func;
   PyObject *args;
   PyObject *self;
   PyObject *ret;
-  PyGILState_STATE gilstate;
-  bool use_gil;
-  const bool is_write_ok = pyrna_write_check();
   bool value;
 
   BLI_assert(prop_store != nullptr);
-
-  if (!is_write_ok) {
-    pyrna_write_set(true);
-  }
-
-  use_gil = true; /* !PyC_IsInterpreterActive(); */
-
-  if (use_gil) {
-    gilstate = PyGILState_Ensure();
-  }
 
   py_func = prop_store->py_data.get_fn;
 
@@ -675,39 +688,22 @@ static bool bpy_prop_boolean_get_fn(PointerRNA *ptr, PropertyRNA *prop)
     Py_DECREF(ret);
   }
 
-  if (use_gil) {
-    PyGILState_Release(gilstate);
-  }
-
-  if (!is_write_ok) {
-    pyrna_write_set(false);
-  }
+  bpy_prop_gil_rna_writable_end(bpy_state);
 
   return value;
 }
 
 static void bpy_prop_boolean_set_fn(PointerRNA *ptr, PropertyRNA *prop, bool value)
 {
+  const BPyPropGIL_RNAWritable_State bpy_state = bpy_prop_gil_rna_writable_begin();
+
   BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyObject *py_func;
   PyObject *args;
   PyObject *self;
   PyObject *ret;
-  PyGILState_STATE gilstate;
-  bool use_gil;
-  const bool is_write_ok = pyrna_write_check();
 
   BLI_assert(prop_store != nullptr);
-
-  if (!is_write_ok) {
-    pyrna_write_set(true);
-  }
-
-  use_gil = true; /* !PyC_IsInterpreterActive(); */
-
-  if (use_gil) {
-    gilstate = PyGILState_Ensure();
-  }
 
   py_func = prop_store->py_data.set_fn;
 
@@ -733,25 +729,19 @@ static void bpy_prop_boolean_set_fn(PointerRNA *ptr, PropertyRNA *prop, bool val
     Py_DECREF(ret);
   }
 
-  if (use_gil) {
-    PyGILState_Release(gilstate);
-  }
-
-  if (!is_write_ok) {
-    pyrna_write_set(false);
-  }
+  bpy_prop_gil_rna_writable_end(bpy_state);
 }
 
 static void bpy_prop_boolean_array_get_fn(PointerRNA *ptr, PropertyRNA *prop, bool *values)
 {
+  const BPyPropGIL_RNAWritable_State bpy_state = bpy_prop_gil_rna_writable_begin();
+
   BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyObject *py_func;
   PyObject *args;
   PyObject *self;
   PyObject *ret;
-  PyGILState_STATE gilstate;
-  bool use_gil;
-  const bool is_write_ok = pyrna_write_check();
+
   bool is_values_set = false;
   int i, len = RNA_property_array_length(ptr, prop);
   BPyPropArrayLength array_len_info{};
@@ -759,16 +749,6 @@ static void bpy_prop_boolean_array_get_fn(PointerRNA *ptr, PropertyRNA *prop, bo
   array_len_info.dims_len = RNA_property_array_dimension(ptr, prop, array_len_info.dims);
 
   BLI_assert(prop_store != nullptr);
-
-  if (!is_write_ok) {
-    pyrna_write_set(true);
-  }
-
-  use_gil = true; /* !PyC_IsInterpreterActive(); */
-
-  if (use_gil) {
-    gilstate = PyGILState_Ensure();
-  }
 
   py_func = prop_store->py_data.get_fn;
 
@@ -803,42 +783,26 @@ static void bpy_prop_boolean_array_get_fn(PointerRNA *ptr, PropertyRNA *prop, bo
     }
   }
 
-  if (use_gil) {
-    PyGILState_Release(gilstate);
-  }
-
-  if (!is_write_ok) {
-    pyrna_write_set(false);
-  }
+  bpy_prop_gil_rna_writable_end(bpy_state);
 }
 
 static void bpy_prop_boolean_array_set_fn(PointerRNA *ptr, PropertyRNA *prop, const bool *values)
 {
+  const BPyPropGIL_RNAWritable_State bpy_state = bpy_prop_gil_rna_writable_begin();
+
   BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyObject *py_func;
   PyObject *args;
   PyObject *self;
   PyObject *ret;
   PyObject *py_values;
-  PyGILState_STATE gilstate;
-  bool use_gil;
-  const bool is_write_ok = pyrna_write_check();
+
   const int len = RNA_property_array_length(ptr, prop);
   BPyPropArrayLength array_len_info{};
   array_len_info.len_total = len;
   array_len_info.dims_len = RNA_property_array_dimension(ptr, prop, array_len_info.dims);
 
   BLI_assert(prop_store != nullptr);
-
-  if (!is_write_ok) {
-    pyrna_write_set(true);
-  }
-
-  use_gil = true; /* !PyC_IsInterpreterActive(); */
-
-  if (use_gil) {
-    gilstate = PyGILState_Ensure();
-  }
 
   py_func = prop_store->py_data.set_fn;
 
@@ -871,13 +835,7 @@ static void bpy_prop_boolean_array_set_fn(PointerRNA *ptr, PropertyRNA *prop, co
     Py_DECREF(ret);
   }
 
-  if (use_gil) {
-    PyGILState_Release(gilstate);
-  }
-
-  if (!is_write_ok) {
-    pyrna_write_set(false);
-  }
+  bpy_prop_gil_rna_writable_end(bpy_state);
 }
 
 /** \} */
@@ -888,27 +846,17 @@ static void bpy_prop_boolean_array_set_fn(PointerRNA *ptr, PropertyRNA *prop, co
 
 static int bpy_prop_int_get_fn(PointerRNA *ptr, PropertyRNA *prop)
 {
+  const BPyPropGIL_RNAWritable_State bpy_state = bpy_prop_gil_rna_writable_begin();
+
   BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyObject *py_func;
   PyObject *args;
   PyObject *self;
   PyObject *ret;
-  PyGILState_STATE gilstate;
-  bool use_gil;
-  const bool is_write_ok = pyrna_write_check();
+
   int value;
 
   BLI_assert(prop_store != nullptr);
-
-  if (!is_write_ok) {
-    pyrna_write_set(true);
-  }
-
-  use_gil = true; /* !PyC_IsInterpreterActive(); */
-
-  if (use_gil) {
-    gilstate = PyGILState_Ensure();
-  }
 
   py_func = prop_store->py_data.get_fn;
 
@@ -935,39 +883,22 @@ static int bpy_prop_int_get_fn(PointerRNA *ptr, PropertyRNA *prop)
     Py_DECREF(ret);
   }
 
-  if (use_gil) {
-    PyGILState_Release(gilstate);
-  }
-
-  if (!is_write_ok) {
-    pyrna_write_set(false);
-  }
+  bpy_prop_gil_rna_writable_end(bpy_state);
 
   return value;
 }
 
 static void bpy_prop_int_set_fn(PointerRNA *ptr, PropertyRNA *prop, int value)
 {
+  const BPyPropGIL_RNAWritable_State bpy_state = bpy_prop_gil_rna_writable_begin();
+
   BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyObject *py_func;
   PyObject *args;
   PyObject *self;
   PyObject *ret;
-  PyGILState_STATE gilstate;
-  bool use_gil;
-  const bool is_write_ok = pyrna_write_check();
 
   BLI_assert(prop_store != nullptr);
-
-  if (!is_write_ok) {
-    pyrna_write_set(true);
-  }
-
-  use_gil = true; /* !PyC_IsInterpreterActive(); */
-
-  if (use_gil) {
-    gilstate = PyGILState_Ensure();
-  }
 
   py_func = prop_store->py_data.set_fn;
 
@@ -993,25 +924,19 @@ static void bpy_prop_int_set_fn(PointerRNA *ptr, PropertyRNA *prop, int value)
     Py_DECREF(ret);
   }
 
-  if (use_gil) {
-    PyGILState_Release(gilstate);
-  }
-
-  if (!is_write_ok) {
-    pyrna_write_set(false);
-  }
+  bpy_prop_gil_rna_writable_end(bpy_state);
 }
 
 static void bpy_prop_int_array_get_fn(PointerRNA *ptr, PropertyRNA *prop, int *values)
 {
+  const BPyPropGIL_RNAWritable_State bpy_state = bpy_prop_gil_rna_writable_begin();
+
   BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyObject *py_func;
   PyObject *args;
   PyObject *self;
   PyObject *ret;
-  PyGILState_STATE gilstate;
-  bool use_gil;
-  const bool is_write_ok = pyrna_write_check();
+
   bool is_values_set = false;
   int i, len = RNA_property_array_length(ptr, prop);
   BPyPropArrayLength array_len_info{};
@@ -1019,16 +944,6 @@ static void bpy_prop_int_array_get_fn(PointerRNA *ptr, PropertyRNA *prop, int *v
   array_len_info.dims_len = RNA_property_array_dimension(ptr, prop, array_len_info.dims);
 
   BLI_assert(prop_store != nullptr);
-
-  if (!is_write_ok) {
-    pyrna_write_set(true);
-  }
-
-  use_gil = true; /* !PyC_IsInterpreterActive(); */
-
-  if (use_gil) {
-    gilstate = PyGILState_Ensure();
-  }
 
   py_func = prop_store->py_data.get_fn;
 
@@ -1063,42 +978,26 @@ static void bpy_prop_int_array_get_fn(PointerRNA *ptr, PropertyRNA *prop, int *v
     }
   }
 
-  if (use_gil) {
-    PyGILState_Release(gilstate);
-  }
-
-  if (!is_write_ok) {
-    pyrna_write_set(false);
-  }
+  bpy_prop_gil_rna_writable_end(bpy_state);
 }
 
 static void bpy_prop_int_array_set_fn(PointerRNA *ptr, PropertyRNA *prop, const int *values)
 {
+  const BPyPropGIL_RNAWritable_State bpy_state = bpy_prop_gil_rna_writable_begin();
+
   BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyObject *py_func;
   PyObject *args;
   PyObject *self;
   PyObject *ret;
   PyObject *py_values;
-  PyGILState_STATE gilstate;
-  bool use_gil;
-  const bool is_write_ok = pyrna_write_check();
+
   const int len = RNA_property_array_length(ptr, prop);
   BPyPropArrayLength array_len_info{};
   array_len_info.len_total = len;
   array_len_info.dims_len = RNA_property_array_dimension(ptr, prop, array_len_info.dims);
 
   BLI_assert(prop_store != nullptr);
-
-  if (!is_write_ok) {
-    pyrna_write_set(true);
-  }
-
-  use_gil = true; /* !PyC_IsInterpreterActive(); */
-
-  if (use_gil) {
-    gilstate = PyGILState_Ensure();
-  }
 
   py_func = prop_store->py_data.set_fn;
 
@@ -1132,13 +1031,7 @@ static void bpy_prop_int_array_set_fn(PointerRNA *ptr, PropertyRNA *prop, const 
     Py_DECREF(ret);
   }
 
-  if (use_gil) {
-    PyGILState_Release(gilstate);
-  }
-
-  if (!is_write_ok) {
-    pyrna_write_set(false);
-  }
+  bpy_prop_gil_rna_writable_end(bpy_state);
 }
 
 /** \} */
@@ -1149,27 +1042,17 @@ static void bpy_prop_int_array_set_fn(PointerRNA *ptr, PropertyRNA *prop, const 
 
 static float bpy_prop_float_get_fn(PointerRNA *ptr, PropertyRNA *prop)
 {
+  const BPyPropGIL_RNAWritable_State bpy_state = bpy_prop_gil_rna_writable_begin();
+
   BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyObject *py_func;
   PyObject *args;
   PyObject *self;
   PyObject *ret;
-  PyGILState_STATE gilstate;
-  bool use_gil;
-  const bool is_write_ok = pyrna_write_check();
+
   float value;
 
   BLI_assert(prop_store != nullptr);
-
-  if (!is_write_ok) {
-    pyrna_write_set(true);
-  }
-
-  use_gil = true; /* !PyC_IsInterpreterActive(); */
-
-  if (use_gil) {
-    gilstate = PyGILState_Ensure();
-  }
 
   py_func = prop_store->py_data.get_fn;
 
@@ -1196,39 +1079,22 @@ static float bpy_prop_float_get_fn(PointerRNA *ptr, PropertyRNA *prop)
     Py_DECREF(ret);
   }
 
-  if (use_gil) {
-    PyGILState_Release(gilstate);
-  }
-
-  if (!is_write_ok) {
-    pyrna_write_set(false);
-  }
+  bpy_prop_gil_rna_writable_end(bpy_state);
 
   return value;
 }
 
 static void bpy_prop_float_set_fn(PointerRNA *ptr, PropertyRNA *prop, float value)
 {
+  const BPyPropGIL_RNAWritable_State bpy_state = bpy_prop_gil_rna_writable_begin();
+
   BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyObject *py_func;
   PyObject *args;
   PyObject *self;
   PyObject *ret;
-  PyGILState_STATE gilstate;
-  bool use_gil;
-  const bool is_write_ok = pyrna_write_check();
 
   BLI_assert(prop_store != nullptr);
-
-  if (!is_write_ok) {
-    pyrna_write_set(true);
-  }
-
-  use_gil = true; /* !PyC_IsInterpreterActive(); */
-
-  if (use_gil) {
-    gilstate = PyGILState_Ensure();
-  }
 
   py_func = prop_store->py_data.set_fn;
 
@@ -1254,25 +1120,19 @@ static void bpy_prop_float_set_fn(PointerRNA *ptr, PropertyRNA *prop, float valu
     Py_DECREF(ret);
   }
 
-  if (use_gil) {
-    PyGILState_Release(gilstate);
-  }
-
-  if (!is_write_ok) {
-    pyrna_write_set(false);
-  }
+  bpy_prop_gil_rna_writable_end(bpy_state);
 }
 
 static void bpy_prop_float_array_get_fn(PointerRNA *ptr, PropertyRNA *prop, float *values)
 {
+  const BPyPropGIL_RNAWritable_State bpy_state = bpy_prop_gil_rna_writable_begin();
+
   BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyObject *py_func;
   PyObject *args;
   PyObject *self;
   PyObject *ret;
-  PyGILState_STATE gilstate;
-  bool use_gil;
-  const bool is_write_ok = pyrna_write_check();
+
   bool is_values_set = false;
   int i, len = RNA_property_array_length(ptr, prop);
   BPyPropArrayLength array_len_info{};
@@ -1280,16 +1140,6 @@ static void bpy_prop_float_array_get_fn(PointerRNA *ptr, PropertyRNA *prop, floa
   array_len_info.dims_len = RNA_property_array_dimension(ptr, prop, array_len_info.dims);
 
   BLI_assert(prop_store != nullptr);
-
-  if (!is_write_ok) {
-    pyrna_write_set(true);
-  }
-
-  use_gil = true; /* !PyC_IsInterpreterActive(); */
-
-  if (use_gil) {
-    gilstate = PyGILState_Ensure();
-  }
 
   py_func = prop_store->py_data.get_fn;
 
@@ -1328,42 +1178,26 @@ static void bpy_prop_float_array_get_fn(PointerRNA *ptr, PropertyRNA *prop, floa
     }
   }
 
-  if (use_gil) {
-    PyGILState_Release(gilstate);
-  }
-
-  if (!is_write_ok) {
-    pyrna_write_set(false);
-  }
+  bpy_prop_gil_rna_writable_end(bpy_state);
 }
 
 static void bpy_prop_float_array_set_fn(PointerRNA *ptr, PropertyRNA *prop, const float *values)
 {
+  const BPyPropGIL_RNAWritable_State bpy_state = bpy_prop_gil_rna_writable_begin();
+
   BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyObject *py_func;
   PyObject *args;
   PyObject *self;
   PyObject *ret;
   PyObject *py_values;
-  PyGILState_STATE gilstate;
-  bool use_gil;
-  const bool is_write_ok = pyrna_write_check();
+
   const int len = RNA_property_array_length(ptr, prop);
   BPyPropArrayLength array_len_info{};
   array_len_info.len_total = len;
   array_len_info.dims_len = RNA_property_array_dimension(ptr, prop, array_len_info.dims);
 
   BLI_assert(prop_store != nullptr);
-
-  if (!is_write_ok) {
-    pyrna_write_set(true);
-  }
-
-  use_gil = true; /* !PyC_IsInterpreterActive(); */
-
-  if (use_gil) {
-    gilstate = PyGILState_Ensure();
-  }
 
   py_func = prop_store->py_data.set_fn;
 
@@ -1397,13 +1231,7 @@ static void bpy_prop_float_array_set_fn(PointerRNA *ptr, PropertyRNA *prop, cons
     Py_DECREF(ret);
   }
 
-  if (use_gil) {
-    PyGILState_Release(gilstate);
-  }
-
-  if (!is_write_ok) {
-    pyrna_write_set(false);
-  }
+  bpy_prop_gil_rna_writable_end(bpy_state);
 }
 
 /** \} */
@@ -1414,26 +1242,15 @@ static void bpy_prop_float_array_set_fn(PointerRNA *ptr, PropertyRNA *prop, cons
 
 static void bpy_prop_string_get_fn(PointerRNA *ptr, PropertyRNA *prop, char *value)
 {
+  const BPyPropGIL_RNAWritable_State bpy_state = bpy_prop_gil_rna_writable_begin();
+
   BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyObject *py_func;
   PyObject *args;
   PyObject *self;
   PyObject *ret;
-  PyGILState_STATE gilstate;
-  bool use_gil;
-  const bool is_write_ok = pyrna_write_check();
 
   BLI_assert(prop_store != nullptr);
-
-  if (!is_write_ok) {
-    pyrna_write_set(true);
-  }
-
-  use_gil = true; /* !PyC_IsInterpreterActive(); */
-
-  if (use_gil) {
-    gilstate = PyGILState_Ensure();
-  }
 
   py_func = prop_store->py_data.get_fn;
 
@@ -1463,38 +1280,22 @@ static void bpy_prop_string_get_fn(PointerRNA *ptr, PropertyRNA *prop, char *val
     Py_DECREF(ret);
   }
 
-  if (use_gil) {
-    PyGILState_Release(gilstate);
-  }
-
-  if (!is_write_ok) {
-    pyrna_write_set(false);
-  }
+  bpy_prop_gil_rna_writable_end(bpy_state);
 }
 
 static int bpy_prop_string_length_fn(PointerRNA *ptr, PropertyRNA *prop)
 {
+  const BPyPropGIL_RNAWritable_State bpy_state = bpy_prop_gil_rna_writable_begin();
+
   BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyObject *py_func;
   PyObject *args;
   PyObject *self;
   PyObject *ret;
-  PyGILState_STATE gilstate;
-  bool use_gil;
-  const bool is_write_ok = pyrna_write_check();
+
   int length;
 
   BLI_assert(prop_store != nullptr);
-
-  if (!is_write_ok) {
-    pyrna_write_set(true);
-  }
-
-  use_gil = true; /* !PyC_IsInterpreterActive(); */
-
-  if (use_gil) {
-    gilstate = PyGILState_Ensure();
-  }
 
   py_func = prop_store->py_data.get_fn;
 
@@ -1524,40 +1325,24 @@ static int bpy_prop_string_length_fn(PointerRNA *ptr, PropertyRNA *prop)
     Py_DECREF(ret);
   }
 
-  if (use_gil) {
-    PyGILState_Release(gilstate);
-  }
-
-  if (!is_write_ok) {
-    pyrna_write_set(false);
-  }
+  bpy_prop_gil_rna_writable_end(bpy_state);
 
   return length;
 }
 
 static void bpy_prop_string_set_fn(PointerRNA *ptr, PropertyRNA *prop, const char *value)
 {
+  const BPyPropGIL_RNAWritable_State bpy_state = bpy_prop_gil_rna_writable_begin();
+
   BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyObject *py_func;
   PyObject *args;
   PyObject *self;
   PyObject *ret;
-  PyGILState_STATE gilstate;
-  bool use_gil;
-  const bool is_write_ok = pyrna_write_check();
+
   PyObject *py_value;
 
   BLI_assert(prop_store != nullptr);
-
-  if (!is_write_ok) {
-    pyrna_write_set(true);
-  }
-
-  use_gil = true; /* !PyC_IsInterpreterActive(); */
-
-  if (use_gil) {
-    gilstate = PyGILState_Ensure();
-  }
 
   py_func = prop_store->py_data.set_fn;
 
@@ -1590,19 +1375,13 @@ static void bpy_prop_string_set_fn(PointerRNA *ptr, PropertyRNA *prop, const cha
     Py_DECREF(ret);
   }
 
-  if (use_gil) {
-    PyGILState_Release(gilstate);
-  }
-
-  if (!is_write_ok) {
-    pyrna_write_set(false);
-  }
+  bpy_prop_gil_rna_writable_end(bpy_state);
 }
 
-static bool bpy_prop_string_visit_fn_call(PyObject *py_func,
-                                          PyObject *item,
-                                          StringPropertySearchVisitFunc visit_fn,
-                                          void *visit_user_data)
+static bool bpy_prop_string_visit_fn_call(
+    PyObject *py_func,
+    PyObject *item,
+    blender::FunctionRef<void(StringPropertySearchVisitParams)> visit_fn)
 {
   const char *text;
   const char *info = nullptr;
@@ -1639,36 +1418,36 @@ static bool bpy_prop_string_visit_fn_call(PyObject *py_func,
     }
   }
 
-  StringPropertySearchVisitParams visit_params = {nullptr};
+  StringPropertySearchVisitParams visit_params{};
   visit_params.text = text;
-  visit_params.info = info;
-  visit_fn(visit_user_data, &visit_params);
+  visit_params.info = info ? info : "";
+  visit_fn(visit_params);
   return true;
 }
 
-static void bpy_prop_string_visit_for_search_fn(const bContext *C,
-                                                PointerRNA *ptr,
-                                                PropertyRNA *prop,
-                                                const char *edit_text,
-                                                StringPropertySearchVisitFunc visit_fn,
-                                                void *visit_user_data)
+static void bpy_prop_string_visit_for_search_fn(
+    const bContext *C,
+    PointerRNA *ptr,
+    PropertyRNA *prop,
+    const char *edit_text,
+    blender::FunctionRef<void(StringPropertySearchVisitParams)> visit_fn)
 {
-  BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
-  PyObject *py_func;
-  PyObject *args;
-  PyObject *self;
-  PyObject *ret;
   PyGILState_STATE gilstate;
-  PyObject *py_edit_text;
-
-  BLI_assert(prop_store != nullptr);
-
   if (C) {
     bpy_context_set((bContext *)C, &gilstate);
   }
   else {
     gilstate = PyGILState_Ensure();
   }
+
+  BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
+  PyObject *py_func;
+  PyObject *args;
+  PyObject *self;
+  PyObject *ret;
+  PyObject *py_edit_text;
+
+  BLI_assert(prop_store != nullptr);
 
   py_func = prop_store->py_data.string_data.search_fn;
 
@@ -1705,8 +1484,7 @@ static void bpy_prop_string_visit_for_search_fn(const bContext *C,
           if (py_text == nullptr) {
             break;
           }
-          const bool ok = bpy_prop_string_visit_fn_call(
-              py_func, py_text, visit_fn, visit_user_data);
+          const bool ok = bpy_prop_string_visit_fn_call(py_func, py_text, visit_fn);
           Py_DECREF(py_text);
           if (!ok) {
             break;
@@ -1736,8 +1514,7 @@ static void bpy_prop_string_visit_for_search_fn(const bContext *C,
         const Py_ssize_t ret_num = PySequence_Fast_GET_SIZE(ret_fast);
         PyObject **ret_fast_items = PySequence_Fast_ITEMS(ret_fast);
         for (Py_ssize_t i = 0; i < ret_num; i++) {
-          const bool ok = bpy_prop_string_visit_fn_call(
-              py_func, ret_fast_items[i], visit_fn, visit_user_data);
+          const bool ok = bpy_prop_string_visit_fn_call(py_func, ret_fast_items[i], visit_fn);
           if (!ok) {
             break;
           }
@@ -1765,6 +1542,8 @@ static void bpy_prop_string_visit_for_search_fn(const bContext *C,
 
 static bool bpy_prop_pointer_poll_fn(PointerRNA *self, PointerRNA candidate, PropertyRNA *prop)
 {
+  const BPyPropGIL_RNAWritable_State bpy_state = bpy_prop_gil_rna_writable_begin();
+
   BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyObject *py_self;
   PyObject *py_candidate;
@@ -1772,18 +1551,12 @@ static bool bpy_prop_pointer_poll_fn(PointerRNA *self, PointerRNA candidate, Pro
   PyObject *args;
   PyObject *ret;
   bool result;
-  const int is_write_ok = pyrna_write_check();
-  const PyGILState_STATE gilstate = PyGILState_Ensure();
 
   BLI_assert(self != nullptr);
 
   py_self = pyrna_struct_as_instance(self);
   py_candidate = pyrna_struct_as_instance(&candidate);
   py_func = prop_store->py_data.pointer_data.poll_fn;
-
-  if (!is_write_ok) {
-    pyrna_write_set(true);
-  }
 
   args = PyTuple_New(2);
   PyTuple_SET_ITEM(args, 0, py_self);
@@ -1802,10 +1575,7 @@ static bool bpy_prop_pointer_poll_fn(PointerRNA *self, PointerRNA candidate, Pro
     Py_DECREF(ret);
   }
 
-  PyGILState_Release(gilstate);
-  if (!is_write_ok) {
-    pyrna_write_set(false);
-  }
+  bpy_prop_gil_rna_writable_end(bpy_state);
 
   return result;
 }
@@ -1818,27 +1588,17 @@ static bool bpy_prop_pointer_poll_fn(PointerRNA *self, PointerRNA candidate, Pro
 
 static int bpy_prop_enum_get_fn(PointerRNA *ptr, PropertyRNA *prop)
 {
+  const BPyPropGIL_RNAWritable_State bpy_state = bpy_prop_gil_rna_writable_begin();
+
   BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyObject *py_func;
   PyObject *args;
   PyObject *self;
   PyObject *ret;
-  PyGILState_STATE gilstate;
-  bool use_gil;
-  const bool is_write_ok = pyrna_write_check();
+
   int value;
 
   BLI_assert(prop_store != nullptr);
-
-  if (!is_write_ok) {
-    pyrna_write_set(true);
-  }
-
-  use_gil = true; /* !PyC_IsInterpreterActive(); */
-
-  if (use_gil) {
-    gilstate = PyGILState_Ensure();
-  }
 
   py_func = prop_store->py_data.get_fn;
 
@@ -1865,39 +1625,22 @@ static int bpy_prop_enum_get_fn(PointerRNA *ptr, PropertyRNA *prop)
     Py_DECREF(ret);
   }
 
-  if (use_gil) {
-    PyGILState_Release(gilstate);
-  }
-
-  if (!is_write_ok) {
-    pyrna_write_set(false);
-  }
+  bpy_prop_gil_rna_writable_end(bpy_state);
 
   return value;
 }
 
 static void bpy_prop_enum_set_fn(PointerRNA *ptr, PropertyRNA *prop, int value)
 {
+  const BPyPropGIL_RNAWritable_State bpy_state = bpy_prop_gil_rna_writable_begin();
+
   BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyObject *py_func;
   PyObject *args;
   PyObject *self;
   PyObject *ret;
-  PyGILState_STATE gilstate;
-  bool use_gil;
-  const bool is_write_ok = pyrna_write_check();
 
   BLI_assert(prop_store != nullptr);
-
-  if (!is_write_ok) {
-    pyrna_write_set(true);
-  }
-
-  use_gil = true; /* !PyC_IsInterpreterActive(); */
-
-  if (use_gil) {
-    gilstate = PyGILState_Ensure();
-  }
 
   py_func = prop_store->py_data.set_fn;
 
@@ -1923,13 +1666,7 @@ static void bpy_prop_enum_set_fn(PointerRNA *ptr, PropertyRNA *prop, int value)
     Py_DECREF(ret);
   }
 
-  if (use_gil) {
-    PyGILState_Release(gilstate);
-  }
-
-  if (!is_write_ok) {
-    pyrna_write_set(false);
-  }
+  bpy_prop_gil_rna_writable_end(bpy_state);
 }
 
 /* utility function we need for parsing int's in an if statement */
@@ -2159,6 +1896,13 @@ static const EnumPropertyItem *bpy_prop_enum_itemf_fn(bContext *C,
                                                       bool *r_free)
 {
   PyGILState_STATE gilstate;
+  if (C) {
+    bpy_context_set(C, &gilstate);
+  }
+  else {
+    gilstate = PyGILState_Ensure();
+  }
+
   BPyPropStore *prop_store = static_cast<BPyPropStore *>(RNA_property_py_data_get(prop));
   PyObject *py_func = prop_store->py_data.enum_data.itemf_fn;
   PyObject *self = nullptr;
@@ -2167,13 +1911,6 @@ static const EnumPropertyItem *bpy_prop_enum_itemf_fn(bContext *C,
 
   const EnumPropertyItem *eitems = nullptr;
   int err = 0;
-
-  if (C) {
-    bpy_context_set(C, &gilstate);
-  }
-  else {
-    gilstate = PyGILState_Ensure();
-  }
 
   args = PyTuple_New(2);
   self = pyrna_struct_as_instance(ptr);

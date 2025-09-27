@@ -20,17 +20,11 @@
 
 #include "BKE_context.hh"
 
-#include "WM_api.hh"
 #include "WM_message.hh"
-#include "WM_types.hh"
 
 #include "RNA_access.hh"
-#include "RNA_define.hh"
-#include "RNA_enum_types.hh"
 
 #include "bpy_capi_utils.h"
-#include "bpy_gizmo_wrap.h" /* own include */
-#include "bpy_intern_string.h"
 #include "bpy_rna.h"
 
 #include "bpy_msgbus.h" /* own include */
@@ -147,17 +141,16 @@ static void bpy_msgbus_notify(bContext *C,
 {
   PyGILState_STATE gilstate;
   bpy_context_set(C, &gilstate);
+  const bool is_write_ok = pyrna_write_check();
+  if (!is_write_ok) {
+    pyrna_write_set(true);
+  }
 
   PyObject *user_data = static_cast<PyObject *>(msg_val->user_data);
   BLI_assert(PyTuple_GET_SIZE(user_data) == BPY_MSGBUS_USER_DATA_LEN);
 
   PyObject *callback_args = PyTuple_GET_ITEM(user_data, 0);
   PyObject *callback_notify = PyTuple_GET_ITEM(user_data, 1);
-
-  const bool is_write_ok = pyrna_write_check();
-  if (!is_write_ok) {
-    pyrna_write_set(true);
-  }
 
   PyObject *ret = PyObject_CallObject(callback_notify, callback_args);
 
@@ -172,11 +165,10 @@ static void bpy_msgbus_notify(bContext *C,
     Py_DECREF(ret);
   }
 
-  bpy_context_clear(C, &gilstate);
-
   if (!is_write_ok) {
     pyrna_write_set(false);
   }
+  bpy_context_clear(C, &gilstate);
 }
 
 /* Follow wmMsgSubscribeValueFreeDataFn spec */

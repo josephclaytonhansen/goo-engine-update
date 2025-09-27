@@ -61,18 +61,18 @@
 #include "BKE_lib_id.hh"
 #include "BKE_library.hh"
 #include "BKE_main.hh"
-#include "BKE_node.h"
-#include "BKE_report.h"
+#include "BKE_node.hh"
+#include "BKE_report.hh"
 #include "BKE_vfont.hh"
 
-#include "BKE_bpath.h" /* own include */
+#include "BKE_bpath.hh" /* own include */
 
 #include "CLG_log.h"
 
 #include "SEQ_iterator.hh"
 
 #ifndef _MSC_VER
-#  include "BLI_strict_flags.h"
+#  include "BLI_strict_flags.h" /* Keep last. */
 #endif
 
 static CLG_LogRef LOG = {"bke.bpath"};
@@ -103,7 +103,7 @@ void BKE_bpath_foreach_path_id(BPathForeachPathData *bpath_data, ID *id)
                                          sizeof(id->library_weak_reference->library_filepath));
   }
 
-  bNodeTree *embedded_node_tree = ntreeFromID(id);
+  bNodeTree *embedded_node_tree = blender::bke::ntreeFromID(id);
   if (embedded_node_tree != nullptr) {
     BKE_bpath_foreach_path_id(bpath_data, &embedded_node_tree->id);
   }
@@ -118,7 +118,7 @@ void BKE_bpath_foreach_path_id(BPathForeachPathData *bpath_data, ID *id)
   id_type->foreach_path(id, bpath_data);
 
   if (bpath_data->is_path_modified) {
-    DEG_id_tag_update(id, ID_RECALC_SOURCE | ID_RECALC_COPY_ON_WRITE);
+    DEG_id_tag_update(id, ID_RECALC_SOURCE | ID_RECALC_SYNC_TO_EVAL);
   }
 }
 
@@ -229,13 +229,33 @@ bool BKE_bpath_foreach_path_allocated_process(BPathForeachPathData *bpath_data, 
 static bool check_missing_files_foreach_path_cb(BPathForeachPathData *bpath_data,
                                                 char * /*path_dst*/,
                                                 size_t /*path_dst_maxncpy*/,
-
                                                 const char *path_src)
 {
   ReportList *reports = (ReportList *)bpath_data->user_data;
 
   if (!BLI_exists(path_src)) {
-    BKE_reportf(reports, RPT_WARNING, "Path '%s' not found", path_src);
+    ID *owner_id = bpath_data->owner_id;
+    if (owner_id) {
+      if (ID_IS_LINKED(owner_id)) {
+        BKE_reportf(reports,
+                    RPT_WARNING,
+                    "Path '%s' not found, from linked data-block '%s' (from library '%s')",
+                    path_src,
+                    owner_id->name,
+                    owner_id->lib->runtime.filepath_abs);
+      }
+      else {
+        BKE_reportf(reports,
+                    RPT_WARNING,
+                    "Path '%s' not found, from local data-block '%s'",
+                    path_src,
+                    owner_id->name);
+      }
+    }
+    else {
+      BKE_reportf(
+          reports, RPT_WARNING, "Path '%s' not found (no known owner data-block)", path_src);
+    }
   }
 
   return false;

@@ -16,15 +16,11 @@
 #include "BLI_string.h"
 #include "BLI_string_utf8.h"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
-#include "BKE_main.hh"
-#include "BKE_movieclip.h"
-#include "BKE_scene.h"
 #include "BKE_sound.h"
 
 #include "strip_time.hh"
-#include "utils.hh"
 
 #include "SEQ_add.hh"
 #include "SEQ_animation.hh"
@@ -368,14 +364,6 @@ static bool seq_edit_split_effect_inputs_intersect(const Scene *scene,
           scene, seq->seq2, timeline_frame);
     }
   }
-  if (seq->seq3) {
-    input_does_intersect |= seq_edit_split_effect_intersect_check(
-        scene, seq->seq3, timeline_frame);
-    if ((seq->seq1->type & SEQ_TYPE_EFFECT) != 0) {
-      input_does_intersect |= seq_edit_split_effect_inputs_intersect(
-          scene, seq->seq3, timeline_frame);
-    }
-  }
   return input_does_intersect;
 }
 
@@ -437,13 +425,13 @@ Sequence *SEQ_edit_strip_split(Main *bmain,
   SEQ_animation_backup_original(scene, &animation_backup);
 
   ListBase left_strips = {nullptr, nullptr};
-  for (Sequence *seq : strips) {
+  for (Sequence *seq_iter : strips) {
     /* Move strips in collection from seqbase to new ListBase. */
-    BLI_remlink(seqbase, seq);
-    BLI_addtail(&left_strips, seq);
+    BLI_remlink(seqbase, seq_iter);
+    BLI_addtail(&left_strips, seq_iter);
 
     /* Duplicate curves from backup, so they can be renamed along with split strips. */
-    SEQ_animation_duplicate_backup_to_scene(scene, seq, &animation_backup);
+    SEQ_animation_duplicate_backup_to_scene(scene, seq_iter, &animation_backup);
   }
 
   /* Duplicate ListBase. */

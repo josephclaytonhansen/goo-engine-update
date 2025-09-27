@@ -15,8 +15,6 @@
 #include "BLI_math_geom.h"
 #include "BLI_math_vector.h"
 
-#include "DNA_meshdata_types.h"
-
 #include "bmesh.hh"
 #include "bmesh_path_uv.hh" /* own include */
 #include "intern/bmesh_query.hh"
@@ -249,6 +247,9 @@ static void edgetag_add_adjacent_uv(HeapSimple *heap,
       BMEdge *e_b;
       BMIter eiter;
       BM_ITER_ELEM (e_b, &eiter, l_a_verts[i]->v, BM_EDGES_OF_VERT) {
+        if (e_b->l == nullptr) {
+          continue;
+        }
         BMLoop *l_first, *l_b;
         l_first = l_b = e_b->l;
         do {
