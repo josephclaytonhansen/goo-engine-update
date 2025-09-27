@@ -65,8 +65,8 @@
 #include "UI_interface.hh"
 #include "UI_resources.hh"
 
-#include "BKE_lib_id.hh"
 #include "object_intern.hh"
+#include "BKE_lib_id.hh"
 
 namespace blender::ed::object {
 
@@ -2279,10 +2279,10 @@ static int pose_constraints_merge_exec(bContext *C, wmOperator *op)
     LISTBASE_FOREACH(bConstraint *, con, &pchan->constraints) {
       num_cons += 1;
       const bConstraintTypeInfo *cti = BKE_constraint_typeinfo_get(con);
-      
-      struct IDRelinkUserData userdata;
-      userdata.src_object = (ID *) obact;
-      userdata.dst_object = (ID *) pose_ob;
+
+      struct IDRelinkUserData userdata{};
+      userdata.src_object = reinterpret_cast<ID*>(obact);
+      userdata.dst_object = reinterpret_cast<ID*>(pose_ob);
 
       if (cti->id_looper) {
         cti->id_looper(con, con_relink_id_cb, &userdata);

@@ -484,7 +484,7 @@ GPENCIL_tLayer *gpencil_layer_cache_add(GPENCIL_PrivateData *pd,
     DRW_shgroup_uniform_float_copy(grp, "gpThicknessWorldScale", thickness_scale);
     DRW_shgroup_uniform_float_copy(grp, "gpVertexColorOpacity", vert_col_opacity);
     DRW_shgroup_uniform_bool_copy(grp, "gpThicknessFixedWorldScale", is_fixed_view_scale);
-
+    
     /* If random color type, need color by layer. */
     float gpl_color[4];
     copy_v4_v4(gpl_color, layer_tint);

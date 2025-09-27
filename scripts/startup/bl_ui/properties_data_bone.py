@@ -353,8 +353,12 @@ class BONE_PT_display(BoneButtonsPanel, Panel):
 
         col = layout.column()
         col.prop(bone, "hide", text="Hide", toggle=False)
+        if (pchan := context.object.pose.bones[bone.name]) and context.bone:
+            col.prop(pchan, "hide_outliner", text="Hide in Outliner", toggle=False)
+            
         layout.prop(bone.color, "palette", text="Bone Color")
         self.draw_bone_color_ui(layout, bone.color)
+
 
     def draw_bone_color_ui(self, layout, bone_color):
         if not bone_color.is_custom:
@@ -373,9 +377,6 @@ class BONE_PT_display(BoneButtonsPanel, Panel):
         row.prop(bone_color.custom, "normal", text="")
         row.prop(bone_color.custom, "select", text="")
         row.prop(bone_color.custom, "active", text="")
-
-        if (pchan := context.object.pose.bones[bone.name]) and context.bone:
-            col.prop(pchan, "hide_outliner", text="Hide in Outliner", toggle=False)
 
 
 class BONE_PT_display_custom_shape(BoneButtonsPanel, Panel):

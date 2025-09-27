@@ -284,6 +284,10 @@ class GPUCodegen {
     create_info = new GPUCodegenCreateInfo("codegen");
     output.create_info = reinterpret_cast<GPUShaderCreateInfo *>(
         static_cast<ShaderCreateInfo *>(create_info));
+
+    if (GPU_material_flag_get(mat_, GPU_MATFLAG_OBJECT_INFO) && GPU_material_gooengine_get(mat_)) {
+      create_info->additional_info("draw_object_infos");
+    }
   }
 
   ~GPUCodegen()

@@ -133,7 +133,6 @@ DefNode(ShaderNode,     SH_NODE_SET_DEPTH,          0,                      "SET
 DefNode(ShaderNode,     SH_NODE_CURVATURE,          0,                      "CURVATURE",      Curvature,        "Curvature",         ""              )
 DefNode(ShaderNode,     SH_NODE_SDF_NOISE,          0,                      "SDF_NOISE",          SdfNoise,         "Sdf Noise",          ""      )
 
-
 DefNode(CompositorNode, CMP_NODE_VIEWER,            def_cmp_viewer,         "VIEWER",          Viewer,           "Viewer",              "Visualize data from inside a node graph, in the image editor or as a backdrop")
 DefNode(CompositorNode, CMP_NODE_RGB,               0,                      "RGB",             RGB,              "RGB",                 "A color picker")
 DefNode(CompositorNode, CMP_NODE_VALUE,             0,                      "VALUE",           Value,            "Value",               "Input numerical values to other nodes in the node graph")

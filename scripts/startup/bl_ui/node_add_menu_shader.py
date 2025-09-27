@@ -343,6 +343,7 @@ class NODE_MT_category_goo_engine(Menu):
         node_add_menu.add_node_type(layout, "ShaderNodeSdfVectorOp")
         node_add_menu.add_node_type(layout, "ShaderNodeSdfNoise")
 
+
 class NODE_MT_category_shader_script(Menu):
     bl_idname = "NODE_MT_category_shader_script"
     bl_label = "Script"

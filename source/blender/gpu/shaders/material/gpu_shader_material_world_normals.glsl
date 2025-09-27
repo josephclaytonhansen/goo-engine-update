@@ -9,11 +9,18 @@ void world_normals_get(out vec3 N)
 
 void world_position_get(out vec3 P)
 {
-  P = worldPosition;
+#ifndef EEVEE_ENGINE
+    return;
+#else
+    P = worldPosition;
+#endif
 }
 
 void view_position_get(out vec3 P)
 {
-  P = viewPosition * vec3(1.0, 1.0, -1.0);
+#ifndef EEVEE_ENGINE
+    return;
+#else
+    P = viewPosition * vec3(1.0, 1.0, -1.0);
+#endif
 }
-

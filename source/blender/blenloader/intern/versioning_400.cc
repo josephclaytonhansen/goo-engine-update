@@ -28,7 +28,6 @@
 #include "DNA_movieclip_types.h"
 #include "DNA_scene_types.h"
 #include "DNA_sequence_types.h"
-#include "DNA_text_types.h"
 #include "DNA_world_types.h"
 
 #include "DNA_defaults.h"
@@ -985,74 +984,74 @@ void do_versions_after_linking_400(FileData *fd, Main *bmain)
         bmain, NTREE_SHADER, SH_NODE_SUBSURFACE_SCATTERING, 4, 1, 5);
   }
 
-  if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 50)) {
-    if (all_scenes_use(bmain, {RE_engine_id_BLENDER_EEVEE})) {
-      LISTBASE_FOREACH (Object *, object, &bmain->objects) {
-        versioning_eevee_shadow_settings(object);
-      }
-    }
-  }
+  // if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 50)) {
+  //   if (all_scenes_use(bmain, {RE_engine_id_BLENDER_EEVEE})) {
+  //     LISTBASE_FOREACH (Object *, object, &bmain->objects) {
+  //       versioning_eevee_shadow_settings(object);
+  //     }
+  //   }
+  // }
 
-  if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 51)) {
-    /* Convert blend method to math nodes. */
-    if (all_scenes_use(bmain, {RE_engine_id_BLENDER_EEVEE})) {
-      LISTBASE_FOREACH (Material *, material, &bmain->materials) {
-        if (!material->use_nodes || material->nodetree == nullptr) {
-          /* Nothing to version. */
-        }
-        else if (ELEM(material->blend_method, MA_BM_HASHED, MA_BM_BLEND)) {
-          /* Compatible modes. Nothing to change. */
-        }
-        else if (material->blend_shadow == MA_BS_NONE) {
-          /* No need to match the surface since shadows are disabled. */
-        }
-        else if (material->blend_shadow == MA_BS_SOLID) {
-          /* This is already versioned an transferred to `transparent_shadows`. */
-        }
-        else if ((material->blend_shadow == MA_BS_CLIP && material->blend_method != MA_BM_CLIP) ||
-                 (material->blend_shadow == MA_BS_HASHED))
-        {
-          BLO_reportf_wrap(
-              fd->reports,
-              RPT_WARNING,
-              RPT_("Material %s could not be converted because of different Blend Mode "
-                   "and Shadow Mode (need manual adjustment)\n"),
-              material->id.name + 2);
-        }
-        else {
-          /* TODO(fclem): Check if threshold is driven or has animation. Bail out if needed? */
+  // if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 51)) {
+  //   /* Convert blend method to math nodes. */
+  //   if (all_scenes_use(bmain, {RE_engine_id_BLENDER_EEVEE})) {
+  //     LISTBASE_FOREACH (Material *, material, &bmain->materials) {
+  //       if (!material->use_nodes || material->nodetree == nullptr) {
+  //         /* Nothing to version. */
+  //       }
+  //       else if (ELEM(material->blend_method, MA_BM_HASHED, MA_BM_BLEND)) {
+  //         /* Compatible modes. Nothing to change. */
+  //       }
+  //       else if (material->blend_shadow == MA_BS_NONE) {
+  //         /* No need to match the surface since shadows are disabled. */
+  //       }
+  //       else if (material->blend_shadow == MA_BS_SOLID) {
+  //         /* This is already versioned an transferred to `transparent_shadows`. */
+  //       }
+  //       else if ((material->blend_shadow == MA_BS_CLIP && material->blend_method != MA_BM_CLIP) ||
+  //                (material->blend_shadow == MA_BS_HASHED))
+  //       {
+  //         BLO_reportf_wrap(
+  //             fd->reports,
+  //             RPT_WARNING,
+  //             RPT_("Material %s could not be converted because of different Blend Mode "
+  //                  "and Shadow Mode (need manual adjustment)\n"),
+  //             material->id.name + 2);
+  //       }
+  //       else {
+  //         /* TODO(fclem): Check if threshold is driven or has animation. Bail out if needed? */
 
-          float threshold = (material->blend_method == MA_BM_CLIP) ? material->alpha_threshold :
-                                                                     2.0f;
+  //         float threshold = (material->blend_method == MA_BM_CLIP) ? material->alpha_threshold :
+  //                                                                    2.0f;
 
-          if (!versioning_eevee_material_blend_mode_settings(material->nodetree, threshold)) {
-            BLO_reportf_wrap(fd->reports,
-                             RPT_WARNING,
-                             RPT_("Material %s could not be converted because of non-trivial "
-                                  "alpha blending (need manual adjustment)\n"),
-                             material->id.name + 2);
-          }
-        }
+  //         if (!versioning_eevee_material_blend_mode_settings(material->nodetree, threshold)) {
+  //           BLO_reportf_wrap(fd->reports,
+  //                            RPT_WARNING,
+  //                            RPT_("Material %s could not be converted because of non-trivial "
+  //                                 "alpha blending (need manual adjustment)\n"),
+  //                            material->id.name + 2);
+  //         }
+  //       }
 
-        if (material->blend_shadow == MA_BS_NONE) {
-          versioning_eevee_material_shadow_none(material);
-        }
-        /* Set blend_mode & blend_shadow for forward compatibility. */
-        material->blend_method = (material->blend_method != MA_BM_BLEND) ? MA_BM_HASHED :
-                                                                           MA_BM_BLEND;
-        material->blend_shadow = (material->blend_shadow == MA_BS_SOLID) ? MA_BS_SOLID :
-                                                                           MA_BS_HASHED;
-      }
-    }
-  }
+  //       if (material->blend_shadow == MA_BS_NONE) {
+  //         versioning_eevee_material_shadow_none(material);
+  //       }
+  //       /* Set blend_mode & blend_shadow for forward compatibility. */
+  //       material->blend_method = (material->blend_method != MA_BM_BLEND) ? MA_BM_HASHED :
+  //                                                                          MA_BM_BLEND;
+  //       material->blend_shadow = (material->blend_shadow == MA_BS_SOLID) ? MA_BS_SOLID :
+  //                                                                          MA_BS_HASHED;
+  //     }
+  //   }
+  // }
 
-  if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 52)) {
-    LISTBASE_FOREACH (Scene *, scene, &bmain->scenes) {
-      if (STREQ(scene->r.engine, RE_engine_id_BLENDER_EEVEE)) {
-        STRNCPY(scene->r.engine, RE_engine_id_BLENDER_EEVEE_NEXT);
-      }
-    }
-  }
+  // if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 52)) {
+  //   LISTBASE_FOREACH (Scene *, scene, &bmain->scenes) {
+  //     if (STREQ(scene->r.engine, RE_engine_id_BLENDER_EEVEE)) {
+  //       STRNCPY(scene->r.engine, RE_engine_id_BLENDER_EEVEE_NEXT);
+  //     }
+  //   }
+  // }
 
   /**
    * Always bump subversion in BKE_blender_version.h when adding versioning
@@ -2768,16 +2767,6 @@ static void fix_built_in_curve_attribute_defaults(Main *bmain)
 
 void blo_do_versions_400(FileData *fd, Library * /*lib*/, Main *bmain)
 {
-  /* Goo engine version warning script - remove if it exists. */
-  if (!MAIN_VERSION_FILE_ATLEAST(bmain, 400, 0)) {
-    LISTBASE_FOREACH_MUTABLE (Text *, text, &bmain->texts) {
-      if (strcmp(text->id.name, "TX.version_warning.py") > 0) {
-        continue;
-      }
-      BLI_remlink(&bmain->texts, text);
-    }
-  }
-
   if (!MAIN_VERSION_FILE_ATLEAST(bmain, 400, 1)) {
     LISTBASE_FOREACH (Mesh *, mesh, &bmain->meshes) {
       version_mesh_legacy_to_struct_of_array_format(*mesh);
@@ -3387,23 +3376,23 @@ void blo_do_versions_400(FileData *fd, Library * /*lib*/, Main *bmain)
     FOREACH_NODETREE_END;
   }
 
-  if (!MAIN_VERSION_FILE_ATLEAST(bmain, 401, 5)) {
-    /* Unify Material::blend_shadow and Cycles.use_transparent_shadows into the
-     * Material::blend_flag. */
-    bool is_eevee = all_scenes_use(bmain,
-                                   {RE_engine_id_BLENDER_EEVEE, RE_engine_id_BLENDER_EEVEE_NEXT});
-    LISTBASE_FOREACH (Material *, material, &bmain->materials) {
-      bool transparent_shadows = true;
-      if (is_eevee) {
-        transparent_shadows = material->blend_shadow != MA_BS_SOLID;
-      }
-      else if (IDProperty *cmat = version_cycles_properties_from_ID(&material->id)) {
-        transparent_shadows = version_cycles_property_boolean(
-            cmat, "use_transparent_shadow", true);
-      }
-      SET_FLAG_FROM_TEST(material->blend_flag, transparent_shadows, MA_BL_TRANSPARENT_SHADOW);
-    }
-  }
+  // if (!MAIN_VERSION_FILE_ATLEAST(bmain, 401, 5)) {
+  //   /* Unify Material::blend_shadow and Cycles.use_transparent_shadows into the
+  //    * Material::blend_flag. */
+  //   bool is_eevee = all_scenes_use(bmain,
+  //                                  {RE_engine_id_BLENDER_EEVEE, RE_engine_id_BLENDER_EEVEE_NEXT});
+  //   LISTBASE_FOREACH (Material *, material, &bmain->materials) {
+  //     bool transparent_shadows = true;
+  //     if (is_eevee) {
+  //       transparent_shadows = material->blend_shadow != MA_BS_SOLID;
+  //     }
+  //     else if (IDProperty *cmat = version_cycles_properties_from_ID(&material->id)) {
+  //       transparent_shadows = version_cycles_property_boolean(
+  //           cmat, "use_transparent_shadow", true);
+  //     }
+  //     SET_FLAG_FROM_TEST(material->blend_flag, transparent_shadows, MA_BL_TRANSPARENT_SHADOW);
+  //   }
+  // }
 
   if (!MAIN_VERSION_FILE_ATLEAST(bmain, 401, 5)) {
     /** NOTE: This versioning code didn't update the subversion number. */
@@ -4029,41 +4018,41 @@ void blo_do_versions_400(FileData *fd, Library * /*lib*/, Main *bmain)
     }
   }
 
-  if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 31)) {
-    bool only_uses_eevee_legacy_or_workbench = true;
-    LISTBASE_FOREACH (Scene *, scene, &bmain->scenes) {
-      if (!(STREQ(scene->r.engine, RE_engine_id_BLENDER_EEVEE) ||
-            STREQ(scene->r.engine, RE_engine_id_BLENDER_WORKBENCH)))
-      {
-        only_uses_eevee_legacy_or_workbench = false;
-      }
-    }
-    /* Mark old EEVEE world volumes for showing conversion operator. */
-    LISTBASE_FOREACH (World *, world, &bmain->worlds) {
-      if (world->nodetree) {
-        bNode *output_node = version_eevee_output_node_get(world->nodetree, SH_NODE_OUTPUT_WORLD);
-        if (output_node) {
-          bNodeSocket *volume_input_socket = static_cast<bNodeSocket *>(
-              BLI_findlink(&output_node->inputs, 1));
-          if (volume_input_socket) {
-            LISTBASE_FOREACH (bNodeLink *, node_link, &world->nodetree->links) {
-              if (node_link->tonode == output_node && node_link->tosock == volume_input_socket) {
-                world->flag |= WO_USE_EEVEE_FINITE_VOLUME;
-                /* Only display a warning message if we are sure this can be used by EEVEE. */
-                if (only_uses_eevee_legacy_or_workbench) {
-                  BLO_reportf_wrap(fd->reports,
-                                   RPT_WARNING,
-                                   RPT_("%s contains a volume shader that might need to be "
-                                        "converted to object (see world volume panel)\n"),
-                                   world->id.name + 2);
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
+  // if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 31)) {
+  //   bool only_uses_eevee_legacy_or_workbench = true;
+  //   LISTBASE_FOREACH (Scene *, scene, &bmain->scenes) {
+  //     if (!(STREQ(scene->r.engine, RE_engine_id_BLENDER_EEVEE) ||
+  //           STREQ(scene->r.engine, RE_engine_id_BLENDER_WORKBENCH)))
+  //     {
+  //       only_uses_eevee_legacy_or_workbench = false;
+  //     }
+  //   }
+  //   /* Mark old EEVEE world volumes for showing conversion operator. */
+  //   LISTBASE_FOREACH (World *, world, &bmain->worlds) {
+  //     if (world->nodetree) {
+  //       bNode *output_node = version_eevee_output_node_get(world->nodetree, SH_NODE_OUTPUT_WORLD);
+  //       if (output_node) {
+  //         bNodeSocket *volume_input_socket = static_cast<bNodeSocket *>(
+  //             BLI_findlink(&output_node->inputs, 1));
+  //         if (volume_input_socket) {
+  //           LISTBASE_FOREACH (bNodeLink *, node_link, &world->nodetree->links) {
+  //             if (node_link->tonode == output_node && node_link->tosock == volume_input_socket) {
+  //               world->flag |= WO_USE_EEVEE_FINITE_VOLUME;
+  //               /* Only display a warning message if we are sure this can be used by EEVEE. */
+  //               if (only_uses_eevee_legacy_or_workbench) {
+  //                 BLO_reportf_wrap(fd->reports,
+  //                                  RPT_WARNING,
+  //                                  RPT_("%s contains a volume shader that might need to be "
+  //                                       "converted to object (see world volume panel)\n"),
+  //                                  world->id.name + 2);
+  //               }
+  //             }
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
 
   if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 33)) {
     constexpr int NTREE_EXECUTION_MODE_GPU = 2;
@@ -4136,20 +4125,20 @@ void blo_do_versions_400(FileData *fd, Library * /*lib*/, Main *bmain)
     }
   }
 
-  if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 39)) {
-    /* Unify cast shadow property with Cycles. */
-    if (!all_scenes_use(bmain, {RE_engine_id_BLENDER_EEVEE})) {
-      const Light *default_light = DNA_struct_default_get(Light);
-      LISTBASE_FOREACH (Light *, light, &bmain->lights) {
-        IDProperty *clight = version_cycles_properties_from_ID(&light->id);
-        if (clight) {
-          bool value = version_cycles_property_boolean(
-              clight, "cast_shadow", default_light->mode & LA_SHADOW);
-          SET_FLAG_FROM_TEST(light->mode, value, LA_SHADOW);
-        }
-      }
-    }
-  }
+  // if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 39)) {
+  //   /* Unify cast shadow property with Cycles. */
+  //   if (!all_scenes_use(bmain, {RE_engine_id_BLENDER_EEVEE})) {
+  //     const Light *default_light = DNA_struct_default_get(Light);
+  //     LISTBASE_FOREACH (Light *, light, &bmain->lights) {
+  //       IDProperty *clight = version_cycles_properties_from_ID(&light->id);
+  //       if (clight) {
+  //         bool value = version_cycles_property_boolean(
+  //             clight, "cast_shadow", default_light->mode & LA_SHADOW);
+  //         SET_FLAG_FROM_TEST(light->mode, value, LA_SHADOW);
+  //       }
+  //     }
+  //   }
+  // }
 
   if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 40)) {
     LISTBASE_FOREACH (bNodeTree *, ntree, &bmain->nodetrees) {
@@ -4322,20 +4311,20 @@ void blo_do_versions_400(FileData *fd, Library * /*lib*/, Main *bmain)
     }
   }
 
-  if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 64)) {
-    if (all_scenes_use(bmain, {RE_engine_id_BLENDER_EEVEE})) {
-      /* Re-apply versioning made for EEVEE-Next in 4.1 before it got delayed. */
-      LISTBASE_FOREACH (Material *, material, &bmain->materials) {
-        bool transparent_shadows = material->blend_shadow != MA_BS_SOLID;
-        SET_FLAG_FROM_TEST(material->blend_flag, transparent_shadows, MA_BL_TRANSPARENT_SHADOW);
-      }
-      LISTBASE_FOREACH (Material *, mat, &bmain->materials) {
-        mat->surface_render_method = (mat->blend_method == MA_BM_BLEND) ?
-                                         MA_SURFACE_METHOD_FORWARD :
-                                         MA_SURFACE_METHOD_DEFERRED;
-      }
-    }
-  }
+  // if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 64)) {
+  //   if (all_scenes_use(bmain, {RE_engine_id_BLENDER_EEVEE})) {
+  //     /* Re-apply versioning made for EEVEE-Next in 4.1 before it got delayed. */
+  //     LISTBASE_FOREACH (Material *, material, &bmain->materials) {
+  //       bool transparent_shadows = material->blend_shadow != MA_BS_SOLID;
+  //       SET_FLAG_FROM_TEST(material->blend_flag, transparent_shadows, MA_BL_TRANSPARENT_SHADOW);
+  //     }
+  //     LISTBASE_FOREACH (Material *, mat, &bmain->materials) {
+  //       mat->surface_render_method = (mat->blend_method == MA_BM_BLEND) ?
+  //                                        MA_SURFACE_METHOD_FORWARD :
+  //                                        MA_SURFACE_METHOD_DEFERRED;
+  //     }
+  //   }
+  // }
 
   if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 66)) {
     fix_built_in_curve_attribute_defaults(bmain);

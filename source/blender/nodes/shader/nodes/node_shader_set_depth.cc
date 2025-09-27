@@ -33,12 +33,12 @@ static int node_shader_gpu_add_shader(GPUMaterial *mat,
 void register_node_type_sh_set_depth(void)
 {
  namespace file_ns = blender::nodes::node_shader_set_depth_cc;
- static bNodeType ntype;
+ static blender::bke::bNodeType ntype;
 
  sh_node_type_base(&ntype, SH_NODE_SET_DEPTH, "Set Depth", NODE_CLASS_SHADER);
 
  ntype.declare = file_ns::node_declare;
  ntype.gpu_fn = file_ns::node_shader_gpu_add_shader;
 
- nodeRegisterType(&ntype);
+ blender::bke::nodeRegisterType(&ntype);
 }

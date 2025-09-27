@@ -2024,7 +2024,7 @@ static void material_default_surface_init(Material *ma)
   principled->locy = 300.0f;
   output->locx = 300.0f;
   output->locy = 300.0f;
-  
+
   blender::bke::nodeSetActive(ntree, output);
 
   const uint32_t default_light_groups[4] = {

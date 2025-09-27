@@ -109,14 +109,14 @@ struct tGP_BrushEditData {
   /* Is multiframe editing enabled, and are we using falloff for that? */
   bool is_multiframe;
   bool use_multiframe_falloff;
-  
+
   int smooth_type;
 
   bool use_position_prev;
   bool use_strength_prev;
   bool use_thickness_prev;
   bool use_uv_prev;
-
+  
   /* Current frame */
   int cfra;
 
@@ -1353,9 +1353,9 @@ static void gpencil_sculpt_brush_exit(bContext *C, wmOperator *op)
     }
 
     default:
-      if (gso->stroke_customdata != nullptr) {
-        BLI_ghash_free(gso->stroke_customdata, nullptr, nullptr);
-        gso->stroke_customdata = nullptr;
+      if (gso->stroke_customdata != NULL) {
+        BLI_ghash_free(gso->stroke_customdata, NULL, NULL);
+        gso->stroke_customdata = NULL;
       }
       break;
   }
@@ -2381,7 +2381,7 @@ static int gpencil_sculpt_brush_invoke(bContext *C, wmOperator *op, const wmEven
     gso->brush = gso->brush_prev;
     gso->brush_prev = NULL;
   }
-
+  
   /* start drawing immediately? */
   if (is_modal == false) {
     ARegion *region = CTX_wm_region(C);

@@ -6500,7 +6500,7 @@ static void rna_def_userdef_input(BlenderRNA *brna)
       "screen size (used by transform, dragging of UI controls, etc.)");
 
   prop = RNA_def_property(srna, "use_accumulative_trackball", PROP_BOOLEAN, PROP_NONE);
-  RNA_def_property_boolean_sdna(prop, NULL, "uiflag", USER_ACCUMULATE_TRACKBALL);
+  RNA_def_property_boolean_sdna(prop, nullptr, "uiflag", USER_ACCUMULATE_TRACKBALL);
   RNA_def_property_ui_text(
       prop,
       "Continuous Trackball",
@@ -7153,6 +7153,13 @@ static void rna_def_userdef_filepaths(BlenderRNA *brna)
       prop,
       "Online Access",
       "The user has been shown the \"Online Access\" prompt and make a choice");
+
+  prop = RNA_def_property(srna, "save_version_warning", PROP_BOOLEAN, PROP_NONE);
+  RNA_def_property_boolean_negative_sdna(prop, nullptr, "flag", USER_FLAG_VERSION_SCRIPT);
+  RNA_def_property_boolean_default(prop, true);
+  RNA_def_property_ui_text(prop,
+                           "Embed Version Warning Popup",
+                           "Embed a script that provides a warning pop-up if this file is opened in a non-GooEngine build");
 
   /* Directories. */
 

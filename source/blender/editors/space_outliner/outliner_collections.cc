@@ -193,6 +193,7 @@ static bool collection_new_poll(bContext *C)
   }
   return true;
 }
+
 /** \} */
 
 /* -------------------------------------------------------------------- */

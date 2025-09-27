@@ -869,7 +869,6 @@ void RNA_def_material(BlenderRNA *brna)
       {0, nullptr, 0, nullptr, nullptr},
   };
 
-#  if 1 /* Delete this section once we remove old eevee. */
   static EnumPropertyItem prop_eevee_blend_items[] = {
       {MA_BM_SOLID, "OPAQUE", 0, "Opaque", "Render surface without transparency"},
       {MA_BM_CLIP,
@@ -905,7 +904,6 @@ void RNA_def_material(BlenderRNA *brna)
        "Use noise to dither the binary visibility and use filtering to reduce the noise"},
       {0, nullptr, 0, nullptr, nullptr},
   };
-#  endif
 
   static EnumPropertyItem prop_eevee_surface_render_method_items[] = {
       {MA_SURFACE_METHOD_DEFERRED,
@@ -963,16 +961,15 @@ void RNA_def_material(BlenderRNA *brna)
   RNA_def_property_ui_text(prop, "Displacement Method", "Method to use for the displacement");
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
 
-#  if 1 /* Delete this section once we remove old eevee. */
   /* Blending (only Eevee for now) */
   prop = RNA_def_property(srna, "blend_method", PROP_ENUM, PROP_NONE);
   RNA_def_property_enum_items(prop, prop_eevee_blend_items);
   RNA_def_property_ui_text(
       prop,
       "Blend Mode",
-      "Blend Mode for Transparent Faces (Deprecated: use 'surface_render_method')");
-  RNA_def_property_enum_funcs(
-      prop, "rna_Material_blend_method_get", "rna_Material_blend_method_set", nullptr);
+      "Blend Mode for Transparent Faces");
+  // RNA_def_property_enum_funcs(
+  //     prop, "rna_Material_blend_method_get", "rna_Material_blend_method_set", nullptr);
   RNA_def_property_translation_context(prop, BLT_I18NCONTEXT_ID_MATERIAL);
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
 
@@ -988,8 +985,6 @@ void RNA_def_material(BlenderRNA *brna)
                            "Clip Threshold",
                            "A pixel is rendered only if its alpha value is above this threshold");
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
-#  endif
-
   prop = RNA_def_property(srna, "use_transparency_overlap", PROP_BOOLEAN, PROP_NONE);
   RNA_def_property_boolean_negative_sdna(prop, nullptr, "blend_flag", MA_BL_HIDE_BACKFACE);
   RNA_def_property_ui_text(prop,
@@ -997,7 +992,6 @@ void RNA_def_material(BlenderRNA *brna)
                            "Render multiple transparent layers "
                            "(may introduce transparency sorting problems)");
 
-#  if 1 /* This should be deleted in Blender 4.5 */
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
   prop = RNA_def_property(srna, "show_transparent_back", PROP_BOOLEAN, PROP_NONE);
   RNA_def_property_boolean_negative_sdna(prop, nullptr, "blend_flag", MA_BL_HIDE_BACKFACE);
@@ -1005,9 +999,8 @@ void RNA_def_material(BlenderRNA *brna)
       prop,
       "Show Backface",
       "Render multiple transparent layers "
-      "(may introduce transparency sorting problems) (Deprecated: use 'use_tranparency_overlap')");
+      "(may introduce transparency sorting problems)");
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
-#  endif
 
   prop = RNA_def_property(srna, "use_backface_culling", PROP_BOOLEAN, PROP_NONE);
   RNA_def_property_boolean_sdna(prop, nullptr, "blend_flag", MA_BL_CULL_BACKFACE);
@@ -1051,21 +1044,20 @@ void RNA_def_material(BlenderRNA *brna)
       "setting");
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
 
-#  if 1 /* This should be deleted in Blender 4.5 */
   prop = RNA_def_property(srna, "use_screen_refraction", PROP_BOOLEAN, PROP_NONE);
   RNA_def_property_boolean_sdna(prop, nullptr, "blend_flag", MA_BL_SS_REFRACTION);
   RNA_def_property_ui_text(
       prop,
-      "Raytrace Transmission",
+      "Raytrace Refraction",
       "Use raytracing to determine transmitted color instead of using only light probes. "
       "This prevents the surface from contributing to the lighting of surfaces not using this "
-      "setting (Deprecated: use 'use_raytrace_refraction')");
+      "setting");
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
 
   prop = RNA_def_property(srna, "use_sss_translucency", PROP_BOOLEAN, PROP_NONE);
   RNA_def_property_boolean_sdna(prop, nullptr, "blend_flag", MA_BL_TRANSLUCENCY);
   RNA_def_property_ui_text(
-      prop, "Subsurface Translucency", "Add translucency effect to subsurface (Deprecated)");
+      prop, "Subsurface Translucency", "Add translucency effect to subsurface");
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
 
   prop = RNA_def_property(srna, "refraction_depth", PROP_FLOAT, PROP_DISTANCE);
@@ -1074,9 +1066,8 @@ void RNA_def_material(BlenderRNA *brna)
   RNA_def_property_ui_text(prop,
                            "Refraction Depth",
                            "Approximate the thickness of the object to compute two refraction "
-                           "events (0 is disabled) (Deprecated)");
+                           "events (0 is disabled)");
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
-#  endif
 
   prop = RNA_def_property(srna, "thickness_mode", PROP_ENUM, PROP_NONE);
   RNA_def_property_enum_items(prop, prop_eevee_thickness_method_items);
@@ -1111,7 +1102,7 @@ void RNA_def_material(BlenderRNA *brna)
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
 
   prop = RNA_def_property(srna, "light_group_bits", PROP_INT, PROP_NONE);
-  RNA_def_property_int_sdna(prop, NULL, "light_group_bits");
+  RNA_def_property_int_sdna(prop, nullptr, "light_group_bits");
   RNA_def_property_array(prop, 4);
   RNA_def_property_ui_text(prop, "Light Groups", "Light group bitfield");
   RNA_def_property_clear_flag(prop, PROP_ANIMATABLE);
@@ -1119,7 +1110,7 @@ void RNA_def_material(BlenderRNA *brna)
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
 
   prop = RNA_def_property(srna, "light_group_shadow_bits", PROP_INT, PROP_NONE);
-  RNA_def_property_int_sdna(prop, NULL, "light_group_shadow_bits");
+  RNA_def_property_int_sdna(prop, nullptr, "light_group_shadow_bits");
   RNA_def_property_array(prop, 4);
   RNA_def_property_ui_text(prop, "Light Group Shadows", "Light group shadow bitfield");
   RNA_def_property_clear_flag(prop, PROP_ANIMATABLE);
@@ -1128,7 +1119,7 @@ void RNA_def_material(BlenderRNA *brna)
 
   /* Self shadowing */
   prop = RNA_def_property(srna, "check_shadow_id", PROP_BOOLEAN, PROP_NONE);
-  RNA_def_property_boolean_sdna(prop, NULL, "check_shadow_id", MA_SHADOW_ID);
+  RNA_def_property_boolean_sdna(prop, nullptr, "check_shadow_id", MA_SHADOW_ID);
   RNA_def_property_boolean_default(prop, false);
   RNA_def_property_ui_text(prop, "Check Self Shadowing", "Filter shadows cast by this Object");
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");

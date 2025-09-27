@@ -1909,6 +1909,11 @@ typedef struct SceneEEVEE {
 
   struct RaytraceEEVEE ray_tracing_options;
 
+  struct LightCache *light_cache DNA_DEPRECATED;
+  struct LightCache *light_cache_data;
+  /* Need a 128 byte string for some translations of some messages. */
+  char light_cache_info[128];
+
   float overscan;
   float light_threshold;
 } SceneEEVEE;
@@ -2825,7 +2830,7 @@ enum {
   SCE_EEVEE_GTAO_BENT_NORMALS = (1 << 5),
   SCE_EEVEE_GTAO_BOUNCE = (1 << 6),
   // SCE_EEVEE_DOF_ENABLED = (1 << 7), /* Moved to camera->dof.flag */
-  // SCE_EEVEE_BLOOM_ENABLED = (1 << 8), /* Unused */
+  SCE_EEVEE_BLOOM_ENABLED = (1 << 8),
   SCE_EEVEE_MOTION_BLUR_ENABLED_DEPRECATED = (1 << 9), /* Moved to scene->r.mode */
   SCE_EEVEE_SHADOW_HIGH_BITDEPTH = (1 << 10),
   SCE_EEVEE_TAA_REPROJECTION = (1 << 11),
@@ -2842,10 +2847,10 @@ enum {
   SCE_EEVEE_DOF_HQ_SLIGHT_FOCUS = (1 << 22),
   SCE_EEVEE_DOF_JITTER = (1 << 23),
   SCE_EEVEE_SHADOW_ENABLED = (1 << 24),
+  SCE_EEVEE_SHADOW_ID_HIGH_BITDEPTH = (1 << 24),
   SCE_EEVEE_RAYTRACE_OPTIONS_SPLIT = (1 << 25),
   SCE_EEVEE_SHADOW_JITTERED_VIEWPORT = (1 << 26),
   SCE_EEVEE_VOLUME_CUSTOM_RANGE = (1 << 27),
-  SCE_EEVEE_SHADOW_ID_HIGH_BITDEPTH = (1 << 28),
 };
 
 typedef enum RaytraceEEVEE_Flag {

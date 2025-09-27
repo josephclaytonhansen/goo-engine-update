@@ -1453,7 +1453,7 @@ static void icon_set_image(const bContext *C,
     return;
   }
 
-
+  
   if (!prv_img) {
     if (G.debug & G_DEBUG) {
       printf("%s: no preview image for this ID: %s\n", __func__, id->name);

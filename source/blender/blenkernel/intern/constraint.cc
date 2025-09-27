@@ -2143,7 +2143,7 @@ static void rotlike_evaluate(bConstraint *con, bConstraintOb *cob, ListBase *tar
       default:
         BLI_assert(false);
     }
-
+    
     /* Invert final rotation matrix. */
     if (data->flag & ROTLIKE_INVERT_ALL) {
       invert_m3(newrot);

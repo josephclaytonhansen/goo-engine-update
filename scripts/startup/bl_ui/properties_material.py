@@ -280,6 +280,29 @@ def draw_material_surface_settings(layout, mat, is_eevee=True):
         col.prop(mat, "use_thickness_from_shadow", text="From Shadow")
 
 
+def draw_goo_material_surface_settings(layout, mat):
+    layout.use_property_split = True
+    layout.use_property_decorate = False
+
+    layout.prop(mat, "use_backface_culling")
+    layout.prop(mat, "blend_method")
+    layout.prop(mat, "shadow_method")
+
+    layout.prop(mat, "check_shadow_id")
+
+    row = layout.row()
+    row.active = ((mat.blend_method == 'CLIP') or (mat.shadow_method == 'CLIP'))
+    row.prop(mat, "alpha_threshold")
+
+    if mat.blend_method not in {'OPAQUE', 'CLIP', 'HASHED'}:
+        layout.prop(mat, "show_transparent_back")
+
+    layout.prop(mat, "use_screen_refraction")
+    layout.prop(mat, "refraction_depth")
+    layout.prop(mat, "use_sss_translucency")
+    layout.prop(mat, "pass_index")
+
+
 def draw_material_volume_settings(layout, mat, is_eevee=True):
     layout.prop(mat, "volume_intersection_method", text="Intersection" if is_eevee else "Volume Intersection")
 
@@ -291,9 +314,12 @@ def draw_material_settings(self, context):
 
     mat = context.material
 
-    draw_material_surface_settings(layout, mat, False)
-    draw_material_volume_settings(layout, mat, False)
-
+    if context.scene.render.engine == "BLENDER_EEVEE":
+        draw_goo_material_surface_settings(layout, mat)
+        
+    else:
+        draw_material_surface_settings(layout, mat, False)
+        draw_material_volume_settings(layout, mat, False)
 
 class EEVEE_MATERIAL_PT_settings(MaterialButtonsPanel, Panel):
     bl_label = "Settings"

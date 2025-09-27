@@ -118,8 +118,9 @@ static void blender_version_init()
     BLI_assert_msg(0, "Invalid Blender version cycle");
   }
 
-  version_cycle = " Goo Engine";
   const char *version_suffix = BKE_blender_version_is_lts() ? " LTS" : "";
+
+  version_cycle = " Goo Engine";
 
   SNPRINTF(blender_version_string,
            "%d.%01d.%d%s%s",

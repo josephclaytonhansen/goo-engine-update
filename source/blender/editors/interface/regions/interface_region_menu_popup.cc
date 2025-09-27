@@ -621,7 +621,7 @@ static void ui_popup_menu_create_from_menutype(bContext *C,
 
   WorkspaceStatus status(C);
   if (bool(mt->flag & MenuTypeFlag::SearchOnKeyPress) && !bool(U.experimental.disable_search_on_keypress)) {
-    ED_workspace_status_text(C, IFACE_("Type to search..."));
+    status.range(IFACE_("Search"), ICON_EVENT_A, ICON_EVENT_Z);
   }
   else if (mt->idname[0]) {
     status.item(IFACE_("Search"), ICON_EVENT_SPACEKEY);

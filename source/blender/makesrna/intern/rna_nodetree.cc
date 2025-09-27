@@ -373,7 +373,7 @@ const EnumPropertyItem rna_enum_node_sdf_primitive_items[] = {
      "Parabola Segment",
      "2d sdf parabola segment"},
     {SHD_SDF_2D_UNEVEN_CAPSULE, "CAPSULE_2D", 0, "Uneven Capsule", "2d sdf capsule"},
-    {0, NULL, 0, NULL, NULL},
+    {0, nullptr, 0, nullptr, nullptr},
 };
 
 const EnumPropertyItem rna_enum_node_sdf_op_items[] = {
@@ -422,7 +422,7 @@ const EnumPropertyItem rna_enum_node_sdf_op_items[] = {
     {SHD_SDF_OP_DIFF_COLUMNS, "DIFF_COLUMNS", 0, "Difference Columns", ""},
     {SHD_SDF_OP_DIFF_STAIRS, "DIFF_STAIRS", 0, "Difference Stairs", ""},
     {SHD_SDF_OP_DIFF_CHAMFER, "DIFF_CHAMFER", 0, "Difference Chamfer", ""},
-    {0, NULL, 0, NULL, NULL},
+    {0, nullptr, 0, nullptr, nullptr},
 };
 
 const EnumPropertyItem rna_enum_node_sdf_vector_op_items[] = {
@@ -502,7 +502,7 @@ const EnumPropertyItem rna_enum_node_sdf_vector_op_items[] = {
     {SHD_SDF_VEC_OP_MAP_11, "MAP_11", 0, "Map -1-1", "Map UV range [0,1] to [-1,1]"},
     {SHD_SDF_VEC_OP_MAP_05, "MAP_05", 0, "Map -0.5-0.5", "Map UV range [0,1] to [-.5,.5]"},
     {SHD_SDF_VEC_OP_MAP_UV, "MAP_UV", 0, "Map 0-1", "Map [-1,1] to UV range [0,1]"},
-    {0, NULL, 0, NULL, NULL},
+    {0, nullptr, 0, nullptr, nullptr},
 };
 
 const EnumPropertyItem rna_enum_node_float_compare_items[] = {
@@ -5300,13 +5300,13 @@ static void def_sh_sdf_primitive(StructRNA *srna)
   def_sh_tex(srna);
 
   prop = RNA_def_property(srna, "mode", PROP_ENUM, PROP_NONE);
-  RNA_def_property_enum_sdna(prop, NULL, "mode");
+  RNA_def_property_enum_sdna(prop, nullptr, "mode");
   RNA_def_property_enum_items(prop, rna_enum_node_sdf_primitive_items);
   RNA_def_property_ui_text(prop, "Mode", "SDF Function");
   RNA_def_property_update(prop, 0, "rna_ShaderNode_socket_update");
 
   prop = RNA_def_property(srna, "invert", PROP_BOOLEAN, PROP_NONE);
-  RNA_def_property_boolean_sdna(prop, NULL, "invert", 1);
+  RNA_def_property_boolean_sdna(prop, nullptr, "invert", 1);
   RNA_def_property_ui_text(prop, "Invert", "Invert signed distance field");
   RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_Node_update");
 }
@@ -5318,13 +5318,13 @@ static void def_sh_sdf_op(StructRNA *srna)
   RNA_def_struct_sdna_from(srna, "NodeSdfOp", "storage");
 
   prop = RNA_def_property(srna, "operation", PROP_ENUM, PROP_NONE);
-  RNA_def_property_enum_sdna(prop, NULL, "operation");
+  RNA_def_property_enum_sdna(prop, nullptr, "operation");
   RNA_def_property_enum_items(prop, rna_enum_node_sdf_op_items);
   RNA_def_property_ui_text(prop, "SDF Operation", "");
   RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_ShaderNode_socket_update");
 
   prop = RNA_def_property(srna, "invert", PROP_BOOLEAN, PROP_NONE);
-  RNA_def_property_boolean_sdna(prop, NULL, "invert", 1);
+  RNA_def_property_boolean_sdna(prop, nullptr, "invert", 1);
   RNA_def_property_ui_text(prop, "Invert", "Invert operation output value");
   RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_Node_update");
 }
@@ -5338,7 +5338,7 @@ static void def_sh_sdf_vector_op(StructRNA *srna)
       {SHD_SDF_AXIS_YZX, "YZX_AXIS", 0, "YZX Axis", ""},
       {SHD_SDF_AXIS_ZXY, "ZXY_AXIS", 0, "ZXY Axis", ""},
       {SHD_SDF_AXIS_ZYX, "ZYX_AXIS", 0, "ZYX Axis", ""},
-      {0, NULL, 0, NULL, NULL},
+      {0, nullptr, 0, nullptr, nullptr},
   };
 
   PropertyRNA *prop;
@@ -5346,13 +5346,13 @@ static void def_sh_sdf_vector_op(StructRNA *srna)
   RNA_def_struct_sdna_from(srna, "NodeSdfVectorOp", "storage");
 
   prop = RNA_def_property(srna, "operation", PROP_ENUM, PROP_NONE);
-  RNA_def_property_enum_sdna(prop, NULL, "operation");
+  RNA_def_property_enum_sdna(prop, nullptr, "operation");
   RNA_def_property_enum_items(prop, rna_enum_node_sdf_vector_op_items);
   RNA_def_property_ui_text(prop, "Operation", "");
   RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_ShaderNode_socket_update");
 
   prop = RNA_def_property(srna, "axis", PROP_ENUM, PROP_NONE);
-  RNA_def_property_enum_sdna(prop, NULL, "axis");
+  RNA_def_property_enum_sdna(prop, nullptr, "axis");
   RNA_def_property_enum_items(prop, sdf_op_axis_items);
   RNA_def_property_ui_text(prop, "Axis", "");
   RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_Node_update");
@@ -5365,7 +5365,7 @@ static void def_sh_shader_info(StructRNA *srna)
   RNA_def_struct_sdna_from(srna, "NodeShaderInfo", "storage");
 
   prop = RNA_def_property(srna, "light_group_bits", PROP_INT, PROP_NONE);
-  RNA_def_property_int_sdna(prop, NULL, "light_group_bits");
+  RNA_def_property_int_sdna(prop, nullptr, "light_group_bits");
   RNA_def_property_array(prop, 4);
   RNA_def_property_ui_text(prop, "Light Groups", "Light group bitfield");
   RNA_def_property_clear_flag(prop, PROP_ANIMATABLE);
@@ -5373,7 +5373,7 @@ static void def_sh_shader_info(StructRNA *srna)
   RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_Node_update");
 
   prop = RNA_def_property(srna, "light_group_shadow_bits", PROP_INT, PROP_NONE);
-  RNA_def_property_int_sdna(prop, NULL, "light_group_shadow_bits");
+  RNA_def_property_int_sdna(prop, nullptr, "light_group_shadow_bits");
   RNA_def_property_array(prop, 4);
   RNA_def_property_ui_text(prop, "Light Group Shadows", "Light group shadow bitfield");
   RNA_def_property_clear_flag(prop, PROP_ANIMATABLE);
@@ -5381,7 +5381,7 @@ static void def_sh_shader_info(StructRNA *srna)
   RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_Node_update");
 
   prop = RNA_def_property(srna, "use_own_light_groups", PROP_BOOLEAN, PROP_NONE);
-  RNA_def_property_boolean_sdna(prop, NULL, "use_own_light_groups", 1);
+  RNA_def_property_boolean_sdna(prop, nullptr, "use_own_light_groups", 1);
   RNA_def_property_ui_text(
       prop, "Light Groups", "Set light groups for this node separately");
   RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_Node_update");
