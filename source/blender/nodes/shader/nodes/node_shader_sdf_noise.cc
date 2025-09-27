@@ -64,11 +64,11 @@ void register_node_type_sh_sdf_noise(void)
 {
  namespace file_ns = blender::nodes::node_shader_sdf_noise_cc;
 
- static bNodeType ntype;
+ static blender::bke::bNodeType ntype;
 
  sh_node_type_base(&ntype, SH_NODE_SDF_NOISE, "SDF Noise", NODE_CLASS_TEXTURE);
  ntype.declare = file_ns::node_declare;
  ntype.gpu_fn = node_shader_gpu_sdf_noise;
 
- nodeRegisterType(&ntype);
+ blender::bke::nodeRegisterType(&ntype);
 }

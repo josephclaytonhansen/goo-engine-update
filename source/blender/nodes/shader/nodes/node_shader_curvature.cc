@@ -58,11 +58,11 @@ void register_node_type_sh_curvature(void)
 {
  namespace file_ns = blender::nodes::node_shader_curvature_cc;
 
- static bNodeType ntype;
+ static blender::bke::bNodeType ntype;
 
  sh_node_type_base(&ntype, SH_NODE_CURVATURE, "Curvature", NODE_CLASS_INPUT);
  ntype.declare = file_ns::node_declare;
  ntype.gpu_fn = node_shader_gpu_curvature;
 
- nodeRegisterType(&ntype);
+ blender::bke::nodeRegisterType(&ntype);
 }

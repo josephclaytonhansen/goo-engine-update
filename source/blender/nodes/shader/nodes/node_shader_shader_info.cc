@@ -2,9 +2,11 @@
 * Copyright 2005 Blender Foundation. All rights reserved. */
 
 #include "../node_shader_util.hh"
+#include "node_util.hh"
 
 #include "UI_interface.hh"
 #include "UI_resources.hh"
+
 namespace blender::nodes::node_shader_shader_info_cc {
 
 static void node_declare(NodeDeclarationBuilder &b)
@@ -84,7 +86,7 @@ void register_node_type_sh_shader_info(void)
 {
  namespace file_ns = blender::nodes::node_shader_shader_info_cc;
 
- static bNodeType ntype;
+ static blender::bke::bNodeType ntype;
 
  sh_node_type_base(&ntype, SH_NODE_SHADER_INFO, "Shader Info", NODE_CLASS_INPUT);
 
@@ -92,10 +94,10 @@ void register_node_type_sh_shader_info(void)
  ntype.draw_buttons = file_ns::node_shader_buts_shader_info;
  ntype.initfunc = file_ns::node_shader_init_shader_info;
 
- node_type_storage(
+ blender::bke::node_type_storage(
      &ntype, "NodeShaderInfo", node_free_standard_storage, node_copy_standard_storage);
 
  ntype.gpu_fn = file_ns::node_shader_gpu_shader_info;
 
- nodeRegisterType(&ntype);
+ blender::bke::nodeRegisterType(&ntype);
 }

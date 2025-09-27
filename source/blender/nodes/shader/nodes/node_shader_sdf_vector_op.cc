@@ -25,8 +25,11 @@
 
 #include "UI_interface.hh"
 #include "UI_resources.hh"
+#include "RNA_access.hh"
+#include "BLI_string.h"
 
 #include "../node_shader_util.hh"
+#include "node_util.hh"
 
 using namespace blender::bke;
 
@@ -345,15 +348,15 @@ static void node_shader_buts_sdf_vector_op(uiLayout *layout, bContext* /* C */, 
 /* node type definition */
 void register_node_type_sh_sdf_vector_op(void)
 {
-  static bNodeType ntype;
+  static blender::bke::bNodeType ntype;
   sh_node_type_base(&ntype, SH_NODE_SDF_VECTOR_OP, "Sdf Vector Operator", NODE_CLASS_OP_VECTOR);
   ntype.declare = blender::nodes::sh_node_sdf_vector_op_declare;
-  node_type_storage(
+  blender::bke::node_type_storage(
       &ntype, "NodeSdfVectorOp", node_free_standard_storage, node_copy_standard_storage);
   ntype.gpu_fn = node_shader_gpu_sdf_vector_op;
   ntype.initfunc = node_shader_init_sdf_vector_op;
   ntype.labelfunc = node_shader_label_sdf_vector_op;
   ntype.updatefunc = node_shader_update_sdf_vector_op;
   ntype.draw_buttons = node_shader_buts_sdf_vector_op;
-  nodeRegisterType(&ntype);
+  blender::bke::nodeRegisterType(&ntype);
 }

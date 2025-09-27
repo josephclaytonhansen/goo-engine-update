@@ -26,8 +26,11 @@
 #include "UI_interface.hh"
 #include "UI_resources.hh"
 #include "BKE_texture.h"
+#include "RNA_access.hh"
+#include "BLI_string.h"
 
 #include "../node_shader_util.hh"
+#include "node_util.hh"
 
 using namespace blender::bke;
 
@@ -465,11 +468,11 @@ static void node_shader_update_sdf_primitive(bNodeTree *ntree, bNode *node)
 /* node type definition */
 void register_node_type_sh_sdf_primitive(void)
 {
-  static bNodeType ntype;
+  static blender::bke::bNodeType ntype;
 
   sh_node_type_base(&ntype, SH_NODE_SDF_PRIMITIVE, "Sdf Primitive", NODE_CLASS_TEXTURE);
   ntype.declare = blender::nodes::sh_node_sdf_primitive_declare;
-  node_type_storage(
+  blender::bke::node_type_storage(
       &ntype, "NodeSdfPrimitive", node_free_standard_storage, node_copy_standard_storage);
   ntype.gpu_fn = node_shader_gpu_sdf_primitive;
   ntype.initfunc = node_shader_init_sdf_primitive;
@@ -477,5 +480,5 @@ void register_node_type_sh_sdf_primitive(void)
   ntype.updatefunc = node_shader_update_sdf_primitive;
   ntype.draw_buttons = node_shader_buts_sdf_primitive;
 
-  nodeRegisterType(&ntype);
+  blender::bke::nodeRegisterType(&ntype);
 }

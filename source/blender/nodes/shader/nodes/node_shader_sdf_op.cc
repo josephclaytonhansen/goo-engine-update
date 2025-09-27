@@ -286,15 +286,15 @@ static void node_shader_buts_sdf_op(uiLayout *layout, bContext * /* C */, Pointe
 /* node type definition */
 void register_node_type_sh_sdf_op(void)
 {
-  static bNodeType ntype;
+  static blender::bke::bNodeType ntype;
 
   sh_node_type_base(&ntype, SH_NODE_SDF_OP, "Sdf Operator", NODE_CLASS_CONVERTER);
   ntype.declare = blender::nodes::sh_node_sdf_op_declare;
-  node_type_storage(&ntype, "NodeSdfOp", node_free_standard_storage, node_copy_standard_storage);
+  blender::bke::node_type_storage(&ntype, "NodeSdfOp", node_free_standard_storage, node_copy_standard_storage);
   ntype.gpu_fn = node_shader_gpu_sdf_op;
   ntype.initfunc = node_shader_init_sdf_op;
   ntype.labelfunc = node_shader_label_sdf_op;
   ntype.updatefunc = node_shader_update_sdf_op;
   ntype.draw_buttons = node_shader_buts_sdf_op;
-  nodeRegisterType(&ntype);
+  blender::bke::nodeRegisterType(&ntype);
 }
