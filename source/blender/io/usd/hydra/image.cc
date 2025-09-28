@@ -8,15 +8,15 @@
 #include <pxr/imaging/hio/imageRegistry.h>
 
 #include "BLI_fileops.h"
-#include "BLI_path_util.h"
+#include "BLI_path_utils.hh"
 #include "BLI_string.h"
 
 #include "BKE_appdir.hh"
-#include "BKE_image.h"
-#include "BKE_image_format.h"
-#include "BKE_image_save.h"
+#include "BKE_image.hh"
+#include "BKE_image_format.hh"
+#include "BKE_image_save.hh"
 #include "BKE_main.hh"
-#include "BKE_packedFile.h"
+#include "BKE_packedFile.hh"
 
 #include "IMB_imbuf.hh"
 #include "IMB_imbuf_types.hh"
@@ -34,7 +34,7 @@ static std::string cache_image_file(
     const char *file_ext[BKE_IMAGE_PATH_EXT_MAX];
     file_ext[0] = BLI_path_extension_or_end(image->id.name);
     if (!pxr::HioImageRegistry::GetInstance().IsSupportedImageFile(image->id.name)) {
-      BKE_image_path_ext_from_imformat(&scene->r.im_format, file_ext);
+      BKE_image_path_ext_from_imformat(&scene->r.im_format, &r_ext);
       BKE_image_format_free(&opts.im_format);
       BKE_image_format_copy(&opts.im_format, &scene->r.im_format);
     }

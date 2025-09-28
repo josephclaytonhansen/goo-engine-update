@@ -27,7 +27,7 @@ import zipfile
 
 from typing import (
     Any,
-    Iterator,
+    Generator,
     IO,
     NamedTuple,
 )
@@ -465,7 +465,7 @@ def path_from_url(path: str) -> str:
     return result
 
 
-def random_acii_lines(*, seed: int | str, width: int) -> Iterator[str]:
+def random_acii_lines(*, seed: int | str, width: int) -> Generator[str, None, None]:
     """
     Generate random ASCII text [A-Za-z0-9].
     Intended not to compress well, it's possible to simulate downloading a large package.
@@ -522,7 +522,7 @@ def scandir_recursive_impl(
         path: str,
         *,
         filter_fn: Callable[[str, bool], bool],
-) -> Iterator[tuple[str, str]]:
+) -> Generator[tuple[str, str], None, None]:
     """Recursively yield DirEntry objects for given directory."""
     for entry in os.scandir(path):
         if entry.is_symlink():
@@ -548,7 +548,7 @@ def scandir_recursive_impl(
 def scandir_recursive(
         path: str,
         filter_fn: Callable[[str, bool], bool],
-) -> Iterator[tuple[str, str]]:
+) -> Generator[tuple[str, str], None, None]:
     yield from scandir_recursive_impl(path, path, filter_fn=filter_fn)
 
 
@@ -690,7 +690,7 @@ def rmtree_with_fallback_or_error_pseudo_atomic(
 def build_paths_expand_iter(
         path: str,
         path_list: Sequence[str],
-) -> Iterator[tuple[str, str]]:
+) -> Generator[tuple[str, str], None, None]:
     """
     Expand paths from a path list which always uses "/" slashes.
     """
@@ -1318,8 +1318,7 @@ def url_retrieve_to_data_iter(
         headers: dict[str, str],
         chunk_size: int,
         timeout_in_seconds: float,
-        retrieve_info: DataRetrieveInfo,
-) -> Iterator[bytes]:
+) -> Generator[tuple[bytes, int, Any], None, None]:
     """
     Iterate over byte data downloaded from a from a URL
     limited to ``chunk_size``.
@@ -1385,8 +1384,7 @@ def url_retrieve_to_filepath_iter(
         data: Any | None = None,
         chunk_size: int,
         timeout_in_seconds: float,
-        retrieve_info: DataRetrieveInfo,
-) -> Iterator[int]:
+) -> Generator[tuple[int, int, Any], None, None]:
     # Handle temporary file setup.
     with open(filepath, 'wb') as fh_output:
         for block in url_retrieve_to_data_iter(
@@ -1408,8 +1406,7 @@ def filepath_retrieve_to_filepath_iter(
         *,
         chunk_size: int,
         timeout_in_seconds: float,
-        retrieve_info: DataRetrieveInfo,
-) -> Iterator[int]:
+) -> Generator[tuple[int, int], None, None]:
     # TODO: `timeout_in_seconds`.
     # Handle temporary file setup.
     _ = timeout_in_seconds
@@ -1425,7 +1422,6 @@ def filepath_retrieve_to_filepath_iter(
 def url_retrieve_to_data_iter_or_filesystem(
         url: str,
         headers: dict[str, str],
-        *,
         chunk_size: int,
         timeout_in_seconds: float,
         retrieve_info: DataRetrieveInfo,
@@ -1450,12 +1446,10 @@ def url_retrieve_to_data_iter_or_filesystem(
 def url_retrieve_to_filepath_iter_or_filesystem(
         url: str,
         filepath: str,
-        *,
         headers: dict[str, str],
         chunk_size: int,
         timeout_in_seconds: float,
-        retrieve_info: DataRetrieveInfo,
-) -> Iterator[int]:
+) -> Generator[tuple[int, int], None, None]:
     """
     Callers should catch: ``(Exception, KeyboardInterrupt)`` and convert them to message using:
     ``url_retrieve_exception_as_message``.
@@ -2397,7 +2391,7 @@ def build_paths_filter_by_platform(
         build_paths: list[tuple[str, str]],
         wheel_range: tuple[int, int],
         platforms: tuple[str, ...],
-) -> Iterator[tuple[list[tuple[str, str]], str]]:
+) -> Generator[tuple[list[tuple[str, str]], str], None, None]:
     if not platforms:
         yield (build_paths, "")
         return
@@ -5579,9 +5573,6 @@ def main(
 
     # Run early to prevent a `KeyboardInterrupt` exception.
     signal.signal(signal.SIGINT, signal_handler_sigint)
-    if sys.platform == "win32":
-        # WIN32 needs to check for break as sending SIGINT isn't supported from the caller, see #131947.
-        signal.signal(signal.SIGBREAK, signal_handler_sigint)
 
     # Needed on WIN32 which doesn't default to `utf-8`.
     for fh in (sys.stdout, sys.stderr):

@@ -18,7 +18,7 @@
 #include "BLI_string.h"
 #include "BLI_task.h"
 
-#include "BKE_image.h"
+#include "BKE_image.hh"
 #include "BKE_report.hh"
 #include "BKE_unit.hh"
 
@@ -141,9 +141,9 @@ static void transdata_elem_translate(const TransInfo *t,
 
   if (t->options & CTX_GPENCIL_STROKES) {
     /* Grease pencil multi-frame falloff. */
-    bGPDstroke *gps = (bGPDstroke *)td->extra;
-    if (gps != nullptr) {
-      mul_v3_fl(tvec, td->factor * gps->runtime.multi_frame_falloff);
+    float *gp_falloff = static_cast<float *>(td->extra);
+    if (gp_falloff != nullptr) {
+      mul_v3_fl(tvec, td->factor * *gp_falloff);
     }
     else {
       mul_v3_fl(tvec, td->factor);
@@ -360,7 +360,12 @@ static void ApplySnapTranslation(TransInfo *t, float vec[3])
     }
   }
   else if (t->spacetype == SPACE_SEQ) {
-    transform_snap_sequencer_apply_translate(t, vec);
+    if (t->region->regiontype == RGN_TYPE_PREVIEW) {
+      transform_snap_sequencer_image_apply_translate(t, vec);
+    }
+    else {
+      transform_snap_sequencer_apply_seqslide(t, vec);
+    }
   }
   else {
     if (t->spacetype == SPACE_VIEW3D) {

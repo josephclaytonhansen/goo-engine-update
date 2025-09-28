@@ -39,8 +39,9 @@ def _zipfile_root_namelist(file_to_extract):
 
 
 def _module_filesystem_remove(path_base, filenames):
-    # Remove all Python modules with `module_name` in `base_path`.
-    # The `filenames` is expected to be a result from `_zipfile_root_namelist`.
+    # Remove all Python modules defined by `filenames` in `base_path`.
+    # The `filenames` argument is expected to be a result from `_zipfile_root_namelist`
+    # but could be any iterable of file-names.
     import os
     import shutil
     module_names = {
@@ -255,7 +256,7 @@ class PREFERENCES_OT_keyconfig_import(Operator):
                 shutil.copy(self.filepath, path)
             else:
                 shutil.move(self.filepath, path)
-        except BaseException as ex:
+        except Exception as ex:
             self.report({'ERROR'}, rpt_("Installing keymap failed: {:s}").format(str(ex)))
             return {'CANCELLED'}
 
@@ -607,7 +608,7 @@ class PREFERENCES_OT_theme_install(Operator):
                 filepath=path_dest,
                 menu_idname="USERPREF_MT_interface_theme_presets",
             )
-        except BaseException:
+        except Exception:
             traceback.print_exc()
             return {'CANCELLED'}
 
@@ -717,7 +718,7 @@ class PREFERENCES_OT_addon_install(Operator):
         if not os.path.isdir(path_addons):
             try:
                 os.makedirs(path_addons, exist_ok=True)
-            except BaseException:
+            except Exception:
                 traceback.print_exc()
 
         # Check if we are installing from a target path,
@@ -739,7 +740,7 @@ class PREFERENCES_OT_addon_install(Operator):
         if zipfile.is_zipfile(pyfile):
             try:
                 file_to_extract = zipfile.ZipFile(pyfile, "r")
-            except BaseException:
+            except Exception:
                 traceback.print_exc()
                 return {'CANCELLED'}
 
@@ -762,7 +763,7 @@ class PREFERENCES_OT_addon_install(Operator):
 
             try:  # extract the file to "addons"
                 file_to_extract.extractall(path_addons)
-            except BaseException:
+            except Exception:
                 traceback.print_exc()
                 return {'CANCELLED'}
 
@@ -778,7 +779,7 @@ class PREFERENCES_OT_addon_install(Operator):
             # if not compressed file just copy into the addon path
             try:
                 shutil.copyfile(pyfile, path_dest)
-            except BaseException:
+            except Exception:
                 traceback.print_exc()
                 return {'CANCELLED'}
 
@@ -996,7 +997,7 @@ class PREFERENCES_OT_app_template_install(Operator):
         if not os.path.isdir(path_app_templates):
             try:
                 os.makedirs(path_app_templates, exist_ok=True)
-            except BaseException:
+            except Exception:
                 traceback.print_exc()
 
         app_templates_old = set(os.listdir(path_app_templates))
@@ -1005,7 +1006,7 @@ class PREFERENCES_OT_app_template_install(Operator):
         if zipfile.is_zipfile(filepath):
             try:
                 file_to_extract = zipfile.ZipFile(filepath, "r")
-            except BaseException:
+            except Exception:
                 traceback.print_exc()
                 return {'CANCELLED'}
 
@@ -1021,7 +1022,7 @@ class PREFERENCES_OT_app_template_install(Operator):
 
             try:  # extract the file to "bl_app_templates_user"
                 file_to_extract.extractall(path_app_templates)
-            except BaseException:
+            except Exception:
                 traceback.print_exc()
                 return {'CANCELLED'}
 

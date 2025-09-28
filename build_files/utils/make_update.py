@@ -55,10 +55,6 @@ def parse_arguments() -> argparse.Namespace:
                         choices=("x86_64", "amd64", "arm64",))
     parser.add_argument("--prune-destructive", action="store_true",
                         help="Destructive! Detect and remove stale files from older checkouts")
-
-    # Deprecated options, kept for compatibility with old configurations.
-    parser.add_argument("--use-tests", action="store_true", help=argparse.SUPPRESS)
-
     return parser.parse_args()
 
 
@@ -112,6 +108,8 @@ def get_effective_architecture(args: argparse.Namespace) -> str:
     # Normalize the architecture name.
     if architecture in {"x86_64", "amd64"}:
         architecture = "x64"
+    if architecture == "aarch64":
+        architecture = "arm64"
 
     assert (architecture in {"x64", "arm64"})
 
@@ -624,9 +622,6 @@ if __name__ == "__main__":
 
     if args.prune_destructive:
         prune_stale_files()
-
-    if not args.no_lfs_fallback:
-        lfs_fallback_setup(args)
 
     if not args.no_blender:
         blender_skip_msg = git_update_skip(args)

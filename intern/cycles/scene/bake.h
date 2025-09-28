@@ -23,6 +23,9 @@ class BakeManager {
 
   void set_use_camera(bool use_camera);
 
+  void set_use_seed(bool use_seed);
+  bool get_use_seed() const;
+
   void device_update(Device *device, DeviceScene *dscene, Scene *scene, Progress &progress);
   void device_free(Device *device, DeviceScene *dscene);
 
@@ -31,9 +34,10 @@ class BakeManager {
   bool need_update() const;
 
  private:
-  bool need_update_ = true;
-  bool use_baking_ = false;
-  bool use_camera_ = false;
+  bool need_update_;
+  std::string object_name;
+  bool use_camera_;
+  bool use_seed_;
 };
 
 CCL_NAMESPACE_END

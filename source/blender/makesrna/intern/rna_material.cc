@@ -160,7 +160,7 @@ static void rna_Material_active_paint_texture_index_update(bContext *C, PointerR
     bNode *node = BKE_texpaint_slot_material_find_node(ma, ma->paint_active_slot);
 
     if (node) {
-      blender::bke::nodeSetActive(ma->nodetree, node);
+      blender::bke::node_set_active(ma->nodetree, node);
     }
   }
 
@@ -394,15 +394,6 @@ static bool rna_is_grease_pencil_get(PointerRNA *ptr)
   return false;
 }
 
-static void rna_gpcolordata_uv_update(Main *bmain, Scene *scene, PointerRNA *ptr)
-{
-  /* update all uv strokes of this color */
-  Material *ma = (Material *)ptr->owner_id;
-  ED_gpencil_update_color_uv(bmain, ma);
-
-  rna_MaterialGpencil_update(bmain, scene, ptr);
-}
-
 static std::optional<std::string> rna_GpencilColorData_path(const PointerRNA * /*ptr*/)
 {
   return "grease_pencil";
@@ -453,6 +444,10 @@ static void rna_def_material_display(StructRNA *srna)
   RNA_def_property_array(prop, 4);
   RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
   RNA_def_property_ui_text(prop, "Diffuse Color", "Diffuse color of the material");
+  /* See #82514 for details, for now re-define defaults here. Keep in sync with
+   * #DNA_material_defaults.h */
+  static float diffuse_color_default[4] = {0.8f, 0.8f, 0.8f, 1.0f};
+  RNA_def_property_float_array_default(prop, diffuse_color_default);
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
 
   prop = RNA_def_property(srna, "specular_color", PROP_FLOAT, PROP_COLOR);
@@ -620,7 +615,7 @@ static void rna_def_material_greasepencil(BlenderRNA *brna)
   RNA_def_property_float_sdna(prop, nullptr, "texture_pixsize");
   RNA_def_property_range(prop, 1, 5000);
   RNA_def_property_ui_text(prop, "UV Factor", "Texture Pixel Size factor along the stroke");
-  RNA_def_property_update(prop, NC_GPENCIL | ND_SHADING, "rna_gpcolordata_uv_update");
+  RNA_def_property_update(prop, NC_GPENCIL | ND_SHADING, "rna_MaterialGpencil_update");
 
   /* Flags */
   prop = RNA_def_property(srna, "hide", PROP_BOOLEAN, PROP_NONE);
@@ -698,7 +693,7 @@ static void rna_def_material_greasepencil(BlenderRNA *brna)
   RNA_def_property_ui_text(prop,
                            "Rotation",
                            "Additional rotation applied to dots and square texture of strokes. "
-                           "Only applies in texture shading mode");
+                           "Only applies in texture shading mode.");
   RNA_def_property_update(prop, NC_GPENCIL | ND_SHADING, "rna_MaterialGpencil_update");
 
   /* pass index for future compositing and editing tools */
@@ -843,14 +838,14 @@ void RNA_def_material(BlenderRNA *brna)
        0,
        "Fast",
        "Each face is considered as a medium interface. Gives correct results for manifold "
-       "geometry that contains no inner parts"},
+       "geometry that contains no inner parts."},
       {MA_VOLUME_ISECT_ACCURATE,
        "ACCURATE",
        0,
        "Accurate",
        "Faces are considered as medium interface only when they have different consecutive "
        "facing. Gives correct results as long as the max ray depth is not exceeded. Have "
-       "significant memory overhead compared to the fast method"},
+       "significant memory overhead compared to the fast method."},
       {0, nullptr, 0, nullptr, nullptr},
   };
 
@@ -911,13 +906,13 @@ void RNA_def_material(BlenderRNA *brna)
        0,
        "Dithered",
        "Allows for grayscale hashed transparency, and compatible with render passes and "
-       "raytracing. Also known as deferred rendering"},
+       "raytracing. Also known as deferred rendering."},
       {MA_SURFACE_METHOD_FORWARD,
        "BLENDED",
        0,
        "Blended",
        "Allows for colored transparency, but incompatible with render passes and raytracing. Also "
-       "known as forward rendering"},
+       "known as forward rendering."},
       {0, nullptr, 0, nullptr, nullptr},
   };
 
@@ -973,12 +968,6 @@ void RNA_def_material(BlenderRNA *brna)
   RNA_def_property_translation_context(prop, BLT_I18NCONTEXT_ID_MATERIAL);
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
 
-  prop = RNA_def_property(srna, "shadow_method", PROP_ENUM, PROP_NONE);
-  RNA_def_property_enum_sdna(prop, nullptr, "blend_shadow");
-  RNA_def_property_enum_items(prop, prop_eevee_blend_shadow_items);
-  RNA_def_property_ui_text(prop, "Shadow Mode", "Shadow mapping method");
-  RNA_def_property_update(prop, 0, "rna_Material_draw_update");
-
   prop = RNA_def_property(srna, "alpha_threshold", PROP_FLOAT, PROP_FACTOR);
   RNA_def_property_range(prop, 0, 1);
   RNA_def_property_ui_text(prop,
@@ -1021,7 +1010,7 @@ void RNA_def_material(BlenderRNA *brna)
       prop,
       "Light Probe Volume Backface Culling",
       "Consider material single sided for light probe volume capture. "
-      "Additionally helps rejecting probes inside the object to avoid light leaks");
+      "Additionally helps rejecting probes inside the object to avoid light leaks.");
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
 
   prop = RNA_def_property(srna, "use_transparent_shadow", PROP_BOOLEAN, PROP_NONE);
@@ -1041,7 +1030,7 @@ void RNA_def_material(BlenderRNA *brna)
       "Raytrace Transmission",
       "Use raytracing to determine transmitted color instead of using only light probes. "
       "This prevents the surface from contributing to the lighting of surfaces not using this "
-      "setting");
+      "setting.");
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
 
   prop = RNA_def_property(srna, "use_screen_refraction", PROP_BOOLEAN, PROP_NONE);
@@ -1098,7 +1087,7 @@ void RNA_def_material(BlenderRNA *brna)
   RNA_def_property_ui_text(prop,
                            "Max Vertex Displacement",
                            "The max distance a vertex can be displaced. "
-                           "Displacements over this threshold may cause visibility issues");
+                           "Displacements over this threshold may cause visibility issues.");
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
 
   prop = RNA_def_property(srna, "light_group_bits", PROP_INT, PROP_NONE);

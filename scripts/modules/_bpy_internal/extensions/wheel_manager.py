@@ -22,7 +22,6 @@ import zipfile
 
 from collections.abc import (
     Callable,
-    Iterator,
 )
 
 WheelSource = tuple[
@@ -365,7 +364,6 @@ def apply_action(
         local_dir: str,
         local_dir_site_packages: str,
         wheel_list: list[WheelSource],
-        error_fn: Callable[[Exception], None],
         remove_error_fn: Callable[[str, Exception], None],
         debug: bool,
 ) -> None:

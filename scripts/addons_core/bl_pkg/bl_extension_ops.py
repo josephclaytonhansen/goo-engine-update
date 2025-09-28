@@ -1162,7 +1162,6 @@ def _extensions_repo_sync_wheels(
         local_dir=local_dir,
         wheel_list=wheel_list,
         debug=bpy.app.debug_python,
-        error_fn=error_fn,
     )
 
 
@@ -1198,7 +1197,6 @@ def _extensions_repo_refresh_on_change(
         addon_utils.extensions_refresh(
             ensure_wheels=False,
             addon_modules_pending=addon_modules_pending,
-            handle_error=error_fn,
         )
 
     if stats_calc:
@@ -2149,7 +2147,6 @@ class EXTENSIONS_OT_package_upgrade_all(Operator, _ExtCmdMixIn):
             ),
             compat_calc=True,
             stats_calc=True,
-            error_fn=handle_error,
         )
 
         _preferences_ensure_enabled_all(
@@ -2423,10 +2420,6 @@ class EXTENSIONS_OT_package_uninstall_marked(Operator, _ExtCmdMixIn):
         # Unlock repositories.
         lock_result_any_failed_with_report(self, self.repo_lock.release(), report_type='WARNING')
         del self.repo_lock
-
-        # TODO: it would be nice to include this message in the banner.
-        def handle_error(ex):
-            self.report({'ERROR'}, str(ex))
 
         for directory, pkg_id_sequence in self._pkg_id_sequence_from_directory.items():
             _extensions_repo_temp_files_make_stale(repo_directory=directory)
@@ -3490,10 +3483,6 @@ class EXTENSIONS_OT_package_uninstall(Operator, _ExtCmdMixIn):
         )
 
     def exec_command_finish(self, canceled):
-
-        # TODO: it would be nice to include this message in the banner.
-        def handle_error(ex):
-            self.report({'ERROR'}, str(ex))
 
         _extensions_repo_temp_files_make_stale(repo_directory=self.repo_directory)
         _extensions_repo_uninstall_stale_package_fallback(

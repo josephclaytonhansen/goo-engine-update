@@ -18,7 +18,7 @@
 #include "BLI_math_rotation.h"
 #include "BLI_math_vector.hh"
 #include "BLI_math_vector_types.hh"
-#include "BLI_path_util.h"
+#include "BLI_path_utils.hh"
 #include "BLI_rect.h"
 #include "BLI_string.h"
 #include "BLI_task.hh"
@@ -43,7 +43,7 @@
 
 #include "BLI_math_color_blend.h"
 
-#include "RNA_prototypes.h"
+#include "RNA_prototypes.hh"
 
 #include "RE_pipeline.h"
 
@@ -906,7 +906,7 @@ static void do_blend_effect_float(
 }
 
 static void do_blend_effect_byte(
-    float fac, int x, int y, uchar *rect1, uchar *rect2, int btype, uchar *out)
+    float fac, int x, int y, const uchar *rect1, uchar *rect2, int btype, uchar *out)
 {
   switch (btype) {
     case SEQ_TYPE_ADD:
@@ -2148,7 +2148,7 @@ void seq_effect_speed_rebuild_map(Scene *scene, Sequence *seq)
 
 static void seq_effect_speed_frame_map_ensure(Scene *scene, Sequence *seq)
 {
-  SpeedControlVars *v = (SpeedControlVars *)seq->effectdata;
+  const SpeedControlVars *v = (SpeedControlVars *)seq->effectdata;
   if (v->frameMap != nullptr) {
     return;
   }
@@ -2230,7 +2230,7 @@ static ImBuf *do_speed_effect(const SeqRenderData *context,
                               ImBuf *ibuf1,
                               ImBuf *ibuf2)
 {
-  SpeedControlVars *s = (SpeedControlVars *)seq->effectdata;
+  const SpeedControlVars *s = (SpeedControlVars *)seq->effectdata;
   SeqEffectHandle cross_effect = get_sequence_effect_impl(SEQ_TYPE_CROSS);
   ImBuf *out;
 
@@ -3048,8 +3048,8 @@ static void fill_rect_alpha_under(
     for (int x = x1; x < x2; x++) {
       float4 pix = load_premul_pixel(dst);
       float fac = 1.0f - pix.w;
-      float4 col = fac * premul_col + pix;
-      store_premul_pixel(col, dst);
+      float4 dst_fl = fac * premul_col + pix;
+      store_premul_pixel(dst_fl, dst);
       dst += 4;
     }
   }

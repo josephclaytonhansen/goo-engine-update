@@ -229,9 +229,11 @@ def command_output_from_json_0(
         python_args: Sequence[str],
 ) -> Generator[InfoItemSeq, bool, None]:
     cmd = [*blender_ext_cmd(python_args), *args, "--output-type=JSON_0"]
-    # Note that the context-manager isn't used to wait until the process is finished as
-    # the function only finishes when `poll()` is not none, it's just use to ensure file-handles
-    # are closed before this function exits, this only seems to be a problem on WIN32.
+    ps = non_blocking_call(cmd)
+    stdout = ps.stdout
+    assert stdout is not None
+    chunk_list = []
+    request_exit_signal_sent = False
 
     # WIN32 needs to use a separate process-group else Blender will recieve the "break", see #131947.
     creationflags = 0

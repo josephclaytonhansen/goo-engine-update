@@ -191,7 +191,7 @@ class HasNeighborFieldInput final : public bke::GeometryFieldInput {
     const VArraySpan<int> group_span(group);
     mask.foreach_index([&](const int i) {
       counts.add_or_modify(
-          group_span[i], [](int *count) { *count = 0; }, [](int *count) { (*count)++; });
+          group_span[i], [](int *count) { *count = 1; }, [](int *count) { (*count)++; });
     });
     Array<bool> result(mask.min_array_size());
     mask.foreach_index([&](const int i) { result[i] = counts.lookup(group_span[i]) > 1; });
@@ -248,7 +248,7 @@ static void node_register()
   geo_node_type_base(&ntype, GEO_NODE_INDEX_OF_NEAREST, "Index of Nearest", NODE_CLASS_CONVERTER);
   ntype.geometry_node_execute = node_geo_exec;
   ntype.declare = node_declare;
-  blender::bke::nodeRegisterType(&ntype);
+  blender::bke::node_register_type(&ntype);
 }
 NOD_REGISTER_NODE(node_register)
 

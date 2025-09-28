@@ -28,6 +28,8 @@
 #include "BKE_bake_geometry_nodes_modifier.hh"
 #include "BKE_pointcache.h"
 
+#include "ANIM_action.hh"
+
 /* Everything from source (BIF, BDR, BSE) ------------------------------ */
 
 #include "GPU_immediate.hh"
@@ -45,6 +47,8 @@
 
 #include "action_intern.hh"
 
+using namespace blender;
+
 /* -------------------------------------------------------------------- */
 /** \name Channel List
  * \{ */
@@ -52,7 +56,7 @@
 void draw_channel_names(bContext *C,
                         bAnimContext *ac,
                         ARegion *region,
-                        const ListBase /* bAnimListElem */ &anim_data)
+                        const ListBase /*bAnimListElem*/ &anim_data)
 {
   bAnimListElem *ale;
   View2D *v2d = &region->v2d;
@@ -376,6 +380,15 @@ static void draw_keyframes(bAnimContext *ac,
                                       scale_factor,
                                       action_flag);
         break;
+      case ALE_ACTION_SLOT:
+        ED_add_action_slot_channel(draw_list,
+                                   adt,
+                                   static_cast<bAction *>(ale->key_data)->wrap(),
+                                   *static_cast<animrig::Slot *>(ale->data),
+                                   ycenter,
+                                   scale_factor,
+                                   action_flag);
+        break;
       case ALE_ACT:
         ED_add_action_channel(draw_list,
                               adt,
@@ -419,7 +432,8 @@ static void draw_keyframes(bAnimContext *ac,
         break;
       case ALE_GREASE_PENCIL_DATA:
         ED_add_grease_pencil_datablock_channel(draw_list,
-                                               ads,
+                                               ac,
+                                               ale->adt,
                                                static_cast<const GreasePencil *>(ale->data),
                                                ycenter,
                                                scale_factor,
@@ -440,6 +454,9 @@ static void draw_keyframes(bAnimContext *ac,
                                   ycenter,
                                   scale_factor,
                                   action_flag);
+        break;
+      case ALE_NONE:
+      case ALE_NLASTRIP:
         break;
     }
   }

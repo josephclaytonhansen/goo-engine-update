@@ -1,0 +1,16 @@
+/* SPDX-FileCopyrightText: 2023 Blender Authors
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later */
+
+/** \file
+ * \ingroup pygen
+ * \brief header-only compatibility defines.
+ */
+
+#pragma once
+
+/* Add `intialized` member for Python 3.12+. */
+#  define PY_ARG_PARSER_HEAD_COMPAT() 0,
+#else
+#  define PY_ARG_PARSER_HEAD_COMPAT()
+#endif
