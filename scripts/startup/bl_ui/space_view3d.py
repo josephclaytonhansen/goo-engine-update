@@ -6900,6 +6900,7 @@ class VIEW3D_PT_overlay_object(Panel):
 
         sub = split.column(align=True)
         sub.prop(overlay, "show_bones", text="Bones")
+        sub.prop(overlay, "isolate_bones", text="Isolate Bones")
         sub.prop(overlay, "show_motion_paths")
         sub.prop(overlay, "show_object_origins", text="Origins")
         subsub = sub.column()

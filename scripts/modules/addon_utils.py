@@ -1212,10 +1212,6 @@ def _initialize_extensions_compat_data(
 
     if ensure_wheels:
         if updated:
-            if error_fn is None:
-                def error_fn(ex):
-                    print("Error:", str(ex))
-
             try:
                 _initialize_extensions_compat_ensure_up_to_date_wheels(extensions_directory, wheel_list, debug)
             except Exception:
