@@ -40,5 +40,5 @@ void register_node_type_sh_set_depth(void)
  ntype.declare = file_ns::node_declare;
  ntype.gpu_fn = file_ns::node_shader_gpu_add_shader;
 
- blender::bke::nodeRegisterType(&ntype);
+ blender::bke::node_register_type(&ntype);
 }

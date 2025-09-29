@@ -173,9 +173,9 @@ static void node_shader_update_sdf_op(bNodeTree *ntree, bNode *node)
   bNodeSocket *sockDistanceOut = (bNodeSocket *)BLI_findlink(&node->outputs, 0);
 
   /* Distance */
-  nodeSetSocketAvailability(ntree, sockInputA, true);
+  node_set_socket_availability(ntree, sockInputA, true);
 
-  nodeSetSocketAvailability(ntree, sockInputB,
+  node_set_socket_availability(ntree, sockInputB,
                             !ELEM(sdf->operation,
                                   SHD_SDF_OP_MASK,
                                   SHD_SDF_OP_INVERT,
@@ -186,14 +186,14 @@ static void node_shader_update_sdf_op(bNodeTree *ntree, bNode *node)
                                   SHD_SDF_OP_FLATTEN));
 
   /* Values */
-  nodeSetSocketAvailability(ntree, sockValue,
+  node_set_socket_availability(ntree, sockValue,
                             !ELEM(sdf->operation,
                                   SHD_SDF_OP_UNION,
                                   SHD_SDF_OP_INTERSECT,
                                   SHD_SDF_OP_DIFF,
                                   SHD_SDF_OP_INVERT));
 
-  nodeSetSocketAvailability(ntree, sockValue2,
+  node_set_socket_availability(ntree, sockValue2,
                             ELEM(sdf->operation,
                                  SHD_SDF_OP_DIVIDE,
                                  SHD_SDF_OP_FLATTEN,
@@ -208,7 +208,7 @@ static void node_shader_update_sdf_op(bNodeTree *ntree, bNode *node)
                                  SHD_SDF_OP_INTERSECT_STAIRS,
                                  SHD_SDF_OP_DIFF_STAIRS));
 
-  nodeSetSocketAvailability(ntree, sockCount, ELEM(sdf->operation, SHD_SDF_OP_ONION));
+  node_set_socket_availability(ntree, sockCount, ELEM(sdf->operation, SHD_SDF_OP_ONION));
 
   node_sock_label_clear(sockValue);
   node_sock_label_clear(sockValue2);
@@ -296,5 +296,5 @@ void register_node_type_sh_sdf_op(void)
   ntype.labelfunc = node_shader_label_sdf_op;
   ntype.updatefunc = node_shader_update_sdf_op;
   ntype.draw_buttons = node_shader_buts_sdf_op;
-  blender::bke::nodeRegisterType(&ntype);
+  blender::bke::node_register_type(&ntype);
 }

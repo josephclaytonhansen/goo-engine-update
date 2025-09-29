@@ -64,5 +64,5 @@ void register_node_type_sh_curvature(void)
  ntype.declare = file_ns::node_declare;
  ntype.gpu_fn = node_shader_gpu_curvature;
 
- blender::bke::nodeRegisterType(&ntype);
+ blender::bke::node_register_type(&ntype);
 }

@@ -99,5 +99,5 @@ void register_node_type_sh_shader_info(void)
 
  ntype.gpu_fn = file_ns::node_shader_gpu_shader_info;
 
- blender::bke::nodeRegisterType(&ntype);
+ blender::bke::node_register_type(&ntype);
 }

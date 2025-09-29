@@ -166,18 +166,18 @@ static void node_shader_update_sdf_vector_op(bNodeTree *ntree, bNode *node)
   bNodeSocket *sockValueOut = (bNodeSocket *)BLI_findlink(&node->outputs, 2);
 
   /* Out sockets. */
-  nodeSetSocketAvailability(ntree, sockValueOut,
+  node_set_socket_availability(ntree, sockValueOut,
                             ELEM(sdf->operation,
                                  SHD_SDF_VEC_OP_MIRROR,
                                  SHD_SDF_VEC_OP_REFLECT,
                                  SHD_SDF_VEC_OP_POLAR,
                                  SHD_SDF_VEC_OP_EXTRUDE));
 
-  nodeSetSocketAvailability(ntree, sockPositionOut,
+  node_set_socket_availability(ntree, sockPositionOut,
                             ELEM(sdf->operation, SHD_SDF_VEC_OP_MIRROR, SHD_SDF_VEC_OP_GRID));
 
   /* In sockets. */
-  nodeSetSocketAvailability(ntree, sockVector2,
+  node_set_socket_availability(ntree, sockVector2,
                             ELEM(sdf->operation,
                                  SHD_SDF_VEC_OP_SWIRL,
                                  SHD_SDF_VEC_OP_RADIAL_SHEAR,
@@ -193,17 +193,17 @@ static void node_shader_update_sdf_vector_op(bNodeTree *ntree, bNode *node)
                                  SHD_SDF_VEC_OP_REPEAT_INF,
                                  SHD_SDF_VEC_OP_REPEAT_INF_MIRROR));
 
-  nodeSetSocketAvailability(ntree, sockVector3,
+  node_set_socket_availability(ntree, sockVector3,
                             ELEM(sdf->operation,
                                  SHD_SDF_VEC_OP_SWIRL,
                                  SHD_SDF_VEC_OP_RADIAL_SHEAR,
                                  SHD_SDF_VEC_OP_REPEAT_FINITE));
 
   /* Values */
-  nodeSetSocketAvailability(ntree, sockScale,
+  node_set_socket_availability(ntree, sockScale,
                             ELEM(sdf->operation, SHD_SDF_VEC_OP_SCALE_UV, SHD_SDF_VEC_OP_TILESET));
 
-  nodeSetSocketAvailability(ntree, sockValue,
+  node_set_socket_availability(ntree, sockValue,
                             !ELEM(sdf->operation,
                                   SHD_SDF_VEC_OP_MAP_11,
                                   SHD_SDF_VEC_OP_MAP_05,
@@ -222,17 +222,17 @@ static void node_shader_update_sdf_vector_op(bNodeTree *ntree, bNode *node)
                                   SHD_SDF_VEC_OP_REPEAT_INF,
                                   SHD_SDF_VEC_OP_REPEAT_INF_MIRROR));
 
-  nodeSetSocketAvailability(ntree,
+  node_set_socket_availability(ntree,
                             sockValue2, ELEM(sdf->operation, SHD_SDF_VEC_OP_TILESET, SHD_SDF_VEC_OP_PINCH_INFLATE));
 
-  nodeSetSocketAvailability(ntree, sockAngle,
+  node_set_socket_availability(ntree, sockAngle,
                             ELEM(sdf->operation,
                                  SHD_SDF_VEC_OP_BEND,
                                  SHD_SDF_VEC_OP_TWIST,
                                  SHD_SDF_VEC_OP_ROTATE,
                                  SHD_SDF_VEC_OP_ROTATE_UV));
-  nodeSetSocketAvailability(ntree, sockCount, ELEM(sdf->operation, SHD_SDF_VEC_OP_TILESET));
-  nodeSetSocketAvailability(ntree, sockCount2, ELEM(sdf->operation, SHD_SDF_VEC_OP_TILESET));
+  node_set_socket_availability(ntree, sockCount, ELEM(sdf->operation, SHD_SDF_VEC_OP_TILESET));
+  node_set_socket_availability(ntree, sockCount2, ELEM(sdf->operation, SHD_SDF_VEC_OP_TILESET));
 
   node_sock_label_clear(sockValue);
   node_sock_label_clear(sockValue2);
@@ -358,5 +358,5 @@ void register_node_type_sh_sdf_vector_op(void)
   ntype.labelfunc = node_shader_label_sdf_vector_op;
   ntype.updatefunc = node_shader_update_sdf_vector_op;
   ntype.draw_buttons = node_shader_buts_sdf_vector_op;
-  blender::bke::nodeRegisterType(&ntype);
+  blender::bke::node_register_type(&ntype);
 }

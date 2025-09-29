@@ -41,5 +41,5 @@ void register_node_type_sh_screenspace_info(void)
  ntype.declare = file_ns::node_declare;
  ntype.gpu_fn = node_shader_gpu_screenspace_info;
 
- blender::bke::nodeRegisterType(&ntype);
+ blender::bke::node_register_type(&ntype);
 }

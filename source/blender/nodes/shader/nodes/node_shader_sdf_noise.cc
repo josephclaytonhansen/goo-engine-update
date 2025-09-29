@@ -70,5 +70,5 @@ void register_node_type_sh_sdf_noise(void)
  ntype.declare = file_ns::node_declare;
  ntype.gpu_fn = node_shader_gpu_sdf_noise;
 
- blender::bke::nodeRegisterType(&ntype);
+ blender::bke::node_register_type(&ntype);
 }
