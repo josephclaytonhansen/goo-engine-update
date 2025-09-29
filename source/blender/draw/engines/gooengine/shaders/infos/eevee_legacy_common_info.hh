@@ -62,8 +62,8 @@ GPU_SHADER_CREATE_INFO(eevee_legacy_lights_lib)
     .sampler(8, ImageType::SHADOW_2D_ARRAY, "shadowCubeTexture")
     .sampler(9, ImageType::SHADOW_2D_ARRAY, "shadowCascadeTexture")
     /* GooEngine: Use slots 15,16 as others are already taken. */
-    .sampler(15, ImageType::UINT_2D_ARRAY, "shadowCubeIDTexture")
-    .sampler(16, ImageType::UINT_2D_ARRAY, "shadowCascadeIDTexture");
+    .sampler(23, ImageType::UINT_2D_ARRAY, "shadowCubeIDTexture")
+    .sampler(24, ImageType::UINT_2D_ARRAY, "shadowCascadeIDTexture");
 
 /* Hair lib. */
 GPU_SHADER_CREATE_INFO(eevee_legacy_hair_lib)

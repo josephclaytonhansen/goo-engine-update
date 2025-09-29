@@ -397,6 +397,24 @@ void GPUCodegen::generate_resources()
 {
   GPUCodegenCreateInfo &info = *create_info;
 
+  /* Ref. #98190: Defines are optimizations for old compilers.
+   * Might become unnecessary with EEVEE-Next. */
+  if (GPU_material_flag_get(&mat, GPU_MATFLAG_PRINCIPLED_COAT)) {
+    info.define("PRINCIPLED_COAT");
+  }
+  if (GPU_material_flag_get(&mat, GPU_MATFLAG_PRINCIPLED_METALLIC)) {
+    info.define("PRINCIPLED_METALLIC");
+  }
+  if (GPU_material_flag_get(&mat, GPU_MATFLAG_PRINCIPLED_DIELECTRIC)) {
+    info.define("PRINCIPLED_DIELECTRIC");
+  }
+  if (GPU_material_flag_get(&mat, GPU_MATFLAG_PRINCIPLED_GLASS)) {
+    info.define("PRINCIPLED_GLASS");
+  }
+  if (GPU_material_flag_get(&mat, GPU_MATFLAG_PRINCIPLED_ANY)) {
+    info.define("PRINCIPLED_ANY");
+  }
+
   std::stringstream ss;
 
   /* Textures. */
@@ -944,6 +962,7 @@ bool GPU_pass_async_compilation_try_finalize(GPUPass *pass)
 bool GPU_pass_compile(GPUPass *pass, const char *shname)
 {
   BLI_mutex_lock(&pass->shader_creation_mutex);
+
   bool success = true;
   if (pass->async_compilation_handle > 0) {
     /* We're trying to compile this pass synchronously, but there's a pending asynchronous
@@ -955,6 +974,7 @@ bool GPU_pass_compile(GPUPass *pass, const char *shname)
     GPUShader *shader = GPU_shader_create_from_info(info);
     success = GPU_pass_finalize_compilation(pass, shader);
   }
+
   BLI_mutex_unlock(&pass->shader_creation_mutex);
   return success;
 }
