@@ -356,7 +356,7 @@ bool wm_cursor_arrow_move(wmWindow *win, const wmEvent *event)
   return false;
 }
 
-void WM_cursor_time(wmWindow *win, const int nr)
+void WM_cursor_time(wmWindow *win, int nr)
 {
   /* 10 8x8 digits. */
   const char number_bitmaps[10][8] = {
@@ -378,24 +378,18 @@ void WM_cursor_time(wmWindow *win, const int nr)
     win->lastcursor = win->cursor;
   }
 
-  /* Negative numbers not supported by #wm_cursor_time_large & #wm_cursor_time_small.
-   * Make absolute to show *something* although in typical usage this shouldn't be negative.
-   * NOTE: Use of unsigned here to allow negation when `nr` is `std::numeric_limits<int>::min()`
-   * which *can't* be negated. */
-  uint32_t nr_abs = nr >= 0 ? uint32_t(nr) : -uint32_t(nr);
-
   memset(&mask, 0xFF, sizeof(mask));
 
   /* Print number bottom right justified. */
-  for (int idx = 3; nr_abs && idx >= 0; idx--) {
-    const char *digit = number_bitmaps[nr_abs % 10];
+  for (int idx = 3; nr && idx >= 0; idx--) {
+    const char *digit = number_bitmaps[nr % 10];
     int x = idx % 2;
     int y = idx / 2;
 
     for (int i = 0; i < 8; i++) {
       bitmap[i + y * 8][x] = digit[i];
     }
-    nr_abs /= 10;
+    nr /= 10;
   }
 
   window_set_custom_cursor(win, mask, bitmap, 7, 7);

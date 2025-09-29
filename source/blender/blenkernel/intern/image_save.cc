@@ -148,17 +148,6 @@ bool BKE_image_save_options_init(ImageSaveOptions *opts,
      * by the image saving code itself. */
     BKE_image_user_file_path_ex(bmain, iuser, ima, opts->filepath, false, false);
 
-    /* For movies, replace extension and add the frame number to avoid writing over the movie file
-     * itself and provide a good default file path. */
-    if (ima->source == IMA_SRC_MOVIE) {
-      char filepath_no_ext[FILE_MAX];
-      STRNCPY(filepath_no_ext, opts->filepath);
-      BLI_path_extension_strip(filepath_no_ext);
-      SNPRINTF(opts->filepath, "%s_%.*d", filepath_no_ext, 4, ibuf->fileframe);
-      BKE_image_path_ext_from_imformat_ensure(
-          opts->filepath, sizeof(opts->filepath), &opts->im_format);
-    }
-
     /* sanitize all settings */
 
     /* unlikely but just in case */
@@ -397,7 +386,6 @@ static bool image_save_single(ReportList *reports,
   if (rr == nullptr) {
     if (imf->imtype == R_IMF_IMTYPE_MULTILAYER) {
       BKE_report(reports, RPT_ERROR, "Did not write, no Multilayer Image");
-      BKE_image_release_renderresult(opts->scene, ima, rr);
       BKE_image_release_ibuf(ima, ibuf, lock);
       return ok;
     }
@@ -410,8 +398,8 @@ static bool image_save_single(ReportList *reports,
                     R"(Did not write, the image doesn't have a "%s" and "%s" views)",
                     STEREO_LEFT_NAME,
                     STEREO_RIGHT_NAME);
-        BKE_image_release_renderresult(opts->scene, ima, rr);
         BKE_image_release_ibuf(ima, ibuf, lock);
+        BKE_image_release_renderresult(opts->scene, ima, rr);
         return ok;
       }
 
@@ -424,8 +412,8 @@ static bool image_save_single(ReportList *reports,
                     R"(Did not write, the image doesn't have a "%s" and "%s" views)",
                     STEREO_LEFT_NAME,
                     STEREO_RIGHT_NAME);
-        BKE_image_release_renderresult(opts->scene, ima, rr);
         BKE_image_release_ibuf(ima, ibuf, lock);
+        BKE_image_release_renderresult(opts->scene, ima, rr);
         return ok;
       }
     }
@@ -437,7 +425,6 @@ static bool image_save_single(ReportList *reports,
     /* save render result */
     ok = BKE_image_render_write_exr(
         reports, rr, opts->filepath, imf, save_as_render, nullptr, layer);
-    BKE_image_release_renderresult(opts->scene, ima, rr);
     image_save_post(reports, ima, ibuf, ok, opts, true, opts->filepath, r_colorspace_changed);
     BKE_image_release_ibuf(ima, ibuf, lock);
   }
@@ -452,7 +439,6 @@ static bool image_save_single(ReportList *reports,
       ok = BKE_imbuf_write_as(colormanaged_ibuf, opts->filepath, imf, save_copy);
       imbuf_save_post(ibuf, colormanaged_ibuf);
     }
-    BKE_image_release_renderresult(opts->scene, ima, rr);
     image_save_post(reports,
                     ima,
                     ibuf,
@@ -520,8 +506,6 @@ static bool image_save_single(ReportList *reports,
       ok &= ok_view;
     }
 
-    BKE_image_release_renderresult(opts->scene, ima, rr);
-
     if (is_exr_rr) {
       BKE_image_release_ibuf(ima, ibuf, lock);
     }
@@ -531,7 +515,6 @@ static bool image_save_single(ReportList *reports,
     if (imf->imtype == R_IMF_IMTYPE_MULTILAYER) {
       ok = BKE_image_render_write_exr(
           reports, rr, opts->filepath, imf, save_as_render, nullptr, layer);
-      BKE_image_release_renderresult(opts->scene, ima, rr);
       image_save_post(reports, ima, ibuf, ok, opts, true, opts->filepath, r_colorspace_changed);
       BKE_image_release_ibuf(ima, ibuf, lock);
     }
@@ -604,13 +587,11 @@ static bool image_save_single(ReportList *reports,
       for (int i = 0; i < 2; i++) {
         IMB_freeImBuf(ibuf_stereo[i]);
       }
-
-      BKE_image_release_renderresult(opts->scene, ima, rr);
     }
   }
-  else {
+
+  if (rr) {
     BKE_image_release_renderresult(opts->scene, ima, rr);
-    BKE_image_release_ibuf(ima, ibuf, lock);
   }
 
   return ok;

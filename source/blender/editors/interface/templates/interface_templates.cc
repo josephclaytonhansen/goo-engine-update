@@ -3078,22 +3078,10 @@ static void draw_export_properties(bContext *C,
   uiLayoutSetPropDecorate(col, false);
 
   PropertyRNA *prop = RNA_struct_find_property(op->ptr, "filepath");
-  if (prop) {
-    std::string placeholder = "//" + filename;
-    uiItemFullR(col,
-                op->ptr,
-                prop,
-                RNA_NO_INDEX,
-                0,
-                UI_ITEM_NONE,
-                nullptr,
-                ICON_NONE,
-                placeholder.c_str());
-  }
-  else {
-    std::string label = std::string(IFACE_("<filepath> not found in: ")) + op->idname;
-    uiItemL(col, label.c_str(), ICON_ERROR);
-  }
+  std::string placeholder = "//" + filename;
+  uiItemFullR(
+      col, op->ptr, prop, RNA_NO_INDEX, 0, UI_ITEM_NONE, nullptr, ICON_NONE, placeholder.c_str());
+
   template_operator_property_buts_draw_single(
       C, op, layout, UI_BUT_LABEL_ALIGN_NONE, UI_TEMPLATE_OP_PROPS_HIDE_PRESETS);
 }

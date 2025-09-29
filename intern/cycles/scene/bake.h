@@ -15,10 +15,10 @@ CCL_NAMESPACE_BEGIN
 
 class BakeManager {
  public:
-  BakeManager() = default;
-  ~BakeManager() = default;
+  BakeManager();
+  ~BakeManager();
 
-  void set_baking(Scene *scene, const bool use);
+  void set(Scene *scene, const std::string &object_name);
   bool get_baking() const;
 
   void set_use_camera(bool use_camera);

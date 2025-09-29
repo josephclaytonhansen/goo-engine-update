@@ -14,8 +14,6 @@
 #include "BKE_mesh_types.hh"
 #include "BKE_paint.hh"
 
-#include "bmesh_class.hh"
-
 #include "DRW_pbvh.hh"
 
 namespace blender::draw {
@@ -132,28 +130,6 @@ static Vector<SculptBatch> sculpt_batches_get_ex(const Object *ob,
   return result_batches;
 }
 
-static const CustomData *get_cdata(const BMesh &bm, const bke::AttrDomain domain)
-{
-  switch (domain) {
-    case bke::AttrDomain::Point:
-      return &bm.vdata;
-    case bke::AttrDomain::Corner:
-      return &bm.ldata;
-    case bke::AttrDomain::Face:
-      return &bm.pdata;
-    default:
-      return nullptr;
-  }
-}
-
-static bool bmesh_attribute_exists(const BMesh &bm,
-                                   const bke::AttributeMetaData &meta_data,
-                                   const StringRef name)
-{
-  const CustomData *cdata = get_cdata(bm, meta_data.domain);
-  return cdata && CustomData_get_offset_named(cdata, meta_data.data_type, name) != -1;
-}
-
 Vector<SculptBatch> sculpt_batches_get(const Object *ob, SculptBatchFeature features)
 {
   Vector<pbvh::AttributeRequest, 16> attrs;
@@ -169,30 +145,19 @@ Vector<SculptBatch> sculpt_batches_get(const Object *ob, SculptBatchFeature feat
 
   const Mesh *mesh = BKE_object_get_original_mesh(ob);
   const bke::AttributeAccessor attributes = mesh->attributes();
-  const SculptSession &ss = *ob->sculpt;
 
-  /* If Dyntopo is enabled, the source of truth for an attribute existing or not is the BMesh, not
-   * the Mesh. */
   if (features & SCULPT_BATCH_VERTEX_COLOR) {
     if (const char *name = mesh->active_color_attribute) {
       if (const std::optional<bke::AttributeMetaData> meta_data = attributes.lookup_meta_data(
               name))
       {
-        if (ss.bm) {
-          if (bmesh_attribute_exists(*ss.bm, *meta_data, name)) {
-            attrs.append(pbvh::GenericRequest{name, meta_data->data_type, meta_data->domain});
-          }
-        }
-        else {
-          attrs.append(pbvh::GenericRequest{name, meta_data->data_type, meta_data->domain});
-        }
+        attrs.append(pbvh::GenericRequest{name, meta_data->data_type, meta_data->domain});
       }
     }
   }
 
   if (features & SCULPT_BATCH_UV) {
-    const CustomData *corner_data = ss.bm ? &ss.bm->ldata : &mesh->corner_data;
-    if (const char *name = CustomData_get_active_layer_name(corner_data, CD_PROP_FLOAT2)) {
+    if (const char *name = CustomData_get_active_layer_name(&mesh->corner_data, CD_PROP_FLOAT2)) {
       attrs.append(pbvh::GenericRequest{name, CD_PROP_FLOAT2, bke::AttrDomain::Corner});
     }
   }

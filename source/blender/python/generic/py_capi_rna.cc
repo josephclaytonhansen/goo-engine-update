@@ -75,66 +75,60 @@ BLI_bitmap *pyrna_enum_bitmap_from_set(const EnumPropertyItem *items,
                                        int bitmap_size,
                                        const char *error_prefix)
 {
-  BLI_assert(PySet_Check(value));
+  /* Set looping. */
+  Py_ssize_t pos = 0;
+  Py_ssize_t hash = 0;
+  PyObject *key;
+
   BLI_bitmap *bitmap = BLI_BITMAP_NEW(bitmap_size, __func__);
 
-  if (PySet_GET_SIZE(value) > 0) {
-    /* Set looping. */
-    PyObject *it = PyObject_GetIter(value);
-    PyObject *key;
-    while ((key = PyIter_Next(it))) {
-      /* Borrow from the set. */
-      Py_DECREF(key);
-
-      const char *param = PyUnicode_AsUTF8(key);
-      if (param == nullptr) {
-        PyErr_Format(PyExc_TypeError,
-                     "%.200s expected a string, not %.200s",
-                     error_prefix,
-                     Py_TYPE(key)->tp_name);
-        break;
-      }
-
-      int ret;
-      if (pyrna_enum_value_from_id(items, param, &ret, error_prefix) == -1) {
-        break;
-      }
-
-      int index = ret;
-
-      if (type_convert_sign) {
-        if (type_size == 2) {
-          union {
-            signed short as_signed;
-            ushort as_unsigned;
-          } ret_convert;
-          ret_convert.as_signed = (signed short)ret;
-          index = int(ret_convert.as_unsigned);
-        }
-        else if (type_size == 1) {
-          union {
-            signed char as_signed;
-            uchar as_unsigned;
-          } ret_convert;
-          ret_convert.as_signed = (signed char)ret;
-          index = int(ret_convert.as_unsigned);
-        }
-        else {
-          BLI_assert_unreachable();
-        }
-      }
-      BLI_assert(index < bitmap_size);
-      BLI_BITMAP_ENABLE(bitmap, index);
+  while (_PySet_NextEntry(value, &pos, &key, &hash)) {
+    const char *param = PyUnicode_AsUTF8(key);
+    if (param == nullptr) {
+      PyErr_Format(PyExc_TypeError,
+                   "%.200s expected a string, not %.200s",
+                   error_prefix,
+                   Py_TYPE(key)->tp_name);
+      goto error;
     }
-    Py_DECREF(it);
 
-    if (key) {
-      MEM_freeN(bitmap);
-      bitmap = nullptr;
+    int ret;
+    if (pyrna_enum_value_from_id(items, param, &ret, error_prefix) == -1) {
+      goto error;
     }
+
+    int index = ret;
+
+    if (type_convert_sign) {
+      if (type_size == 2) {
+        union {
+          signed short as_signed;
+          ushort as_unsigned;
+        } ret_convert;
+        ret_convert.as_signed = (signed short)ret;
+        index = int(ret_convert.as_unsigned);
+      }
+      else if (type_size == 1) {
+        union {
+          signed char as_signed;
+          uchar as_unsigned;
+        } ret_convert;
+        ret_convert.as_signed = (signed char)ret;
+        index = int(ret_convert.as_unsigned);
+      }
+      else {
+        BLI_assert_unreachable();
+      }
+    }
+    BLI_assert(index < bitmap_size);
+    BLI_BITMAP_ENABLE(bitmap, index);
   }
 
   return bitmap;
+
+error:
+  MEM_freeN(bitmap);
+  return nullptr;
 }
 
 int pyrna_enum_bitfield_from_set(const EnumPropertyItem *items,
@@ -142,40 +136,32 @@ int pyrna_enum_bitfield_from_set(const EnumPropertyItem *items,
                                  int *r_value,
                                  const char *error_prefix)
 {
-  BLI_assert(PySet_Check(value));
   /* Set of enum items, concatenate all values with OR. */
-  int flag = 0;
+  int ret, flag = 0;
+
+  /* Set looping. */
+  Py_ssize_t pos = 0;
+  Py_ssize_t hash = 0;
+  PyObject *key;
 
   *r_value = 0;
 
-  PyObject *key = nullptr;
-  if (PySet_GET_SIZE(value) > 0) {
-    /* Set looping. */
-    PyObject *it = PyObject_GetIter(value);
-    while ((key = PyIter_Next(it))) {
-      /* Borrow from the set. */
-      Py_DECREF(key);
+  while (_PySet_NextEntry(value, &pos, &key, &hash)) {
+    const char *param = PyUnicode_AsUTF8(key);
 
-      const char *param = PyUnicode_AsUTF8(key);
-      if (param == nullptr) {
-        PyErr_Format(PyExc_TypeError,
-                     "%.200s expected a string, not %.200s",
-                     error_prefix,
-                     Py_TYPE(key)->tp_name);
-        break;
-      }
-
-      int ret;
-      if (pyrna_enum_value_from_id(items, param, &ret, error_prefix) == -1) {
-        break;
-      }
-
-      flag |= ret;
-    }
-    Py_DECREF(it);
-    if (key) {
+    if (param == nullptr) {
+      PyErr_Format(PyExc_TypeError,
+                   "%.200s expected a string, not %.200s",
+                   error_prefix,
+                   Py_TYPE(key)->tp_name);
       return -1;
     }
+
+    if (pyrna_enum_value_from_id(items, param, &ret, error_prefix) == -1) {
+      return -1;
+    }
+
+    flag |= ret;
   }
 
   *r_value = flag;

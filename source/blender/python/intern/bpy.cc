@@ -609,40 +609,38 @@ PyDoc_STRVAR(
     "   :rtype: dict[str, bool]\n");
 static PyObject *bpy_wm_capabilities(PyObject *self)
 {
-  PyObject *py_id_capabilities = PyUnicode_FromString("_wm_capabilities_");
-  PyObject *result = nullptr;
-  switch (PyObject_GetOptionalAttr(self, py_id_capabilities, &result)) {
-    case 1: {
-      result = PyDict_New();
+  static _Py_Identifier PyId_capabilities = {"_wm_capabilities_", -1};
 
-      const eWM_CapabilitiesFlag flag = WM_capabilities_flag();
+  PyObject *result = nullptr;
+  switch (_PyObject_LookupAttrId(self, &PyId_capabilities, &result)) {
+    case 1:
+      return result;
+    case 0:
+      break;
+    default:
+      /* Unlikely, but there may be an error, forward it. */
+      return nullptr;
+  }
+
+  result = PyDict_New();
+
+  const eWM_CapabilitiesFlag flag = WM_capabilities_flag();
 
 #define SetFlagItem(x) \
   PyDict_SetItemString(result, STRINGIFY(x), PyBool_FromLong((WM_CAPABILITY_##x) & flag));
 
-      SetFlagItem(CURSOR_WARP);
-      SetFlagItem(WINDOW_POSITION);
-      SetFlagItem(PRIMARY_CLIPBOARD);
-      SetFlagItem(GPU_FRONT_BUFFER_READ);
-      SetFlagItem(CLIPBOARD_IMAGES);
-      SetFlagItem(DESKTOP_SAMPLE);
-      SetFlagItem(INPUT_IME);
-      SetFlagItem(TRACKPAD_PHYSICAL_DIRECTION);
+  SetFlagItem(CURSOR_WARP);
+  SetFlagItem(WINDOW_POSITION);
+  SetFlagItem(PRIMARY_CLIPBOARD);
+  SetFlagItem(GPU_FRONT_BUFFER_READ);
+  SetFlagItem(CLIPBOARD_IMAGES);
+  SetFlagItem(DESKTOP_SAMPLE);
+  SetFlagItem(INPUT_IME);
+  SetFlagItem(TRACKPAD_PHYSICAL_DIRECTION);
 
 #undef SetFlagItem
-      PyObject_SetAttr(self, py_id_capabilities, result);
-      break;
-    }
-    case 0:
-      BLI_assert(result != nullptr);
-      break;
-    default:
-      /* Unlikely, but there may be an error, forward it. */
-      BLI_assert(result == nullptr);
-      break;
-  }
 
-  Py_DECREF(py_id_capabilities);
+  _PyObject_SetAttrId(self, &PyId_capabilities, result);
   return result;
 }
 

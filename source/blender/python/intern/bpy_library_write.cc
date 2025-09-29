@@ -149,7 +149,6 @@ static PyObject *bpy_lib_write(BPy_PropertyRNA *self, PyObject *args, PyObject *
     else {
       partial_write_ctx.id_add(id, add_options, nullptr);
     }
-    Py_DECREF(it);
   }
   BLI_assert(partial_write_ctx.is_valid());
 

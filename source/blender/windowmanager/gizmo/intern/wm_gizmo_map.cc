@@ -536,12 +536,7 @@ static void gizmo_draw_select_3d_loop(const bContext *C,
         GPU_depth_test(GPU_DEPTH_LESS_EQUAL);
       }
       else {
-        /* WORKAROUND(#132196): `GPU_DEPTH_NONE` leads to issues with Intel GPU drivers on Windows
-         * where camera gizmos cannot be shifted. `glGetQueryObjectuiv` for `GL_SAMPLES_PASSED`
-         * seems to return zero in all cases. This might be due to undefined behavior of OpenGL
-         * when the depth test is disabled and rendering to a depth render target-only framebuffer.
-         * Using `GPU_DEPTH_ALWAYS` fixes the issue. */
-        GPU_depth_test(GPU_DEPTH_ALWAYS);
+        GPU_depth_test(GPU_DEPTH_NONE);
       }
       is_depth_prev = is_depth;
     }

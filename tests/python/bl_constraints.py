@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 """
-./blender.bin --background --factory-startup --python tests/python/bl_constraints.py -- --testdir /path/to/tests/files/constraints
+./blender.bin --background --factory-startup --python tests/python/bl_constraints.py -- --testdir /path/to/tests/data/constraints
 """
 
 import pathlib

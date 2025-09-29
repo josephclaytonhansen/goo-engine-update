@@ -108,10 +108,7 @@ ExternalProject_Add(external_dpcpp
 
   PATCH_COMMAND ${PATCH_CMD} -p 1 -d
     ${BUILD_DIR}/dpcpp/src/external_dpcpp <
-    ${PATCH_DIR}/dpcpp.diff &&
-    ${PATCH_CMD} -p 1 -d
-    ${BUILD_DIR}/dpcpp/src/external_dpcpp <
-    ${PATCH_DIR}/dpcpp_13328.diff
+    ${PATCH_DIR}/dpcpp.diff
 
   INSTALL_DIR ${LIBDIR}/dpcpp
 )

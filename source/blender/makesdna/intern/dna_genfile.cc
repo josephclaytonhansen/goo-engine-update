@@ -21,12 +21,12 @@
 #include "MEM_guardedalloc.h" /* for MEM_freeN MEM_mallocN MEM_callocN */
 
 #include "BLI_endian_switch.h"
-#include "BLI_ghash.h"
 #include "BLI_math_matrix_types.hh"
 #include "BLI_memarena.h"
-#include "BLI_set.hh"
 #include "BLI_string.h"
 #include "BLI_utildefines.h"
+
+#include "BLI_ghash.h"
 
 #include "DNA_genfile.h"
 #include "DNA_sdna_types.h" /* for SDNA ;-) */
@@ -327,16 +327,10 @@ static bool init_structDNA(SDNA *sdna, bool do_endian_swap, const char **r_error
   /* Clear pointers in case of error. */
   sdna->members = nullptr;
   sdna->types = nullptr;
-  sdna->types_size = nullptr;
-  sdna->types_alignment = nullptr;
   sdna->structs = nullptr;
 #ifdef WITH_DNA_GHASH
   sdna->types_to_structs_map = nullptr;
 #endif
-
-  sdna->names = nullptr;
-  sdna->names_array_len = nullptr;
-
   sdna->mem_arena = nullptr;
 
   /* Lazy initialize. */
@@ -365,7 +359,7 @@ static bool init_structDNA(SDNA *sdna, bool do_endian_swap, const char **r_error
     sdna->members = static_cast<const char **>(
         MEM_callocN(sizeof(void *) * sdna->members_num, "sdnanames"));
   }
-  if (!sdna->names) {
+  else {
     *r_error_message = "NAME error in SDNA file";
     return false;
   }
@@ -405,7 +399,7 @@ static bool init_structDNA(SDNA *sdna, bool do_endian_swap, const char **r_error
     sdna->types = static_cast<const char **>(
         MEM_callocN(sizeof(void *) * sdna->types_num, "sdnatypes"));
   }
-  if (!sdna->types) {
+  else {
     *r_error_message = "TYPE error in SDNA file";
     return false;
   }
@@ -436,7 +430,7 @@ static bool init_structDNA(SDNA *sdna, bool do_endian_swap, const char **r_error
 
     sp += sdna->types_num;
   }
-  if (!sdna->types_size) {
+  else {
     *r_error_message = "TLEN error in SDNA file";
     return false;
   }
@@ -459,13 +453,11 @@ static bool init_structDNA(SDNA *sdna, bool do_endian_swap, const char **r_error
     sdna->structs = static_cast<SDNA_Struct **>(
         MEM_callocN(sizeof(SDNA_Struct *) * sdna->structs_num, "sdnastrcs"));
   }
-  if (!sdna->structs) {
+  else {
     *r_error_message = "STRC error in SDNA file";
     return false;
   }
 
-  /* Safety check, to ensure that there is no multiple usages of a same struct index. */
-  blender::Set<short> struct_indices;
   sp = (short *)data;
   for (int struct_index = 0; struct_index < sdna->structs_num; struct_index++) {
     SDNA_Struct *struct_info = (SDNA_Struct *)sp;

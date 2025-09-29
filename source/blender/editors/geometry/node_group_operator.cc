@@ -406,9 +406,7 @@ static void replace_inputs_evaluated_data_blocks(
 {
   IDP_foreach_property(&properties, IDP_TYPE_FILTER_ID, [&](IDProperty *property) {
     if (ID *id = IDP_Id(property)) {
-      if (ID_TYPE_USE_COPY_ON_EVAL(GS(id->name))) {
-        property->data.pointer = const_cast<ID *>(depsgraphs.get_evaluated_id(*id));
-      }
+      property->data.pointer = const_cast<ID *>(depsgraphs.get_evaluated_id(*id));
     }
   });
 }
@@ -891,44 +889,44 @@ void GEOMETRY_OT_execute_node_group(wmOperatorType *ot)
                              "cursor_position",
                              3,
                              nullptr,
-                             -FLT_MAX,
+                             FLT_MIN,
                              FLT_MAX,
                              "3D Cursor Position",
                              "",
-                             -FLT_MAX,
+                             FLT_MIN,
                              FLT_MAX);
   RNA_def_property_flag(prop, PROP_HIDDEN);
   prop = RNA_def_float_array(ot->srna,
                              "cursor_rotation",
                              4,
                              nullptr,
-                             -FLT_MAX,
+                             FLT_MIN,
                              FLT_MAX,
                              "3D Cursor Rotation",
                              "",
-                             -FLT_MAX,
+                             FLT_MIN,
                              FLT_MAX);
   RNA_def_property_flag(prop, PROP_HIDDEN);
   prop = RNA_def_float_array(ot->srna,
                              "viewport_projection_matrix",
                              16,
                              nullptr,
-                             -FLT_MAX,
+                             FLT_MIN,
                              FLT_MAX,
                              "Viewport Projection Transform",
                              "",
-                             -FLT_MAX,
+                             FLT_MIN,
                              FLT_MAX);
   RNA_def_property_flag(prop, PROP_HIDDEN);
   prop = RNA_def_float_array(ot->srna,
                              "viewport_view_matrix",
                              16,
                              nullptr,
-                             -FLT_MAX,
+                             FLT_MIN,
                              FLT_MAX,
                              "Viewport View Transform",
                              "",
-                             -FLT_MAX,
+                             FLT_MIN,
                              FLT_MAX);
   RNA_def_property_flag(prop, PROP_HIDDEN);
   prop = RNA_def_boolean(

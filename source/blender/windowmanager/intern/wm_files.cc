@@ -1041,10 +1041,7 @@ static void file_read_reports_finalize(BlendFileReadReport *bf_reports)
   bf_reports->resynced_lib_overrides_libraries = nullptr;
 }
 
-bool WM_file_read(bContext *C,
-                  const char *filepath,
-                  const bool use_scripts_autoexec_check,
-                  ReportList *reports)
+bool WM_file_read(bContext *C, const char *filepath, ReportList *reports)
 {
   /* Assume automated tasks with background, don't write recent file list. */
   const bool do_history_file_update = (G.background == false) &&
@@ -1109,14 +1106,6 @@ bool WM_file_read(bContext *C,
         const int flags_keep = G_FLAG_ALL_RUNTIME;
         G.f &= G_FLAG_ALL_READFILE;
         G.f = (G.f & ~flags_keep) | (G_f_orig & flags_keep);
-      }
-
-      /* Set by the `use_scripts` property on file load.
-       * If this was not set, then it should be calculated based on the file-path.
-       * Note that this uses `bmain->filepath` and not `filepath`, necessary when
-       * recovering the last session, where the file-path can be #BLENDER_QUIT_FILE. */
-      if (use_scripts_autoexec_check) {
-        WM_file_autoexec_init(bmain->filepath);
       }
 
       WM_check(C); /* Opens window(s), checks keymaps. */
@@ -2452,10 +2441,9 @@ void wm_open_init_load_ui(wmOperator *op, bool use_prefs)
   }
 }
 
-bool wm_open_init_use_scripts(wmOperator *op, bool use_prefs)
+void wm_open_init_use_scripts(wmOperator *op, bool use_prefs)
 {
   PropertyRNA *prop = RNA_struct_find_property(op->ptr, "use_scripts");
-  bool use_scripts_autoexec_check = false;
   if (!RNA_property_is_set(op->ptr, prop)) {
     /* Use #G_FLAG_SCRIPT_AUTOEXEC rather than the userpref because this means if
      * the flag has been disabled from the command line, then opening
@@ -2464,9 +2452,7 @@ bool wm_open_init_use_scripts(wmOperator *op, bool use_prefs)
                              ((G.f & G_FLAG_SCRIPT_AUTOEXEC) != 0);
 
     RNA_property_boolean_set(op->ptr, prop, value);
-    use_scripts_autoexec_check = true;
   }
-  return use_scripts_autoexec_check;
 }
 
 /** \} */
@@ -3051,16 +3037,18 @@ void WM_OT_read_factory_settings(wmOperatorType *ot)
 /**
  * Wrap #WM_file_read, shared by file reading operators.
  */
-static bool wm_file_read_opwrap(bContext *C,
-                                const char *filepath,
-                                const bool use_scripts_autoexec_check,
-                                ReportList *reports)
+static bool wm_file_read_opwrap(bContext *C, const char *filepath, ReportList *reports)
 {
   /* XXX: wm in context is not set correctly after #WM_file_read -> crash. */
   /* Do it before for now, but is this correct with multiple windows? */
   WM_event_add_notifier(C, NC_WINDOW, nullptr);
 
-  const bool success = WM_file_read(C, filepath, use_scripts_autoexec_check, reports);
+  /* Set by the "use_scripts" property on file load. */
+  if ((G.f & G_FLAG_SCRIPT_AUTOEXEC) == 0) {
+    WM_file_autoexec_init(filepath);
+  }
+
+  const bool success = WM_file_read(C, filepath, reports);
 
   return success;
 }
@@ -3161,8 +3149,7 @@ static int wm_open_mainfile__select_file_path(bContext *C, wmOperator *op)
 
   RNA_string_set(op->ptr, "filepath", blendfile_path);
   wm_open_init_load_ui(op, true);
-  const bool use_scripts_autoexec_check = wm_open_init_use_scripts(op, true);
-  UNUSED_VARS(use_scripts_autoexec_check); /* The user can set this in the UI. */
+  wm_open_init_use_scripts(op, true);
   op->customdata = nullptr;
 
   WM_event_add_fileselect(C, op);
@@ -3183,11 +3170,11 @@ static int wm_open_mainfile__open(bContext *C, wmOperator *op)
 
   /* Re-use last loaded setting so we can reload a file without changing. */
   wm_open_init_load_ui(op, false);
-  const bool use_scripts_autoexec_check = wm_open_init_use_scripts(op, false);
+  wm_open_init_use_scripts(op, false);
 
   SET_FLAG_FROM_TEST(G.fileflags, !RNA_boolean_get(op->ptr, "load_ui"), G_FILE_NO_UI);
   SET_FLAG_FROM_TEST(G.f, RNA_boolean_get(op->ptr, "use_scripts"), G_FLAG_SCRIPT_AUTOEXEC);
-  success = wm_file_read_opwrap(C, filepath, use_scripts_autoexec_check, op->reports);
+  success = wm_file_read_opwrap(C, filepath, op->reports);
 
   if (success) {
     if (G.fileflags & G_FILE_NO_UI) {
@@ -3389,12 +3376,12 @@ static int wm_revert_mainfile_exec(bContext *C, wmOperator *op)
   bool success;
   char filepath[FILE_MAX];
 
-  const bool use_scripts_autoexec_check = wm_open_init_use_scripts(op, false);
+  wm_open_init_use_scripts(op, false);
 
   SET_FLAG_FROM_TEST(G.f, RNA_boolean_get(op->ptr, "use_scripts"), G_FLAG_SCRIPT_AUTOEXEC);
 
   STRNCPY(filepath, BKE_main_blendfile_path(bmain));
-  success = wm_file_read_opwrap(C, filepath, use_scripts_autoexec_check, op->reports);
+  success = wm_file_read_opwrap(C, filepath, op->reports);
 
   if (success) {
     return OPERATOR_FINISHED;
@@ -3427,24 +3414,21 @@ void WM_OT_revert_mainfile(wmOperatorType *ot)
 /** \name Recover Last Session Operator
  * \{ */
 
-bool WM_file_recover_last_session(bContext *C,
-                                  const bool use_scripts_autoexec_check,
-                                  ReportList *reports)
+bool WM_file_recover_last_session(bContext *C, ReportList *reports)
 {
   char filepath[FILE_MAX];
   BLI_path_join(filepath, sizeof(filepath), BKE_tempdir_base(), BLENDER_QUIT_FILE);
   G.fileflags |= G_FILE_RECOVER_READ;
-  const bool success = wm_file_read_opwrap(C, filepath, use_scripts_autoexec_check, reports);
+  const bool success = wm_file_read_opwrap(C, filepath, reports);
   G.fileflags &= ~G_FILE_RECOVER_READ;
   return success;
 }
 
-static int wm_recover_last_session_impl(bContext *C,
-                                        wmOperator *op,
-                                        const bool use_scripts_autoexec_check)
+static int wm_recover_last_session_exec(bContext *C, wmOperator *op)
 {
+  wm_open_init_use_scripts(op, true);
   SET_FLAG_FROM_TEST(G.f, RNA_boolean_get(op->ptr, "use_scripts"), G_FLAG_SCRIPT_AUTOEXEC);
-  if (WM_file_recover_last_session(C, use_scripts_autoexec_check, op->reports)) {
+  if (WM_file_recover_last_session(C, op->reports)) {
     if (!G.background) {
       wmOperatorType *ot = op->type;
       PointerRNA *props_ptr = MEM_new<PointerRNA>(__func__);
@@ -3457,12 +3441,6 @@ static int wm_recover_last_session_impl(bContext *C,
   return OPERATOR_CANCELLED;
 }
 
-static int wm_recover_last_session_exec(bContext *C, wmOperator *op)
-{
-  const bool use_scripts_autoexec_check = wm_open_init_use_scripts(op, true);
-  return wm_recover_last_session_impl(C, op, use_scripts_autoexec_check);
-}
-
 static void wm_recover_last_session_after_dialog_callback(bContext *C, void *user_data)
 {
   WM_operator_name_call_with_properties(
@@ -3473,14 +3451,14 @@ static int wm_recover_last_session_invoke(bContext *C, wmOperator *op, const wmE
 {
   /* Keep the current setting instead of using the preferences since a file selector
    * doesn't give us the option to change the setting. */
-  const bool use_scripts_autoexec_check = wm_open_init_use_scripts(op, false);
+  wm_open_init_use_scripts(op, false);
 
   if (wm_operator_close_file_dialog_if_needed(
           C, op, wm_recover_last_session_after_dialog_callback))
   {
     return OPERATOR_INTERFACE;
   }
-  return wm_recover_last_session_impl(C, op, use_scripts_autoexec_check);
+  return wm_recover_last_session_exec(C, op);
 }
 
 void WM_OT_recover_last_session(wmOperatorType *ot)
@@ -3509,12 +3487,12 @@ static int wm_recover_auto_save_exec(bContext *C, wmOperator *op)
   RNA_string_get(op->ptr, "filepath", filepath);
   BLI_path_canonicalize_native(filepath, sizeof(filepath));
 
-  const bool use_scripts_autoexec_check = wm_open_init_use_scripts(op, true);
+  wm_open_init_use_scripts(op, true);
   SET_FLAG_FROM_TEST(G.f, RNA_boolean_get(op->ptr, "use_scripts"), G_FLAG_SCRIPT_AUTOEXEC);
 
   G.fileflags |= G_FILE_RECOVER_READ;
 
-  success = wm_file_read_opwrap(C, filepath, use_scripts_autoexec_check, op->reports);
+  success = wm_file_read_opwrap(C, filepath, op->reports);
 
   G.fileflags &= ~G_FILE_RECOVER_READ;
 
@@ -3537,8 +3515,7 @@ static int wm_recover_auto_save_invoke(bContext *C, wmOperator *op, const wmEven
 
   wm_autosave_location(filepath);
   RNA_string_set(op->ptr, "filepath", filepath);
-  const bool use_scripts_autoexec_check = wm_open_init_use_scripts(op, true);
-  UNUSED_VARS(use_scripts_autoexec_check); /* The user can set this in the UI. */
+  wm_open_init_use_scripts(op, true);
   WM_event_add_fileselect(C, op);
 
   return OPERATOR_RUNNING_MODAL;

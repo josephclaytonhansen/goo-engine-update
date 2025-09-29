@@ -20,33 +20,11 @@ namespace blender::realtime_compositor {
 
 using namespace nodes::derived_node_tree_types;
 
-/* Returns true if any of the node group nodes that make up this tree context are muted. */
-static bool is_tree_context_muted(const DTreeContext &tree_context)
-{
-  /* Root contexts are never muted. */
-  if (tree_context.is_root()) {
-    return false;
-  }
-
-  /* The node group that represents this context is muted. */
-  if (tree_context.parent_node()->is_muted()) {
-    return true;
-  }
-
-  /* Recursively check parent contexts up until the root context. */
-  return is_tree_context_muted(*tree_context.parent_context());
-}
-
 /* Add the viewer node which is marked as NODE_DO_OUTPUT in the given context to the given stack.
  * If no viewer nodes were found, composite nodes can be added as a fallback
  * viewer node. */
 static bool add_viewer_nodes_in_context(const DTreeContext *context, Stack<DNode> &node_stack)
 {
-  /* Do not add viewers that are inside muted contexts. */
-  if (is_tree_context_muted(*context)) {
-    return false;
-  }
-
   for (const bNode *node : context->btree().nodes_by_type("CompositorNodeViewer")) {
     if (node->flag & NODE_DO_OUTPUT && !(node->flag & NODE_MUTED)) {
       node_stack.push(DNode(context, node));
@@ -71,31 +49,6 @@ static bool add_viewer_nodes_in_context(const DTreeContext *context, Stack<DNode
   return false;
 }
 
-/* Add all File Output nodes inside the given tree_context recursively to the node stack. */
-static void add_file_output_nodes(const DTreeContext &tree_context, Stack<DNode> &node_stack)
-{
-  for (const bNode *node : tree_context.btree().nodes_by_type("CompositorNodeOutputFile")) {
-    if (node->flag & NODE_MUTED) {
-      continue;
-    }
-
-    node_stack.push(DNode(&tree_context, node));
-  }
-
-  for (const bNode *node : tree_context.btree().group_nodes()) {
-    if (node->flag & NODE_MUTED) {
-      continue;
-    }
-
-    const bNodeTree *group_tree = reinterpret_cast<const bNodeTree *>(node->id);
-    if (!group_tree) {
-      continue;
-    }
-
-    add_file_output_nodes(*tree_context.child_context(*node), node_stack);
-  }
-}
-
 /* Add the output nodes whose result should be computed to the given stack. This includes File
  * Output, Composite, and Viewer nodes. Viewer nodes are a special case, as only the nodes that
  * satisfies the requirements in the add_viewer_nodes_in_context function are added. First, the
@@ -110,7 +63,11 @@ static void add_output_nodes(const Context &context,
 
   /* Only add File Output nodes if the context supports them. */
   if (context.use_file_output()) {
-    add_file_output_nodes(root_context, node_stack);
+    for (const bNode *node : root_context.btree().nodes_by_type("CompositorNodeOutputFile")) {
+      if (!(node->flag & NODE_MUTED)) {
+        node_stack.push(DNode(&root_context, node));
+      }
+    }
   }
 
   /* Only add the Composite output node if the context supports composite outputs. The active

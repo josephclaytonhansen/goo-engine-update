@@ -548,12 +548,11 @@ static int bpy_slot_from_py(BMesh *bm,
           break;
         }
         case BMO_OP_SLOT_SUBTYPE_MAP_EMPTY: {
-          if (PySet_GET_SIZE(value) > 0) {
-            PyObject *it = PyObject_GetIter(value);
+          if (PySet_Size(value) > 0) {
             PyObject *arg_key;
-            while ((arg_key = PyIter_Next(it))) {
-              /* Borrow from the set. */
-              Py_DECREF(arg_key);
+            Py_ssize_t arg_pos = 0;
+            Py_ssize_t arg_hash = 0;
+            while (_PySet_NextEntry(value, &arg_pos, &arg_key, &arg_hash)) {
 
               if (bpy_slot_from_py_elem_check((BPy_BMElem *)arg_key,
                                               bm,
@@ -562,15 +561,10 @@ static int bpy_slot_from_py(BMesh *bm,
                                               slot_name,
                                               "invalid key in set") == -1)
               {
-                /* Error is set in #bpy_slot_from_py_elem_check(). */
-                break;
+                return -1; /* error is set in bpy_slot_from_py_elem_check() */
               }
 
               BMO_slot_map_empty_insert(bmop, slot, ((BPy_BMElem *)arg_key)->ele);
-            }
-            Py_DECREF(it);
-            if (arg_key) {
-              return -1;
             }
           }
           break;

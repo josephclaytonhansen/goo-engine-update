@@ -42,7 +42,6 @@
 
 #include "BKE_callbacks.hh"
 #include "BLI_blenlib.h"
-#include "BLI_build_config.h"
 #include "BLI_math_rotation.h"
 #include "BLI_string.h"
 #include "BLI_string_utils.hh"
@@ -716,10 +715,6 @@ static void scene_foreach_toolsettings(LibraryForeachIDData *data,
         do_undo_restore,
         scene_foreach_paint(data, paint, do_undo_restore, reader, paint_old));
 
-    /* WARNING: Handling this object pointer is fairly intricated, to support both 'regular'
-     * foreach_id processing (in which case both sets of data, current and old, are the same), and
-     * the restore-after-undo cases. It does not have a helper, because so far it is the only case
-     * of having to deal with non-'paint' data in a sub-toolsett struct. */
     Object *gravity_object = toolsett->sculpt ? toolsett->sculpt->gravity_object : nullptr;
     Object *gravity_object_old = toolsett_old->sculpt->gravity_object;
     BKE_LIB_FOREACHID_UNDO_PRESERVE_PROCESS_IDSUPER_P(data,
@@ -732,11 +727,7 @@ static void scene_foreach_toolsettings(LibraryForeachIDData *data,
     if (toolsett->sculpt) {
       toolsett->sculpt->gravity_object = gravity_object;
     }
-    /* Do not re-assign `gravity_object_old` object if both current and old data are the same
-     * (foreach_id case), that would nullify assignement above, making remapping cases fail. */
-    if (toolsett_old != toolsett) {
-      toolsett_old->sculpt->gravity_object = gravity_object_old;
-    }
+    toolsett_old->sculpt->gravity_object = gravity_object_old;
   }
   if (toolsett_old->gp_paint) {
     paint = toolsett->gp_paint ? &toolsett->gp_paint->paint : nullptr;
@@ -956,22 +947,6 @@ static void scene_foreach_id(ID *id, LibraryForeachIDData *data)
   }
 }
 
-static void scene_foreach_cache(ID *id,
-                                IDTypeForeachCacheFunctionCallback function_callback,
-                                void *user_data)
-{
-  Scene *scene = (Scene *)id;
-  IDCacheKey key{};
-  key.id_session_uid = id->session_uid;
-  key.identifier = offsetof(Scene, eevee.light_cache_data);
-
-  function_callback(id,
-                    &key,
-                    (void **)&scene->eevee.light_cache_data,
-                    IDTYPE_CACHE_CB_FLAGS_PERSISTENT,
-                    user_data);
-}
-
 static bool seq_foreach_path_callback(Sequence *seq, void *user_data)
 {
   if (SEQ_HAS_PATH(seq)) {
@@ -1027,12 +1002,21 @@ static void scene_foreach_cache(ID *id,
   Scene *scene = (Scene *)id;
   if (scene->ed != nullptr) {
     IDCacheKey key;
+    // IDCacheKey key{};
     key.id_session_uid = id->session_uid;
     /* Preserve VSE thumbnail cache across global undo steps. */
     key.identifier = offsetof(Editing, runtime.thumbnail_cache);
+    key.identifier = offsetof(Scene, eevee.light_cache_data);
     function_callback(id, &key, (void **)&scene->ed->runtime.thumbnail_cache, 0, user_data);
+  
+    function_callback(id,
+                      &key,
+                      (void **)&scene->eevee.light_cache_data,
+                      IDTYPE_CACHE_CB_FLAGS_PERSISTENT,
+                      user_data);
   }
 }
+
 
 static void scene_blend_write(BlendWriter *writer, ID *id, const void *id_address)
 {

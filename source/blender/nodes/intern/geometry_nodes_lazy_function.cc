@@ -5858,13 +5858,13 @@ const GeometryNodesLazyFunctionGraphInfo *ensure_geometry_nodes_lazy_function_gr
   }
   for (const bNodeTreeInterfaceSocket *interface_bsocket : btree.interface_inputs()) {
     const bke::bNodeSocketType *typeinfo = interface_bsocket->socket_typeinfo();
-    if (!typeinfo || !typeinfo->geometry_nodes_cpp_type) {
+    if (typeinfo->geometry_nodes_cpp_type == nullptr) {
       return nullptr;
     }
   }
   for (const bNodeTreeInterfaceSocket *interface_bsocket : btree.interface_outputs()) {
     const bke::bNodeSocketType *typeinfo = interface_bsocket->socket_typeinfo();
-    if (!typeinfo || !typeinfo->geometry_nodes_cpp_type) {
+    if (typeinfo->geometry_nodes_cpp_type == nullptr) {
       return nullptr;
     }
   }

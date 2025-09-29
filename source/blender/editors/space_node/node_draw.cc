@@ -1636,12 +1636,7 @@ static void create_inspection_string_for_geometry_socket(fmt::memory_buffer &buf
     return;
   }
 
-  Vector<bke::GeometryComponent::Type> supported_types = socket_decl->supported_types();
-  if (!U.experimental.use_grease_pencil_version3) {
-    supported_types.remove_if([&](const bke::GeometryComponent::Type type) {
-      return type == bke::GeometryComponent::Type::GreasePencil;
-    });
-  }
+  Span<bke::GeometryComponent::Type> supported_types = socket_decl->supported_types();
   if (supported_types.is_empty()) {
     fmt::format_to(fmt::appender(buf), TIP_("Supported: All Types"));
     return;
@@ -3429,7 +3424,7 @@ static void node_draw_basis(const bContext &C,
   float iconofs = rct.xmax - 0.35f * U.widget_unit;
 
   /* Group edit. This icon should be the first for the node groups. */
-  if (node.is_group()) {
+  if (node.type == NODE_GROUP) {
     iconofs -= iconbutw;
     UI_block_emboss_set(&block, UI_EMBOSS_NONE);
     uiBut *but = uiDefIconBut(&block,
@@ -3560,7 +3555,7 @@ static void node_draw_basis(const bContext &C,
                         showname,
                         int(rct.xmin + NODE_MARGIN_X + 0.4f),
                         int(rct.ymax - NODE_DY),
-                        short(iconofs - rct.xmin - NODE_MARGIN_X),
+                        short(iconofs - rct.xmin - (18.0f * UI_SCALE_FAC)),
                         short(NODE_DY),
                         nullptr,
                         0,

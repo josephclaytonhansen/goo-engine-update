@@ -366,33 +366,22 @@ static bool rna_id_write_error(PointerRNA *ptr, PyObject *key)
 #endif /* USE_PEDANTIC_WRITE */
 
 #ifdef USE_PEDANTIC_WRITE
-
-/* NOTE: Without the GIL, this can cause problems when called from threads, see: #127767. */
-
 bool pyrna_write_check()
 {
-  BLI_assert(PyGILState_Check());
-
   return !rna_disallow_writes;
 }
 
 void pyrna_write_set(bool val)
 {
-  BLI_assert(PyGILState_Check());
-
   rna_disallow_writes = !val;
 }
 #else  /* USE_PEDANTIC_WRITE */
 bool pyrna_write_check()
 {
-  BLI_assert(PyGILState_Check());
-
   return true;
 }
 void pyrna_write_set(bool /*val*/)
 {
-  BLI_assert(PyGILState_Check());
-
   /* pass */
 }
 #endif /* USE_PEDANTIC_WRITE */
@@ -4508,8 +4497,8 @@ static PyObject *pyrna_struct_getattro(BPy_StructRNA *self, PyObject *pyname)
               std::optional<std::string> path_str;
 
               if (newptr.owner_id) {
-                path_str = RNA_path_from_ID_to_property(&newptr, newprop);
                 idptr = RNA_id_pointer_create(newptr.owner_id);
+                path_str = RNA_path_from_ID_to_property(&idptr, newprop);
                 base_ptr = &idptr;
               }
               else {
@@ -8650,7 +8639,7 @@ static int bpy_class_validate_recursive(PointerRNA *dummy_ptr,
       continue;
     }
 
-    /* TODO(@ideasman42): Use #PyObject_GetOptionalAttr(), also in the macro below. */
+    /* TODO(@ideasman42): Use Python3.7x _PyObject_LookupAttr(), also in the macro below. */
     identifier = RNA_property_identifier(prop);
     item = PyObject_GetAttrString(py_class, identifier);
 
@@ -9284,7 +9273,7 @@ static PyObject *pyrna_register_class(PyObject * /*self*/, PyObject *py_class)
 
   /* Call classed register method.
    * Note that zero falls through, no attribute, no error. */
-  switch (PyObject_GetOptionalAttr(py_class, bpy_intern_str_register, &py_cls_meth)) {
+  switch (_PyObject_LookupAttr(py_class, bpy_intern_str_register, &py_cls_meth)) {
     case 1: {
       PyObject *ret = PyObject_CallObject(py_cls_meth, nullptr);
       Py_DECREF(py_cls_meth);
@@ -9399,7 +9388,7 @@ static PyObject *pyrna_unregister_class(PyObject * /*self*/, PyObject *py_class)
 
   /* Call classed unregister method.
    * Note that zero falls through, no attribute, no error. */
-  switch (PyObject_GetOptionalAttr(py_class, bpy_intern_str_unregister, &py_cls_meth)) {
+  switch (_PyObject_LookupAttr(py_class, bpy_intern_str_unregister, &py_cls_meth)) {
     case 1: {
       PyObject *ret = PyObject_CallObject(py_cls_meth, nullptr);
       Py_DECREF(py_cls_meth);

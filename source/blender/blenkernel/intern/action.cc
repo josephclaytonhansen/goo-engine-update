@@ -384,7 +384,6 @@ static void write_slots(BlendWriter *writer, Span<animrig::Slot *> slots)
     BLO_write_struct_at_address(writer, ActionSlot, slot, &shallow_copy);
   }
 }
-#endif /* WITH_ANIM_BAKLAVA */
 
 /**
  * Create a listbase from a Span of channel groups.
@@ -577,6 +576,7 @@ static void action_blend_write(BlendWriter *writer, ID *id, const void *id_addre
 }
 
 #ifdef WITH_ANIM_BAKLAVA
+
 static void read_channelbag(BlendDataReader *reader, animrig::ChannelBag &channelbag)
 {
   BLO_read_pointer_array(

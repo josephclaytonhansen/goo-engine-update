@@ -405,10 +405,6 @@ void Instance::render_sample()
   /* Motion blur may need to do re-sync after a certain number of sample. */
   if (!is_viewport() && sampling.do_render_sync()) {
     render_sync();
-    if (!info.empty()) {
-      printf("%s", info.c_str());
-      info = "";
-    }
   }
 
   DebugScope debug_scope(debug_scope_render_sample, "EEVEE.render_sample");

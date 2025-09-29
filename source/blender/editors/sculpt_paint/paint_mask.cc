@@ -570,8 +570,6 @@ static void invert_mask_grids(Main &bmain,
 
   MultiresModifierData &mmd = *BKE_sculpt_multires_active(&scene, &object);
   BKE_sculpt_mask_layers_ensure(&depsgraph, &bmain, &object, &mmd);
-  Vector<PBVHNode *> nodes = bke::pbvh::search_gather(*object.sculpt->pbvh, {});
-  SubdivCCG &subdiv_ccg = *object.sculpt->subdiv_ccg;
 
   undo::push_nodes(depsgraph, object, node_mask, undo::Type::Mask);
 

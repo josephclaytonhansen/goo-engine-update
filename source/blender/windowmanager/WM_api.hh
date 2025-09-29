@@ -378,20 +378,9 @@ bool WM_stereo3d_enabled(wmWindow *win, bool skip_stereo3d_check);
 /* `wm_files.cc`. */
 
 void WM_file_autoexec_init(const char *filepath);
-/**
- * \param use_scripts_autoexec_check: When true, script auto-execution checks excluded directories.
- * Note that this is passed in as an argument because `filepath` may reference a path to recover.
- * In this case the that used for exclusion is the recovery path which is only known once
- * the file has been loaded.
- */
-bool WM_file_read(bContext *C,
-                  const char *filepath,
-                  const bool use_scripts_autoexec_check,
-                  ReportList *reports);
+bool WM_file_read(bContext *C, const char *filepath, ReportList *reports);
 void WM_file_autosave_init(wmWindowManager *wm);
-bool WM_file_recover_last_session(bContext *C,
-                                  bool use_scripts_autoexec_check,
-                                  ReportList *reports);
+bool WM_file_recover_last_session(bContext *C, ReportList *reports);
 void WM_file_tag_modified();
 
 /**

@@ -8,7 +8,7 @@
 # and don't give deterministic results
 set(USE_EXPERIMENTAL_TESTS FALSE)
 
-set(TEST_SRC_DIR ${CMAKE_SOURCE_DIR}/tests/files)
+set(TEST_SRC_DIR ${CMAKE_SOURCE_DIR}/tests/data)
 set(TEST_PYTHON_DIR ${CMAKE_SOURCE_DIR}/tests/python)
 set(TEST_OUT_DIR ${CMAKE_BINARY_DIR}/tests)
 
@@ -154,11 +154,6 @@ endif()
 
 # ------------------------------------------------------------------------------
 # PY API TESTS
-add_blender_test(
-  script_pyapi_bpy_app_tempdir
-  --python ${CMAKE_CURRENT_LIST_DIR}/bl_pyapi_bpy_app_tempdir.py
-)
-
 add_blender_test(
   script_pyapi_bpy_path
   --python ${CMAKE_CURRENT_LIST_DIR}/bl_pyapi_bpy_path.py
@@ -757,17 +752,6 @@ if(WITH_CYCLES OR WITH_GPU_RENDER_TESTS)
       if(WITH_GPU_RENDER_TESTS_SILENT)
         list(APPEND _gpu_render_tests_arguments --fail-silently)
       endif()
-
-      # Eevee
-      foreach(render_test ${gpu_render_tests})
-        add_render_test(
-          eevee_${render_test}
-          ${CMAKE_CURRENT_LIST_DIR}/eevee_render_tests.py
-          -testdir "${TEST_SRC_DIR}/render/${render_test}"
-          -outdir "${TEST_OUT_DIR}/eevee"
-          ${_gpu_render_tests_arguments}
-        )
-      endforeach()
 
       # Eevee Next
       if(WITH_OPENGL_BACKEND)
