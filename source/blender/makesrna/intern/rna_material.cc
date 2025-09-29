@@ -968,6 +968,12 @@ void RNA_def_material(BlenderRNA *brna)
   RNA_def_property_translation_context(prop, BLT_I18NCONTEXT_ID_MATERIAL);
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
 
+  prop = RNA_def_property(srna, "shadow_method", PROP_ENUM, PROP_NONE);
+  RNA_def_property_enum_sdna(prop, nullptr, "blend_shadow");
+  RNA_def_property_enum_items(prop, prop_eevee_blend_shadow_items);
+  RNA_def_property_ui_text(prop, "Shadow Mode", "Shadow mapping method");
+  RNA_def_property_update(prop, 0, "rna_Material_draw_update");
+
   prop = RNA_def_property(srna, "alpha_threshold", PROP_FLOAT, PROP_FACTOR);
   RNA_def_property_range(prop, 0, 1);
   RNA_def_property_ui_text(prop,
@@ -1089,7 +1095,7 @@ void RNA_def_material(BlenderRNA *brna)
                            "The max distance a vertex can be displaced. "
                            "Displacements over this threshold may cause visibility issues.");
   RNA_def_property_update(prop, 0, "rna_Material_draw_update");
-
+ 
   prop = RNA_def_property(srna, "light_group_bits", PROP_INT, PROP_NONE);
   RNA_def_property_int_sdna(prop, nullptr, "light_group_bits");
   RNA_def_property_array(prop, 4);

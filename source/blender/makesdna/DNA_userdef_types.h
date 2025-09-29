@@ -763,7 +763,7 @@ typedef struct UserDef_Experimental {
   char use_shader_node_previews;
   char use_animation_baklava;
   char enable_new_cpu_compositor;
-  char _pad[2];
+  /* char _pad[0]; */
   /** `makesdna` does not allow empty structs. */
 } UserDef_Experimental;
 
@@ -1011,7 +1011,7 @@ typedef struct UserDef {
   int gpu_preferred_index;
   uint32_t gpu_preferred_vendor_id;
   uint32_t gpu_preferred_device_id;
-  char _pad16[4];
+  char _pad17[4];
   /** #eGPUBackendType */
   short gpu_backend;
 

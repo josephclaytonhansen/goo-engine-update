@@ -3807,17 +3807,6 @@ static void rna_def_tool_settings(BlenderRNA *brna)
   RNA_def_property_clear_flag(prop, PROP_ANIMATABLE);
   RNA_def_property_update(prop, NC_SCENE | ND_TOOLSETTINGS, nullptr);
 
-  prop = RNA_def_property(srna, "use_gpencil_autoclose_strokes", PROP_BOOLEAN, PROP_NONE);
-  RNA_def_property_boolean_sdna(prop, nullptr, "gpencil_flags", GP_TOOL_FLAG_AUTOCLOSE_STROKE);
-  RNA_def_property_boolean_default(prop, false);
-  RNA_def_property_ui_icon(prop, ICON_AUTOMERGE_OFF, 1);
-  RNA_def_property_ui_text(
-      prop,
-      "Autoclose",
-      "Close the last drawn stroke before post processing");
-  RNA_def_property_clear_flag(prop, PROP_ANIMATABLE);
-
-  RNA_def_property_update(prop, NC_SCENE | ND_TOOLSETTINGS, nullptr);
   prop = RNA_def_property(srna, "gpencil_sculpt", PROP_POINTER, PROP_NONE);
   RNA_def_property_pointer_sdna(prop, nullptr, "gp_sculpt");
   RNA_def_property_flag(prop, PROP_DEG_SYNC_ONLY);
@@ -8038,6 +8027,72 @@ static void rna_def_scene_eevee(BlenderRNA *brna)
   RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, nullptr);
   RNA_def_property_flag(prop, PROP_ANIMATABLE);
 
+  /* Screen Space Subsurface Scattering */
+  prop = RNA_def_property(srna, "sss_samples", PROP_INT, PROP_NONE);
+  RNA_def_property_ui_text(prop, "Samples", "Number of samples to compute the scattering effect");
+  RNA_def_property_range(prop, 1, 32);
+  RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
+  RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, nullptr);
+
+  prop = RNA_def_property(srna, "sss_jitter_threshold", PROP_FLOAT, PROP_FACTOR);
+  RNA_def_property_ui_text(
+      prop, "Jitter Threshold", "Rotate samples that are below this threshold");
+  RNA_def_property_range(prop, 0.0f, 1.0f);
+  RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
+  RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, nullptr);
+
+  /* Screen Space Reflection */
+  prop = RNA_def_property(srna, "use_ssr", PROP_BOOLEAN, PROP_NONE);
+  RNA_def_property_boolean_sdna(prop, nullptr, "flag", SCE_EEVEE_SSR_ENABLED);
+  RNA_def_property_ui_text(prop, "Screen Space Reflections", "Enable screen space reflection");
+  RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
+  RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, nullptr);
+
+  prop = RNA_def_property(srna, "use_ssr_refraction", PROP_BOOLEAN, PROP_NONE);
+  RNA_def_property_boolean_sdna(prop, nullptr, "flag", SCE_EEVEE_SSR_REFRACTION);
+  RNA_def_property_ui_text(prop, "Screen Space Refractions", "Enable screen space Refractions");
+  RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
+  RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, nullptr);
+
+  prop = RNA_def_property(srna, "use_ssr_halfres", PROP_BOOLEAN, PROP_NONE);
+  RNA_def_property_boolean_sdna(prop, nullptr, "flag", SCE_EEVEE_SSR_HALF_RESOLUTION);
+  RNA_def_property_ui_text(prop, "Half Res Trace", "Raytrace at a lower resolution");
+  RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
+  RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, nullptr);
+
+  prop = RNA_def_property(srna, "ssr_quality", PROP_FLOAT, PROP_FACTOR);
+  RNA_def_property_ui_text(prop, "Trace Precision", "Precision of the screen space ray-tracing");
+  RNA_def_property_range(prop, 0.0f, 1.0f);
+  RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
+  RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, nullptr);
+
+  prop = RNA_def_property(srna, "ssr_max_roughness", PROP_FLOAT, PROP_FACTOR);
+  RNA_def_property_ui_text(
+      prop, "Max Roughness", "Do not raytrace reflections for roughness above this value");
+  RNA_def_property_range(prop, 0.0f, 1.0f);
+  RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
+  RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, nullptr);
+
+  prop = RNA_def_property(srna, "ssr_thickness", PROP_FLOAT, PROP_DISTANCE);
+  RNA_def_property_ui_text(prop, "Thickness", "Pixel thickness used to detect intersection");
+  RNA_def_property_translation_context(prop, BLT_I18NCONTEXT_ID_MATERIAL);
+  RNA_def_property_range(prop, 1e-6f, FLT_MAX);
+  RNA_def_property_ui_range(prop, 0.001f, FLT_MAX, 5, 3);
+  RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
+  RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, nullptr);
+
+  prop = RNA_def_property(srna, "ssr_border_fade", PROP_FLOAT, PROP_FACTOR);
+  RNA_def_property_ui_text(prop, "Edge Fading", "Screen percentage used to fade the SSR");
+  RNA_def_property_range(prop, 0.0f, 0.5f);
+  RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
+  RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, nullptr);
+
+  prop = RNA_def_property(srna, "ssr_firefly_fac", PROP_FLOAT, PROP_NONE);
+  RNA_def_property_ui_text(prop, "Clamp", "Clamp pixel intensity to remove noise (0 to disable)");
+  RNA_def_property_range(prop, 0.0f, FLT_MAX);
+  RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
+  RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, nullptr);
+
   prop = RNA_def_property(srna, "ray_tracing_method", PROP_ENUM, PROP_NONE);
   RNA_def_property_enum_items(prop, ray_tracing_method_items);
   RNA_def_property_ui_text(
@@ -8185,10 +8240,30 @@ static void rna_def_scene_eevee(BlenderRNA *brna)
   RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
   RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, nullptr);
 
-  /* TODO: remove this, kept for EEVEE 4.2 compatibility,
-   * this is a duplicate of "fast_gi_quality"). */
+  prop = RNA_def_property(srna, "use_gtao_bent_normals", PROP_BOOLEAN, PROP_NONE);
+  RNA_def_property_boolean_sdna(prop, nullptr, "flag", SCE_EEVEE_GTAO_BENT_NORMALS);
+  RNA_def_property_ui_text(
+      prop, "Bent Normals", "Compute main non occluded direction to sample the environment");
+  RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
+  RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, nullptr);
+
+  prop = RNA_def_property(srna, "use_gtao_bounce", PROP_BOOLEAN, PROP_NONE);
+  RNA_def_property_boolean_sdna(prop, nullptr, "flag", SCE_EEVEE_GTAO_BOUNCE);
+  RNA_def_property_ui_text(prop,
+                           "Bounces Approximation",
+                           "An approximation to simulate light bounces "
+                           "giving less occlusion on brighter objects");
+  RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
+  RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, nullptr);
+
+  prop = RNA_def_property(srna, "gtao_factor", PROP_FLOAT, PROP_FACTOR);
+  RNA_def_property_ui_text(prop, "Factor", "Factor for ambient occlusion blending");
+  RNA_def_property_range(prop, 0.0f, FLT_MAX);
+  RNA_def_property_ui_range(prop, 0.0f, 1.0f, 0.1f, 2);
+  RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
+  RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, nullptr);
+
   prop = RNA_def_property(srna, "gtao_quality", PROP_FLOAT, PROP_FACTOR);
-  RNA_def_property_float_sdna(prop, nullptr, "fast_gi_quality");
   RNA_def_property_ui_text(prop, "Trace Precision", "Precision of the horizon search");
   RNA_def_property_range(prop, 0.0f, 1.0f);
   RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
@@ -8309,6 +8384,22 @@ static void rna_def_scene_eevee(BlenderRNA *brna)
                            "based on neighborhood (lower is faster)");
   RNA_def_property_range(prop, 0.0f, 100000.0f);
   RNA_def_property_ui_range(prop, 0.0f, 40.0f, 10, 2);
+  RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
+  RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, nullptr);
+
+  prop = RNA_def_property(srna, "bokeh_denoise_fac", PROP_FLOAT, PROP_FACTOR);
+  RNA_def_property_ui_text(
+      prop, "Denoise Amount", "Amount of flicker removal applied to bokeh highlights");
+  RNA_def_property_range(prop, 0.0f, 1.0f);
+  RNA_def_property_ui_range(prop, 0.0f, 1.0f, 10, 2);
+  RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
+  RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, nullptr);
+
+  prop = RNA_def_property(srna, "use_bokeh_high_quality_slight_defocus", PROP_BOOLEAN, PROP_NONE);
+  RNA_def_property_boolean_sdna(prop, nullptr, "flag", SCE_EEVEE_DOF_HQ_SLIGHT_FOCUS);
+  RNA_def_property_ui_text(prop,
+                           "High Quality Slight Defocus",
+                           "Sample all pixels in almost in-focus regions to eliminate noise");
   RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
   RNA_def_property_update(prop, NC_SCENE | ND_RENDER_OPTIONS, nullptr);
 

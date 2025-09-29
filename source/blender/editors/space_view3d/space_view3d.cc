@@ -2022,6 +2022,14 @@ static void space_view3d_listener(const wmSpaceTypeListenerParams *params)
 
 static void space_view3d_refresh(const bContext *C, ScrArea *area)
 {
+  Scene *scene = CTX_data_scene(C);
+  LightCache *lcache = scene->eevee.light_cache_data;
+
+  if (lcache && (lcache->flag & LIGHTCACHE_UPDATE_AUTO) != 0) {
+    lcache->flag &= ~LIGHTCACHE_UPDATE_AUTO;
+    view3d_lightcache_update((bContext *)C);
+  }
+
   View3D *v3d = (View3D *)area->spacedata.first;
   MEM_SAFE_FREE(v3d->runtime.local_stats);
 

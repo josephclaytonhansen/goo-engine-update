@@ -43,10 +43,8 @@
 #include "BKE_object.hh"
 #include "BKE_particle.h"
 #include "BKE_report.hh"
-#include "BKE_scene.hh"
 
 #include "ANIM_bone_collections.hh"
-#include "ANIM_keyframing.hh"
 
 #include "DEG_depsgraph.hh"
 #include "DEG_depsgraph_build.hh"
@@ -303,8 +301,6 @@ static void outliner_object_set_flag_recursive_fn(bContext *C,
         ptr = RNA_pointer_create(&scene->id, &RNA_ObjectBase, base_iter);
       }
       RNA_property_boolean_set(&ptr, base_or_object_prop, value);
-      blender::animrig::autokeyframe_property(
-          C, scene, &ptr, base_or_object_prop, -1, BKE_scene_frame_get(scene), true);
     }
   }
 
@@ -829,11 +825,6 @@ static void namebutton_fn(bContext *C, void *tsep, char *oldname)
           WM_event_add_notifier(C, NC_OBJECT | ND_MODIFIER | NA_RENAME, nullptr);
           DEG_relations_tag_update(bmain);
           undo_str = "Rename Modifier";
-          break;
-        }
-        case TSE_MODIFIER: {
-          WM_event_add_notifier(C, NC_OBJECT | ND_MODIFIER | NA_RENAME, nullptr);
-          DEG_relations_tag_update(bmain);
           break;
         }
         case TSE_EBONE: {
@@ -3956,13 +3947,11 @@ static void outliner_draw_tree(bContext *C,
   const uiFontStyle *fstyle = UI_FSTYLE_WIDGET;
   int starty, startx;
 
-  short columns_offset = use_mode_column ? UI_UNIT_X : 0;
-
   /* Move the tree a unit left in view layer mode */
-  if ((space_outliner->outlinevis == SO_VIEW_LAYER) &&
-      !(space_outliner->filter & SO_FILTER_NO_COLLECTION) &&
-      (space_outliner->filter & SO_FILTER_NO_VIEW_LAYERS))
-  {
+  short columns_offset = (use_mode_column && (space_outliner->outlinevis == SO_SCENES)) ?
+                             UI_UNIT_X :
+                             0;
+  if (!use_mode_column && (space_outliner->outlinevis == SO_VIEW_LAYER)) {
     columns_offset -= UI_UNIT_X;
   }
 

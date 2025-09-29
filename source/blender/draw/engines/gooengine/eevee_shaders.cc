@@ -1038,23 +1038,23 @@ Material *EEVEE_material_default_diffuse_get()
   if (!e_data.diffuse_mat) {
     Material *ma = static_cast<Material *>(BKE_id_new_nomain(ID_MA, "EEVEEE default diffuse"));
 
-    bNodeTree *ntree = blender::bke::ntreeAddTreeEmbedded(
+    bNodeTree *ntree = blender::bke::node_tree_add_tree_embedded(
         nullptr, &ma->id, "Shader Nodetree", ntreeType_Shader->idname);
     ma->use_nodes = true;
 
-    bNode *bsdf = blender::bke::nodeAddStaticNode(nullptr, ntree, SH_NODE_BSDF_DIFFUSE);
-    bNodeSocket *base_color = blender::bke::nodeFindSocket(bsdf, SOCK_IN, "Color");
+    bNode *bsdf = blender::bke::node_add_static_node(nullptr, ntree, SH_NODE_BSDF_DIFFUSE);
+    bNodeSocket *base_color = blender::bke::node_find_socket(bsdf, SOCK_IN, "Color");
     copy_v3_fl(((bNodeSocketValueRGBA *)base_color->default_value)->value, 0.8f);
 
-    bNode *output = blender::bke::nodeAddStaticNode(nullptr, ntree, SH_NODE_OUTPUT_MATERIAL);
+    bNode *output = blender::bke::node_add_static_node(nullptr, ntree, SH_NODE_OUTPUT_MATERIAL);
 
-    blender::bke::nodeAddLink(ntree,
+    blender::bke::node_add_link(ntree,
                               bsdf,
-                              blender::bke::nodeFindSocket(bsdf, SOCK_OUT, "BSDF"),
+                              blender::bke::node_find_socket(bsdf, SOCK_OUT, "BSDF"),
                               output,
-                              blender::bke::nodeFindSocket(output, SOCK_IN, "Surface"));
+                              blender::bke::node_find_socket(output, SOCK_IN, "Surface"));
 
-    blender::bke::nodeSetActive(ntree, output);
+    blender::bke::node_set_active(ntree, output);
     e_data.diffuse_mat = ma;
   }
   return e_data.diffuse_mat;
@@ -1065,25 +1065,25 @@ Material *EEVEE_material_default_glossy_get()
   if (!e_data.glossy_mat) {
     Material *ma = static_cast<Material *>(BKE_id_new_nomain(ID_MA, "EEVEEE default metal"));
 
-    bNodeTree *ntree = blender::bke::ntreeAddTreeEmbedded(
+    bNodeTree *ntree = blender::bke::node_tree_add_tree_embedded(
         nullptr, &ma->id, "Shader Nodetree", ntreeType_Shader->idname);
     ma->use_nodes = true;
 
-    bNode *bsdf = blender::bke::nodeAddStaticNode(nullptr, ntree, SH_NODE_BSDF_GLOSSY);
-    bNodeSocket *base_color = blender::bke::nodeFindSocket(bsdf, SOCK_IN, "Color");
+    bNode *bsdf = blender::bke::node_add_static_node(nullptr, ntree, SH_NODE_BSDF_GLOSSY);
+    bNodeSocket *base_color = blender::bke::node_find_socket(bsdf, SOCK_IN, "Color");
     copy_v3_fl(((bNodeSocketValueRGBA *)base_color->default_value)->value, 1.0f);
-    bNodeSocket *roughness = blender::bke::nodeFindSocket(bsdf, SOCK_IN, "Roughness");
+    bNodeSocket *roughness = blender::bke::node_find_socket(bsdf, SOCK_IN, "Roughness");
     ((bNodeSocketValueFloat *)roughness->default_value)->value = 0.0f;
 
-    bNode *output = blender::bke::nodeAddStaticNode(nullptr, ntree, SH_NODE_OUTPUT_MATERIAL);
+    bNode *output = blender::bke::node_add_static_node(nullptr, ntree, SH_NODE_OUTPUT_MATERIAL);
 
-    blender::bke::nodeAddLink(ntree,
+    blender::bke::node_add_link(ntree,
                               bsdf,
-                              blender::bke::nodeFindSocket(bsdf, SOCK_OUT, "BSDF"),
+                              blender::bke::node_find_socket(bsdf, SOCK_OUT, "BSDF"),
                               output,
-                              blender::bke::nodeFindSocket(output, SOCK_IN, "Surface"));
+                              blender::bke::node_find_socket(output, SOCK_IN, "Surface"));
 
-    blender::bke::nodeSetActive(ntree, output);
+    blender::bke::node_set_active(ntree, output);
     e_data.glossy_mat = ma;
   }
   return e_data.glossy_mat;
@@ -1094,24 +1094,24 @@ Material *EEVEE_material_default_error_get()
   if (!e_data.error_mat) {
     Material *ma = static_cast<Material *>(BKE_id_new_nomain(ID_MA, "EEVEEE default error"));
 
-    bNodeTree *ntree = blender::bke::ntreeAddTreeEmbedded(
+    bNodeTree *ntree = blender::bke::node_tree_add_tree_embedded(
         nullptr, &ma->id, "Shader Nodetree", ntreeType_Shader->idname);
     ma->use_nodes = true;
 
     /* Use emission and output material to be compatible with both World and Material. */
-    bNode *bsdf = blender::bke::nodeAddStaticNode(nullptr, ntree, SH_NODE_EMISSION);
-    bNodeSocket *color = blender::bke::nodeFindSocket(bsdf, SOCK_IN, "Color");
+    bNode *bsdf = blender::bke::node_add_static_node(nullptr, ntree, SH_NODE_EMISSION);
+    bNodeSocket *color = blender::bke::node_find_socket(bsdf, SOCK_IN, "Color");
     copy_v3_fl3(((bNodeSocketValueRGBA *)color->default_value)->value, 1.0f, 0.0f, 1.0f);
 
-    bNode *output = blender::bke::nodeAddStaticNode(nullptr, ntree, SH_NODE_OUTPUT_MATERIAL);
+    bNode *output = blender::bke::node_add_static_node(nullptr, ntree, SH_NODE_OUTPUT_MATERIAL);
 
-    blender::bke::nodeAddLink(ntree,
+    blender::bke::node_add_link(ntree,
                               bsdf,
-                              blender::bke::nodeFindSocket(bsdf, SOCK_OUT, "Emission"),
+                              blender::bke::node_find_socket(bsdf, SOCK_OUT, "Emission"),
                               output,
-                              blender::bke::nodeFindSocket(output, SOCK_IN, "Surface"));
+                              blender::bke::node_find_socket(output, SOCK_IN, "Surface"));
 
-    blender::bke::nodeSetActive(ntree, output);
+    blender::bke::node_set_active(ntree, output);
     e_data.error_mat = ma;
   }
   return e_data.error_mat;
@@ -1121,23 +1121,23 @@ bNodeTree *EEVEE_shader_default_surface_nodetree(Material *ma)
 {
   /* WARNING: This function is not threadsafe. Which is not a problem for the moment. */
   if (!e_data.surface.ntree) {
-    bNodeTree *ntree = blender::bke::ntreeAddTree(
+    bNodeTree *ntree = blender::bke::node_tree_add_tree(
         nullptr, "Shader Nodetree", ntreeType_Shader->idname);
-    bNode *bsdf = blender::bke::nodeAddStaticNode(nullptr, ntree, SH_NODE_BSDF_PRINCIPLED);
-    bNode *output = blender::bke::nodeAddStaticNode(nullptr, ntree, SH_NODE_OUTPUT_MATERIAL);
-    bNodeSocket *bsdf_out = blender::bke::nodeFindSocket(bsdf, SOCK_OUT, "BSDF");
-    bNodeSocket *output_in = blender::bke::nodeFindSocket(output, SOCK_IN, "Surface");
-    blender::bke::nodeAddLink(ntree, bsdf, bsdf_out, output, output_in);
-    blender::bke::nodeSetActive(ntree, output);
+    bNode *bsdf = blender::bke::node_add_static_node(nullptr, ntree, SH_NODE_BSDF_PRINCIPLED);
+    bNode *output = blender::bke::node_add_static_node(nullptr, ntree, SH_NODE_OUTPUT_MATERIAL);
+    bNodeSocket *bsdf_out = blender::bke::node_find_socket(bsdf, SOCK_OUT, "BSDF");
+    bNodeSocket *output_in = blender::bke::node_find_socket(output, SOCK_IN, "Surface");
+    blender::bke::node_add_link(ntree, bsdf, bsdf_out, output, output_in);
+    blender::bke::node_set_active(ntree, output);
 
     e_data.surface.color_socket = static_cast<bNodeSocketValueRGBA *>(
-        blender::bke::nodeFindSocket(bsdf, SOCK_IN, "Base Color")->default_value);
+        blender::bke::node_find_socket(bsdf, SOCK_IN, "Base Color")->default_value);
     e_data.surface.metallic_socket = static_cast<bNodeSocketValueFloat *>(
-        blender::bke::nodeFindSocket(bsdf, SOCK_IN, "Metallic")->default_value);
+        blender::bke::node_find_socket(bsdf, SOCK_IN, "Metallic")->default_value);
     e_data.surface.roughness_socket = static_cast<bNodeSocketValueFloat *>(
-        blender::bke::nodeFindSocket(bsdf, SOCK_IN, "Roughness")->default_value);
+        blender::bke::node_find_socket(bsdf, SOCK_IN, "Roughness")->default_value);
     e_data.surface.specular_socket = static_cast<bNodeSocketValueFloat *>(
-        blender::bke::nodeFindSocket(bsdf, SOCK_IN, "Specular IOR Level")->default_value);
+        blender::bke::node_find_socket(bsdf, SOCK_IN, "Specular IOR Level")->default_value);
     e_data.surface.ntree = ntree;
   }
   /* Update */
@@ -1153,17 +1153,17 @@ bNodeTree *EEVEE_shader_default_world_nodetree(World *wo)
 {
   /* WARNING: This function is not threadsafe. Which is not a problem for the moment. */
   if (!e_data.world.ntree) {
-    bNodeTree *ntree = blender::bke::ntreeAddTree(
+    bNodeTree *ntree = blender::bke::node_tree_add_tree(
         nullptr, "Shader Nodetree", ntreeType_Shader->idname);
-    bNode *bg = blender::bke::nodeAddStaticNode(nullptr, ntree, SH_NODE_BACKGROUND);
-    bNode *output = blender::bke::nodeAddStaticNode(nullptr, ntree, SH_NODE_OUTPUT_WORLD);
-    bNodeSocket *bg_out = blender::bke::nodeFindSocket(bg, SOCK_OUT, "Background");
-    bNodeSocket *output_in = blender::bke::nodeFindSocket(output, SOCK_IN, "Surface");
-    blender::bke::nodeAddLink(ntree, bg, bg_out, output, output_in);
-    blender::bke::nodeSetActive(ntree, output);
+    bNode *bg = blender::bke::node_add_static_node(nullptr, ntree, SH_NODE_BACKGROUND);
+    bNode *output = blender::bke::node_add_static_node(nullptr, ntree, SH_NODE_OUTPUT_WORLD);
+    bNodeSocket *bg_out = blender::bke::node_find_socket(bg, SOCK_OUT, "Background");
+    bNodeSocket *output_in = blender::bke::node_find_socket(output, SOCK_IN, "Surface");
+    blender::bke::node_add_link(ntree, bg, bg_out, output, output_in);
+    blender::bke::node_set_active(ntree, output);
 
     e_data.world.color_socket = static_cast<bNodeSocketValueRGBA *>(
-        blender::bke::nodeFindSocket(bg, SOCK_IN, "Color")->default_value);
+        blender::bke::node_find_socket(bg, SOCK_IN, "Color")->default_value);
     e_data.world.ntree = ntree;
   }
 
@@ -1568,12 +1568,12 @@ void EEVEE_shaders_free()
     e_data.error_mat = nullptr;
   }
   if (e_data.surface.ntree) {
-    blender::bke::ntreeFreeEmbeddedTree(e_data.surface.ntree);
+    blender::bke::node_tree_free_embedded_tree(e_data.surface.ntree);
     MEM_freeN(e_data.surface.ntree);
     e_data.surface.ntree = nullptr;
   }
   if (e_data.world.ntree) {
-    blender::bke::ntreeFreeEmbeddedTree(e_data.world.ntree);
+    blender::bke::node_tree_free_embedded_tree(e_data.world.ntree);
     MEM_freeN(e_data.world.ntree);
     e_data.world.ntree = nullptr;
   }

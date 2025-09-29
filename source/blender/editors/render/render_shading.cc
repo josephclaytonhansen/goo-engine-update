@@ -1619,11 +1619,6 @@ static int lightprobe_cache_bake_invoke(bContext *C, wmOperator *op, const wmEve
 
   wmJob *wm_job = EEVEE_NEXT_lightbake_job_create(
       wm, win, bmain, view_layer, scene, probes, data->report, scene->r.cfra, 0);
-  if (wm_job == nullptr) {
-    MEM_delete(data);
-    BKE_report(op->reports, RPT_WARNING, "Can't bake light probe while rendering");
-    return OPERATOR_CANCELLED;
-  }
 
   WM_event_add_modal_handler(C, op);
 
@@ -2854,12 +2849,6 @@ static int copy_material_exec(bContext *C, wmOperator *op)
   char filepath[FILE_MAX];
   material_copybuffer_filepath_get(filepath, sizeof(filepath));
   copybuffer.write(filepath, *op->reports);
-
-  /* Restore some status info that may be affected by partial write process. */
-  if (!is_fake_user) {
-    id_fake_user_clear(&ma->id);
-  }
-  ma->id.us = usercount;
 
   /* We are all done! */
   BKE_report(op->reports, RPT_INFO, "Copied material to internal clipboard");

@@ -1148,13 +1148,13 @@ void do_versions_after_linking_400(FileData *fd, Main *bmain)
         bmain, NTREE_SHADER, SH_NODE_SUBSURFACE_SCATTERING, 4, 1, 5);
   }
 
-  // if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 50)) {
-  //   if (all_scenes_use(bmain, {RE_engine_id_BLENDER_EEVEE})) {
-  //     LISTBASE_FOREACH (Object *, object, &bmain->objects) {
-  //       versioning_eevee_shadow_settings(object);
-  //     }
-  //   }
-  // }
+  if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 50)) {
+    if (all_scenes_use(bmain, {RE_engine_id_BLENDER_EEVEE})) {
+      LISTBASE_FOREACH (Object *, object, &bmain->objects) {
+        versioning_eevee_shadow_settings(object);
+      }
+    }
+  }
 
   // if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 51)) {
   //   /* Convert blend method to math nodes. */
@@ -4335,9 +4335,7 @@ void blo_do_versions_400(FileData *fd, Library * /*lib*/, Main *bmain)
   // if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 31)) {
   //   bool only_uses_eevee_legacy_or_workbench = true;
   //   LISTBASE_FOREACH (Scene *, scene, &bmain->scenes) {
-  //     if (!(STREQ(scene->r.engine, RE_engine_id_BLENDER_EEVEE) ||
-  //           STREQ(scene->r.engine, RE_engine_id_BLENDER_WORKBENCH)))
-  //     {
+  //     if (!STR_ELEM(scene->r.engine, RE_engine_id_BLENDER_EEVEE, RE_engine_id_BLENDER_WORKBENCH)) {
   //       only_uses_eevee_legacy_or_workbench = false;
   //     }
   //   }
@@ -4387,7 +4385,7 @@ void blo_do_versions_400(FileData *fd, Library * /*lib*/, Main *bmain)
     bool shadow_resolution_absolute = false;
     /* Try to get default resolution from scene setting. */
     LISTBASE_FOREACH (Scene *, scene, &bmain->scenes) {
-      shadow_max_res_local = (2.0f * M_SQRT2) / scene->eevee.shadow_cube_size_deprecated;
+      shadow_max_res_local = (2.0f * M_SQRT2) / scene->eevee.shadow_cube_size;
       /* Round to avoid weird numbers in the UI. */
       shadow_max_res_local = ceil(shadow_max_res_local * 1000.0f) / 1000.0f;
       shadow_resolution_absolute = true;
