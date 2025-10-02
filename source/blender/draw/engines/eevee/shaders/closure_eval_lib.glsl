@@ -203,9 +203,7 @@ struct ClosureInputCommon {
 /* C++ struct initialization. */
 #  define CLOSURE_INPUT_COMMON_DEFAULT \
     { \
-      1.0, \
-      lightGroups, \
-      lightGroupShadows \
+      1.0 \
     }
 #else
 #  define CLOSURE_INPUT_COMMON_DEFAULT ClosureInputCommon(1.0, lightGroups, lightGroupShadows)

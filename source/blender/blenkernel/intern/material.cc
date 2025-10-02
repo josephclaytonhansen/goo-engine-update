@@ -830,17 +830,6 @@ void BKE_id_material_eval_ensure_default_slot(ID *id)
   }
 }
 
-<<<<<<< HEAD
-=======
-bool BKE_material_use_custom_holdout(Material* ma)
-{
-  if (ma == NULL || ma->blend_method == MA_BM_SOLID) {
-    return false;
-  }
-  return true;
-}
-
->>>>>>> 8457395892beec33d4605ef9d894a1aff4a8d79f
 int BKE_object_material_index_get(Object *ob, Material *ma)
 {
   short *totcol = BKE_object_material_len_p(ob);
