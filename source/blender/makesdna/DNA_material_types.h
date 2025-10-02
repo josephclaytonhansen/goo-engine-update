@@ -213,10 +213,23 @@ typedef struct Material {
   char blend_flag;
   char check_shadow_id;
   char volume_intersection_method;
+<<<<<<< HEAD
   char _pad1[3];  /* Align to 4 bytes */
 
   /* --------------------------------- ListBase and struct alignment section */
   int _pad2[2];  /* Align to 8 bytes */
+=======
+  char _pad3[3];
+  /* Displacement. */
+  float inflate_bounds;
+  /**
+   * Cached slots for texture painting, must be refreshed via
+   * BKE_texpaint_slot_refresh_cache before using.
+   */
+  struct TexPaintSlot *texpaintslot;
+
+  /** Runtime cache for GLSL materials. */
+>>>>>>> 8457395892beec33d4605ef9d894a1aff4a8d79f
   ListBase gpumaterial;
   int _pad3[2];  /* Align to 8 bytes */
   struct MaterialLineArt lineart;
@@ -361,16 +374,24 @@ enum {
   MA_BS_HASHED = 3,
 };
 
+<<<<<<< HEAD
 enum {
   MA_SHADOW_ID = (1 << 0)
 };
 
+=======
+>>>>>>> 8457395892beec33d4605ef9d894a1aff4a8d79f
 /** #Material::displacement_method */
 enum {
   MA_DISPLACEMENT_BUMP = 0,
   MA_DISPLACEMENT_DISPLACE = 1,
   MA_DISPLACEMENT_BOTH = 2,
 };
+<<<<<<< HEAD
+=======
+
+#define MA_SHADOW_ID (1 << 0)
+>>>>>>> 8457395892beec33d4605ef9d894a1aff4a8d79f
 
 /* Grease Pencil Stroke styles */
 enum {
