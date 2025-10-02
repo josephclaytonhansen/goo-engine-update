@@ -6,9 +6,13 @@
  * \ingroup edinterface
  */
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <string>
+
+#include <fmt/format.h>
 
 #include "MEM_guardedalloc.h"
 
@@ -24,6 +28,7 @@
 #include "BLI_fileops_types.h"
 #include "BLI_math_color_blend.h"
 #include "BLI_math_vector.h"
+#include "BLI_string_ref.hh"
 #include "BLI_utildefines.h"
 
 #include "DNA_brush_types.h"
@@ -39,17 +44,17 @@
 #include "RNA_access.hh"
 #include "RNA_prototypes.h"
 
-#include "BKE_appdir.h"
+#include "BKE_appdir.hh"
 #include "BKE_context.hh"
-#include "BKE_global.h"
+#include "BKE_global.hh"
 #include "BKE_icons.h"
 #include "BKE_paint.hh"
 #include "BKE_preview_image.hh"
 #include "BKE_studiolight.h"
 
-#include "IMB_imbuf.h"
-#include "IMB_imbuf_types.h"
-#include "IMB_thumbs.h"
+#include "IMB_imbuf.hh"
+#include "IMB_imbuf_types.hh"
+#include "IMB_thumbs.hh"
 
 #include "BIF_glutil.hh"
 
@@ -161,6 +166,7 @@ static const IconType icontypes[] = {
 #  define DEF_ICON_FUND(name) {ICON_TYPE_MONO_TEXTURE, TH_ICON_FUND},
 #  define DEF_ICON_VECTOR(name) {ICON_TYPE_VECTOR, 0},
 #  define DEF_ICON_COLOR(name) {ICON_TYPE_COLOR_TEXTURE, 0},
+#  define DEF_ICON_AUTOKEY(name) {ICON_TYPE_MONO_TEXTURE, TH_ICON_AUTOKEY},
 #  define DEF_ICON_BLANK(name) {ICON_TYPE_BLANK, 0},
 #  include "UI_icons.hh"
 };
@@ -426,7 +432,8 @@ static void vicon_collection_color_draw(
                   0.0f,
                   collection_color->color,
                   true,
-                  UI_NO_ICON_OVERLAY_TEXT);
+                  UI_NO_ICON_OVERLAY_TEXT,
+                  false);
 }
 
 #  define DEF_ICON_COLLECTION_COLOR_DRAW(index, color) \
@@ -455,7 +462,7 @@ static void vicon_strip_color_draw(
   const float aspect = float(ICON_DEFAULT_WIDTH) / float(w);
 
   UI_icon_draw_ex(
-      x, y, ICON_SNAP_FACE, aspect, 1.0f, 0.0f, strip_color->color, true, UI_NO_ICON_OVERLAY_TEXT);
+      x, y, ICON_SNAP_FACE, aspect, 1.0f, 0.0f, strip_color->color, true, UI_NO_ICON_OVERLAY_TEXT, false);
 }
 
 #  define DEF_ICON_STRIP_COLOR_DRAW(index, color) \
@@ -491,7 +498,8 @@ static void vicon_strip_color_draw_library_data_indirect(
                   0.0f,
                   nullptr,
                   false,
-                  UI_NO_ICON_OVERLAY_TEXT);
+                  UI_NO_ICON_OVERLAY_TEXT,
+                  false);
 }
 
 static void vicon_strip_color_draw_library_data_override_noneditable(
@@ -798,10 +806,10 @@ static ImBuf *create_mono_icon_with_border(ImBuf *buf,
       const int blur_size = 2 / resolution_divider;
       for (int bx = 0; bx < icon_width; bx++) {
         const int asx = std::max(bx - blur_size, 0);
-        const int aex = MIN2(bx + blur_size + 1, icon_width);
+        const int aex = std::min(bx + blur_size + 1, icon_width);
         for (int by = 0; by < icon_height; by++) {
           const int asy = std::max(by - blur_size, 0);
-          const int aey = MIN2(by + blur_size + 1, icon_height);
+          const int aey = std::min(by + blur_size + 1, icon_height);
 
           /* blur alpha channel */
           const int write_offset = by * (ICON_GRID_W + 2 * ICON_MONO_BORDER_OUTSET) + bx;
@@ -949,11 +957,11 @@ static void init_internal_icons()
 {
 #  if 0 /* temp disabled */
   if ((btheme != nullptr) && btheme->tui.iconfile[0]) {
-    char *icondir = BKE_appdir_folder_id(BLENDER_DATAFILES, "icons");
+    std::optional<std::string> icondir = BKE_appdir_folder_id(BLENDER_DATAFILES, "icons");
     char iconfilestr[FILE_MAX];
 
-    if (icondir) {
-      BLI_path_join(iconfilestr, sizeof(iconfilestr), icondir, btheme->tui.iconfile);
+    if (icondir.has_value()) {
+      BLI_path_join(iconfilestr, sizeof(iconfilestr), icondir->c_str(), btheme->tui.iconfile);
 
       /* if the image is missing bbuf will just be nullptr */
       bbuf = IMB_loadiffname(iconfilestr, IB_rect, nullptr);
@@ -1053,14 +1061,14 @@ static void init_internal_icons()
 static void init_iconfile_list(ListBase *list)
 {
   BLI_listbase_clear(list);
-  const char *icondir = BKE_appdir_folder_id(BLENDER_DATAFILES, "icons");
+  const std::optional<std::string> icondir = BKE_appdir_folder_id(BLENDER_DATAFILES, "icons");
 
-  if (icondir == nullptr) {
+  if (!icondir.has_value()) {
     return;
   }
 
   direntry *dir;
-  const int totfile = BLI_filelist_dir_contents(icondir, &dir);
+  const int totfile = BLI_filelist_dir_contents(icondir->c_str(), &dir);
 
   int index = 1;
   for (int i = 0; i < totfile; i++) {
@@ -1077,7 +1085,7 @@ static void init_iconfile_list(ListBase *list)
         /* check to see if the image is the right size, continue if not */
         /* copying strings here should go ok, assuming that we never get back
          * a complete path to file longer than 256 chars */
-        BLI_path_join(iconfilestr, sizeof(iconfilestr), icondir, filename);
+        BLI_path_join(iconfilestr, sizeof(iconfilestr), icondir->c_str(), filename);
         bbuf = IMB_loadiffname(iconfilestr, IB_rect);
 
         if (bbuf) {
@@ -1277,6 +1285,16 @@ void UI_icons_init()
   init_internal_icons();
   init_brush_icons();
   init_event_icons();
+
+  /* Override RECORD_ON icon to use autokey theme color */
+  Icon *icon = BKE_icon_get(ICON_RECORD_ON);
+  if (icon) {
+    DrawInfo *di = icon_ensure_drawinfo(icon);
+    if (di) {
+      di->type = ICON_TYPE_MONO_TEXTURE;
+      di->data.texture.theme_color = TH_ICON_AUTOKEY;
+    }
+  }
 #endif
 }
 
@@ -1520,6 +1538,162 @@ PreviewImage *UI_icon_to_preview(int icon_id)
   return nullptr;
 }
 
+/* -------------------------------------------------------------------- */
+/** \name SVG Color Replacement
+ * \{ */
+
+static void svg_replace_color_attributes(std::string &svg,
+                                         const std::string &name,
+                                         const size_t start,
+                                         const size_t end)
+{
+  bTheme *btheme = UI_GetTheme();
+
+  uchar white[] = {255, 255, 255, 255};
+  uchar black[] = {0, 0, 0, 255};
+  uchar logo_orange[] = {232, 125, 13, 255};
+  uchar logo_blue[] = {38, 87, 135, 255};
+
+  /* Tool colors hardcoded for now. */
+  uchar tool_add[] = {117, 255, 175, 255};
+  uchar tool_remove[] = {245, 107, 91, 255};
+  uchar tool_select[] = {255, 176, 43, 255};
+  uchar tool_transform[] = {217, 175, 245, 255};
+  uchar tool_white[] = {255, 255, 255, 255};
+  uchar tool_red[] = {214, 45, 48, 255};
+
+  struct ColorItem {
+    const char *name;
+    uchar *col = nullptr;
+    int colorid = TH_UNDEFINED;
+    int spacetype = SPACE_TYPE_ANY;
+  } items[] = {
+      {"blender.white", white},
+      {"blender.black", black},
+      {"blender.logo_orange", logo_orange},
+      {"blender.logo_blue", logo_blue},
+      {"blender.selected", btheme->tui.wcol_regular.inner},
+      {"blender.mesh_selected", btheme->space_view3d.vertex_select},
+      {"blender.back", nullptr, TH_BACK},
+      {"blender.text", nullptr, TH_TEXT},
+      {"blender.text_hi", nullptr, TH_TEXT_HI},
+      {"blender.red_alert", nullptr, TH_REDALERT},
+      {"blender.error", nullptr, TH_INFO_ERROR, SPACE_INFO},
+      {"blender.warning", nullptr, TH_INFO_WARNING, SPACE_INFO},
+      {"blender.info", nullptr, TH_INFO_INFO, SPACE_INFO},
+      {"blender.scene", nullptr, TH_ICON_SCENE},
+      {"blender.collection", nullptr, TH_ICON_COLLECTION},
+      {"blender.object", nullptr, TH_ICON_OBJECT},
+      {"blender.object_data", nullptr, TH_ICON_OBJECT_DATA},
+      {"blender.modifier", nullptr, TH_ICON_MODIFIER},
+      {"blender.shading", nullptr, TH_ICON_SHADING},
+      {"blender.folder", nullptr, TH_ICON_FOLDER},
+      {"blender.fund", nullptr, TH_ICON_FUND},
+      {"blender.autokey", nullptr, TH_ICON_AUTOKEY},
+      {"blender.tool_add", tool_add},
+      {"blender.tool_remove", tool_remove},
+      {"blender.tool_select", tool_select},
+      {"blender.tool_transform", tool_transform},
+      {"blender.tool_white", tool_white},
+      {"blender.tool_red", tool_red},
+  };
+
+  for (const ColorItem &item : items) {
+    if (name != item.name) {
+      continue;
+    }
+
+    uchar color[4];
+    if (item.col) {
+      memcpy(color, item.col, sizeof(color));
+    }
+    else if (item.colorid != TH_UNDEFINED) {
+      if (item.spacetype != SPACE_TYPE_ANY) {
+        UI_GetThemeColorType4ubv(item.colorid, item.spacetype, color);
+      }
+      else {
+        UI_GetThemeColor4ubv(item.colorid, color);
+      }
+    }
+    else {
+      continue;
+    }
+
+    std::string hexcolor = fmt::format(
+        "{:02x}{:02x}{:02x}{:02x}", color[0], color[1], color[2], color[3]);
+
+    size_t att_start = start;
+    while (1) {
+      constexpr static blender::StringRef key = "fill=\"";
+      att_start = svg.find(key, att_start);
+      if (att_start == std::string::npos || att_start > end) {
+        break;
+      }
+      const size_t att_end = svg.find("\"", att_start + key.size());
+      if (att_end != std::string::npos && att_end < end) {
+        svg.replace(att_start, att_end - att_start, key + "#" + hexcolor);
+      }
+      att_start += blender::StringRef(key + "#rrggbbaa\"").size();
+    }
+
+    att_start = start;
+    while (1) {
+      constexpr static blender::StringRef key = "fill:";
+      att_start = svg.find(key, att_start);
+      if (att_start == std::string::npos || att_start > end) {
+        break;
+      }
+      const size_t att_end = svg.find(";", att_start + key.size());
+      if (att_end != std::string::npos && att_end - att_start < end) {
+        svg.replace(att_start, att_end - att_start, key + "#" + hexcolor);
+      }
+      att_start += blender::StringRef(key + "#rrggbbaa").size();
+    }
+  }
+}
+
+static void icon_source_edit_cb(std::string &svg)
+{
+  size_t g_start = 0;
+
+  /* Scan string, processing only groups with our keyword ids. */
+
+  while (1) {
+    /* Look for a blender id, quick exit if not found. */
+    constexpr static blender::StringRef key = "id=\"";
+    const size_t id_start = svg.find(key + "blender.", g_start);
+    if (id_start == std::string::npos) {
+      return;
+    }
+
+    /* Scan back to beginning of this group element. */
+    g_start = svg.rfind("<g", id_start);
+    if (g_start == std::string::npos) {
+      /* Malformed. */
+      return;
+    }
+
+    /* Scan forward to end of the group. */
+    const size_t g_end = svg.find("</g>", id_start);
+    if (g_end == std::string::npos) {
+      /* Malformed. */
+      return;
+    }
+
+    /* Get group id name. */
+    const size_t id_end = svg.find("\"", id_start + key.size());
+    if (id_end != std::string::npos) {
+      std::string id_name = svg.substr(id_start + key.size(), id_end - id_start - key.size());
+      /* Replace this group's colors. */
+      svg_replace_color_attributes(svg, id_name, g_start, g_end);
+    }
+
+    g_start = g_end;
+  }
+}
+
+/** \} */
+
 static void icon_draw_rect(float x,
                            float y,
                            int w,
@@ -1755,8 +1929,12 @@ static void icon_draw_texture(float x,
   if (show_indicator) {
     /* Handle the little numbers on top of the icon. */
     uchar text_color[4];
-    UI_GetThemeColor3ubv(TH_TEXT, text_color);
-    text_color[3] = 255;
+    if (text_overlay->color[3]) {
+      copy_v4_v4_uchar(text_color, text_overlay->color);
+    }
+    else {
+      UI_GetThemeColor4ubv(TH_TEXT, text_color);
+    }
 
     uiFontStyle fstyle_small = *UI_FSTYLE_WIDGET;
     fstyle_small.points *= zoom_factor;
@@ -1856,7 +2034,8 @@ static void icon_draw_size(float x,
                            const float desaturate,
                            const uchar mono_rgba[4],
                            const bool mono_border,
-                           const IconTextOverlay *text_overlay)
+                           const IconTextOverlay *text_overlay,
+                           const bool inverted = false)
 {
   bTheme *btheme = UI_GetTheme();
   const float fdraw_size = float(draw_size);
@@ -1931,7 +2110,7 @@ static void icon_draw_size(float x,
   else if (di->type == ICON_TYPE_EVENT) {
     const short event_type = di->data.input.event_type;
     const short event_value = di->data.input.event_value;
-    icon_draw_rect_input(x, y, w, h, alpha, event_type, event_value);
+    icon_draw_rect_input(x, y, w, h, alpha, event_type, event_value, inverted);
   }
   else if (di->type == ICON_TYPE_COLOR_TEXTURE) {
     /* texture image use premul alpha for correct scaling */
@@ -1956,7 +2135,14 @@ static void icon_draw_size(float x,
       rgba_uchar_to_float(color, (const uchar *)mono_rgba);
     }
     else {
-      UI_GetThemeColor4fv(TH_TEXT, color);
+      /* Check if icon has a specific theme color, otherwise use text color */
+      uchar icon_color[4];
+      if (di->data.texture.theme_color && UI_GetIconThemeColor4ubv(di->data.texture.theme_color, icon_color)) {
+        rgba_uchar_to_float(color, icon_color);
+      }
+      else {
+        UI_GetThemeColor4fv(TH_TEXT, color);
+      }
     }
 
     mul_v4_fl(color, alpha);
@@ -2104,7 +2290,7 @@ static int ui_id_brush_get_icon(const bContext *C, ID *id)
   else {
     Object *ob = CTX_data_active_object(C);
     const EnumPropertyItem *items = nullptr;
-    ePaintMode paint_mode = PAINT_MODE_INVALID;
+    PaintMode paint_mode = PaintMode::Invalid;
     ScrArea *area = CTX_wm_area(C);
     char space_type = area->spacetype;
     /* Fallback to 3D view. */
@@ -2118,26 +2304,26 @@ static int ui_id_brush_get_icon(const bContext *C, ID *id)
 
     if ((space_type == SPACE_VIEW3D) && ob) {
       if (ob->mode & OB_MODE_SCULPT) {
-        paint_mode = PAINT_MODE_SCULPT;
+        paint_mode = PaintMode::Sculpt;
       }
       else if (ob->mode & OB_MODE_VERTEX_PAINT) {
-        paint_mode = PAINT_MODE_VERTEX;
+        paint_mode = PaintMode::Vertex;
       }
       else if (ob->mode & OB_MODE_WEIGHT_PAINT) {
-        paint_mode = PAINT_MODE_WEIGHT;
+        paint_mode = PaintMode::Weight;
       }
       else if (ob->mode & OB_MODE_TEXTURE_PAINT) {
-        paint_mode = PAINT_MODE_TEXTURE_3D;
+        paint_mode = PaintMode::Texture3D;
       }
       else if (ob->mode & OB_MODE_SCULPT_CURVES) {
-        paint_mode = PAINT_MODE_SCULPT_CURVES;
+        paint_mode = PaintMode::SculptCurves;
       }
     }
     else if (space_type == SPACE_IMAGE) {
       if (area->spacetype == space_type) {
         const SpaceImage *sima = static_cast<const SpaceImage *>(area->spacedata.first);
         if (sima->mode == SI_MODE_PAINT) {
-          paint_mode = PAINT_MODE_TEXTURE_2D;
+          paint_mode = PaintMode::Texture2D;
         }
       }
     }
@@ -2247,7 +2433,7 @@ static int ui_id_brush_get_icon(const bContext *C, ID *id)
       return id->icon_id;
     }
 
-    if (paint_mode != PAINT_MODE_INVALID) {
+    if (paint_mode != PaintMode::Invalid) {
       items = BKE_paint_get_tool_enum_from_paintmode(paint_mode);
       const uint tool_offset = BKE_paint_get_brush_tool_offset_from_paintmode(paint_mode);
       const int tool_type = *(char *)POINTER_OFFSET(br, tool_offset);
@@ -2391,6 +2577,8 @@ int UI_icon_from_idcode(const int idcode)
   switch ((ID_Type)idcode) {
     case ID_AC:
       return ICON_ACTION;
+    case ID_AN:
+      return ICON_ACTION; /* TODO: give Animation its own icon. */
     case ID_AR:
       return ICON_ARMATURE_DATA;
     case ID_BR:
@@ -2548,7 +2736,8 @@ void UI_icon_draw_ex(float x,
                      float desaturate,
                      const uchar mono_color[4],
                      const bool mono_border,
-                     const IconTextOverlay *text_overlay)
+                     const IconTextOverlay *text_overlay,
+                     const bool inverted)
 {
   const int draw_size = get_draw_size(ICON_SIZE_ICON);
   icon_draw_size(x,
@@ -2561,7 +2750,8 @@ void UI_icon_draw_ex(float x,
                  desaturate,
                  mono_color,
                  mono_border,
-                 text_overlay);
+                 text_overlay,
+                 inverted);
 }
 
 void UI_icon_text_overlay_init_from_count(IconTextOverlay *text_overlay,
@@ -2583,8 +2773,11 @@ ImBuf *UI_icon_alert_imbuf_get(eAlertIcon icon)
   UNUSED_VARS(icon);
   return nullptr;
 #else
+  if (icon == ALERT_ICON_NONE) {
+    return nullptr;
+  }
   const int ALERT_IMG_SIZE = 256;
-  icon = eAlertIcon(MIN2(icon, ALERT_ICON_MAX - 1));
+  icon = eAlertIcon(std::min<int>(icon, ALERT_ICON_MAX - 1));
   const int left = icon * ALERT_IMG_SIZE;
   const rcti crop = {left, left + ALERT_IMG_SIZE - 1, 0, ALERT_IMG_SIZE - 1};
   ImBuf *ibuf = IMB_ibImageFromMemory((const uchar *)datatoc_alert_icons_png,

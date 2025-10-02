@@ -8,8 +8,6 @@
 
 #include "DNA_node_types.h"
 
-#include "BKE_context.hh"
-
 #include "ED_node.hh" /* own include */
 #include "ED_screen.hh"
 
@@ -84,6 +82,7 @@ void node_operatortypes()
   WM_operatortype_append(NODE_OT_add_file);
   WM_operatortype_append(NODE_OT_add_mask);
   WM_operatortype_append(NODE_OT_add_material);
+  WM_operatortype_append(NODE_OT_add_color);
 
   WM_operatortype_append(NODE_OT_new_node_tree);
 

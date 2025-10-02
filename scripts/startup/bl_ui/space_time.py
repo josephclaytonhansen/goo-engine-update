@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 import bpy
-from bpy.types import Menu, Panel
 from bpy.app.translations import contexts as i18n_contexts
+from bpy.types import Menu, Panel
 
 
 # Header buttons for timeline header (play, etc.)
@@ -76,7 +76,7 @@ class TIME_MT_editor_menus(Menu):
 
     def draw(self, context):
         layout = self.layout
-        horizontal = (layout.direction == 'VERTICAL')
+        horizontal = layout.direction == 'VERTICAL'
         st = context.space_data
         if horizontal:
             row = layout.row()
@@ -123,35 +123,32 @@ class TIME_MT_view(Menu):
         scene = context.scene
         st = context.space_data
 
-        layout.menu("INFO_MT_area")
-
+        layout.prop(st, "show_region_hud")
+        layout.prop(st, "show_region_channels")
         layout.separator()
 
         # NOTE: "action" now, since timeline is in the dopesheet editor, instead of as own editor
-        layout.operator("action.view_frame")
         layout.operator("action.view_all")
-
-        layout.separator()
-
-        layout.menu("TIME_MT_cache")
-
-        layout.separator()
-
-        layout.prop(st.dopesheet, "show_only_errors")
-        layout.prop(scene, "show_keys_from_selected_only")
-
+        if context.scene.use_preview_range:
+            layout.operator("anim.scene_range_frame", text="Frame Preview Range")
+        else:
+            layout.operator("anim.scene_range_frame", text="Frame Scene Range")
+        layout.operator("action.view_frame")
         layout.separator()
 
         layout.prop(st, "show_markers")
-
-        layout.separator()
-
-        layout.prop(st, "show_locked_time")
         layout.prop(st, "show_seconds")
-
+        layout.prop(st, "show_locked_time")
         layout.separator()
 
-        layout.prop(st, "show_region_hud")
+        layout.prop(scene, "show_keys_from_selected_only")
+        layout.prop(st.dopesheet, "show_only_errors")
+        layout.separator()
+
+        layout.menu("TIME_MT_cache")
+        layout.separator()
+
+        layout.menu("INFO_MT_area")
 
 
 class TIME_MT_cache(Menu):
@@ -197,7 +194,7 @@ def marker_menu_generic(layout, context):
 
     layout.separator()
 
-    layout.menu('NLA_MT_marker_select')
+    layout.menu("NLA_MT_marker_select")
 
     layout.separator()
 
@@ -235,7 +232,7 @@ class TimelinePanelButtons:
 class TIME_PT_playback(TimelinePanelButtons, Panel):
     bl_label = "Playback"
     bl_region_type = 'HEADER'
-    bl_ui_units_x = 11
+    bl_ui_units_x = 13
 
     def draw(self, context):
         layout = self.layout
@@ -346,5 +343,6 @@ classes = (
 
 if __name__ == "__main__":  # only for live edit.
     from bpy.utils import register_class
+
     for cls in classes:
         register_class(cls)

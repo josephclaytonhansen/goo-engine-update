@@ -20,11 +20,11 @@
 #include "BLI_math_vector.h"
 #include "BLI_string.h"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "BKE_context.hh"
-#include "BKE_idtype.h"
-#include "BKE_report.h"
+#include "BKE_idtype.hh"
+#include "BKE_report.hh"
 #include "BKE_screen.hh"
 
 #include "RNA_access.hh"
@@ -221,7 +221,7 @@ static bool datadropper_id_sample(bContext *C, DataDropper *ddr, const int event
   int event_xy_win[2];
   wmWindow *win;
   ScrArea *area;
-  datadropper_win_area_find(C, event_xy, event_xy_win, &win, &area);
+  eyedropper_win_area_find(C, event_xy, event_xy_win, &win, &area);
 
   datadropper_id_sample_pt(C, win, area, ddr, event_xy_win, &id);
   return datadropper_id_set(C, ddr, id);
@@ -288,7 +288,7 @@ static int datadropper_modal(bContext *C, wmOperator *op, const wmEvent *event)
     int event_xy_win[2];
     wmWindow *win;
     ScrArea *area;
-    datadropper_win_area_find(C, event->xy, event_xy_win, &win, &area);
+    eyedropper_win_area_find(C, event->xy, event_xy_win, &win, &area);
 
     /* Set the region for eyedropper cursor text drawing */
     datadropper_set_draw_callback_region(area, ddr);

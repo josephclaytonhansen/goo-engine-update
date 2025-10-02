@@ -73,8 +73,8 @@ typedef struct MaterialGPencilStyle {
   float gradient_angle DNA_DEPRECATED;
   /** Radius for radial gradients. */
   float gradient_radius DNA_DEPRECATED;
-  char _pad2[4];
-  /** Uv coordinates scale. */
+  int _pad_gp_gradient;
+  /** UV coordinates scale. */
   float gradient_scale[2] DNA_DEPRECATED;
   /** Factor to shift filling in 2d space. */
   float gradient_shift[2] DNA_DEPRECATED;
@@ -165,69 +165,60 @@ typedef struct Material {
   DNA_DEFINE_CXX_METHODS(Material)
 
   ID id;
-  /** Animation data (must be immediately after id for utilities to use it). */
   struct AnimData *adt;
 
-  short flag;
-  /** Rendering modes for EEVEE. */
-  char surface_render_method;
-  char _pad1[1];
+  /* --------------------------------- 8-byte alignment section */
+  struct bNodeTree *nodetree;
+  struct Ipo *ipo DNA_DEPRECATED;
+  struct PreviewImage *preview;
+  struct TexPaintSlot *texpaintslot;
+  struct MaterialGPencilStyle *gp_style;
 
-  /* Colors from Blender Internal that we are still using. */
+  /* --------------------------------- 4-byte alignment section */
   float r, g, b, a;
   float specr, specg, specb;
   float alpha DNA_DEPRECATED;
   float ray_mirror DNA_DEPRECATED;
   float spec;
-  /** Renamed and inversed to roughness. */
   float gloss_mir DNA_DEPRECATED;
   float roughness;
   float metallic;
+  float line_col[4];
+  float alpha_threshold;
+  float refract_depth;
+  float inflate_bounds;
 
-  /** Nodes */
-  char use_nodes;
+  int light_group_bits[4];
+  int light_group_shadow_bits[4];
 
-  /** Preview render. */
-  char pr_type;
+  /* --------------------------------- 2-byte alignment section */
+  short flag;
   short pr_texture;
   short pr_flag;
-
-  /** Index for render passes. */
   short index;
-
-  struct bNodeTree *nodetree;
-  /** Old animation system, deprecated for 2.5. */
-  struct Ipo *ipo DNA_DEPRECATED;
-  struct PreviewImage *preview;
-
-  /* Freestyle line settings. */
-  float line_col[4];
   short line_priority;
   short vcol_alpha;
-
-  /* Texture painting slots. */
   short paint_active_slot;
   short paint_clone_slot;
   short tot_slots;
+  short _pad0;
 
-  /* Displacement. */
+  /* --------------------------------- 1-byte alignment section */
+  char surface_render_method;
+  char use_nodes;
+  char pr_type;
   char displacement_method;
-  char _pad2[1];
-
-  /* Transparency. */
-  float alpha_threshold;
-  float refract_depth;
   char blend_method; /* TODO(fclem): Deprecate once we remove legacy EEVEE. */
   char blend_shadow; /* TODO(fclem): Deprecate once we remove legacy EEVEE. */
   char blend_flag;
   char check_shadow_id;
-
-  /* Goo-engine */
-  int light_group_bits[4];
-  int light_group_shadow_bits[4];
-
-  /* Volume. */
   char volume_intersection_method;
+<<<<<<< HEAD
+  char _pad1[3];  /* Align to 4 bytes */
+
+  /* --------------------------------- ListBase and struct alignment section */
+  int _pad2[2];  /* Align to 8 bytes */
+=======
   char _pad3[3];
   /* Displacement. */
   float inflate_bounds;
@@ -238,11 +229,11 @@ typedef struct Material {
   struct TexPaintSlot *texpaintslot;
 
   /** Runtime cache for GLSL materials. */
+>>>>>>> 8457395892beec33d4605ef9d894a1aff4a8d79f
   ListBase gpumaterial;
-
-  /** Grease pencil color. */
-  struct MaterialGPencilStyle *gp_style;
+  int _pad3[2];  /* Align to 8 bytes */
   struct MaterialLineArt lineart;
+  int _pad4[2];  /* Final alignment to 8 bytes */
 } Material;
 
 /* **************** MATERIAL ********************* */
@@ -383,14 +374,24 @@ enum {
   MA_BS_HASHED = 3,
 };
 
+<<<<<<< HEAD
+enum {
+  MA_SHADOW_ID = (1 << 0)
+};
+
+=======
+>>>>>>> 8457395892beec33d4605ef9d894a1aff4a8d79f
 /** #Material::displacement_method */
 enum {
   MA_DISPLACEMENT_BUMP = 0,
   MA_DISPLACEMENT_DISPLACE = 1,
   MA_DISPLACEMENT_BOTH = 2,
 };
+<<<<<<< HEAD
+=======
 
 #define MA_SHADOW_ID (1 << 0)
+>>>>>>> 8457395892beec33d4605ef9d894a1aff4a8d79f
 
 /* Grease Pencil Stroke styles */
 enum {

@@ -28,15 +28,15 @@
 #include "BLI_string.h"
 #include "BLI_threads.h"
 
-#include "BLF_api.h"
+#include "BLF_api.hh"
 
-#include "IMB_colormanagement.h"
+#include "IMB_colormanagement.hh"
 
 #include "GPU_matrix.h"
 #include "GPU_shader.h"
 
-#include "blf_internal.h"
-#include "blf_internal_types.h"
+#include "blf_internal.hh"
+#include "blf_internal_types.hh"
 
 #define BLF_RESULT_CHECK_INIT(r_info) \
   if (r_info) { \
@@ -333,6 +333,28 @@ void BLF_character_weight(int fontid, int weight)
   if (font) {
     font->char_weight = weight;
   }
+}
+
+int BLF_default_weight(int fontid)
+{
+  FontBLF *font = blf_get(fontid);
+  if (font) {
+    return font->metrics.weight;
+  }
+  return 400;
+}
+
+bool BLF_has_variable_weight(int fontid)
+{
+  FontBLF *font = blf_get(fontid);
+  if (font && font->variations) {
+    for (int i = 0; i < int(font->variations->num_axis); i++) {
+      if (font->variations->axis[i].tag == BLF_VARIATION_AXIS_WEIGHT) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 void BLF_aspect(int fontid, float x, float y, float z)
@@ -935,11 +957,22 @@ void BLF_draw_buffer(int fontid, const char *str, const size_t str_len)
   BLF_draw_buffer_ex(fontid, str, str_len, nullptr);
 }
 
+blender::Vector<blender::StringRef> BLF_string_wrap(int fontid,
+                                                    blender::StringRef str,
+                                                    const int max_pixel_width)
+{
+  FontBLF *font = blf_get(fontid);
+  if (!font) {
+    return {};
+  }
+  return blf_font_string_wrap(font, str, max_pixel_width);
+}
+
 char *BLF_display_name_from_file(const char *filepath)
 {
   /* While listing font directories this function can be called simultaneously from a greater
    * number of threads than we want the FreeType cache to keep open at a time. Therefore open
-   * with own FT_Library object and use FreeType calls directly to avoid any contention. */
+   * with a separate FT_Library object and use FreeType calls directly to avoid any contention. */
   char *name = nullptr;
   FT_Library ft_library;
   if (FT_Init_FreeType(&ft_library) == FT_Err_Ok) {

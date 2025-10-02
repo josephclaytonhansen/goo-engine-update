@@ -398,7 +398,9 @@ static float4 lookup_instance_property(BL::DepsgraphObjectInstance &b_instance,
   }
 
   float4 value;
-  BKE_object_dupli_find_rgba_attribute(ob, dupli, dupli_parent, name.c_str(), &value.x);
+  // BKE_object_dupli_find_rgba_attribute(ob, dupli, dupli_parent, name.c_str(), &value.x);
+  /* Goo Engine: Default RGBA values since Cycles is disabled */
+  value.x = 1.0f; value.y = 1.0f; value.z = 1.0f; value.w = 1.0f;
 
   return value;
 }

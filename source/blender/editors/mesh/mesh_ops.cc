@@ -16,12 +16,13 @@
 #include "ED_mesh.hh"
 #include "ED_screen.hh"
 
-#include "mesh_intern.h" /* own include */
+#include "mesh_intern.hh" /* own include */
 
 /**************************** registration **********************************/
 
 void ED_operatortypes_mesh()
 {
+  using namespace blender::ed::mesh;
   WM_operatortype_append(MESH_OT_select_all);
   WM_operatortype_append(MESH_OT_select_interior_faces);
   WM_operatortype_append(MESH_OT_select_more);
@@ -49,7 +50,6 @@ void ED_operatortypes_mesh()
   WM_operatortype_append(MESH_OT_primitive_cylinder_add);
   WM_operatortype_append(MESH_OT_primitive_cone_add);
   WM_operatortype_append(MESH_OT_primitive_grid_add);
-  WM_operatortype_append(MESH_OT_primitive_monkey_add);
   WM_operatortype_append(MESH_OT_primitive_uv_sphere_add);
   WM_operatortype_append(MESH_OT_primitive_ico_sphere_add);
 
@@ -98,6 +98,7 @@ void ED_operatortypes_mesh()
   WM_operatortype_append(MESH_OT_delete_edgeloop);
   WM_operatortype_append(MESH_OT_faces_shade_smooth);
   WM_operatortype_append(MESH_OT_faces_shade_flat);
+  WM_operatortype_append(MESH_OT_set_sharpness_by_angle);
   WM_operatortype_append(MESH_OT_sort_elements);
 #ifdef WITH_FREESTYLE
   WM_operatortype_append(MESH_OT_mark_freestyle_face);

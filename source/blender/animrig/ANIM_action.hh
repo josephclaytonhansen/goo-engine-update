@@ -10,8 +10,14 @@
 
 #include "RNA_types.hh"
 
+#include "BLI_span.hh"
+
 struct FCurve;
 struct bAction;
+
+namespace blender::animrig {
+class Action;
+}
 
 namespace blender::animrig {
 /**
@@ -30,5 +36,15 @@ FCurve *action_fcurve_ensure(Main *bmain,
  * Find the F-Curve from the given Action. This assumes that all the destinations are valid.
  */
 FCurve *action_fcurve_find(bAction *act, const char rna_path[], int array_index);
+
+/**
+ * Deselect the keys of all actions in the Span. Duplicate entries are only visited once.
+ */
+void deselect_keys_actions(blender::Span<bAction *> actions);
+
+/**
+ * Deselect all keys within the action.
+ */
+void action_deselect_keys(bAction &action);
 
 }  // namespace blender::animrig

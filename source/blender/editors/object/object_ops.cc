@@ -91,7 +91,7 @@ void ED_operatortypes_object()
   WM_operatortype_append(OBJECT_OT_armature_add);
   WM_operatortype_append(OBJECT_OT_empty_add);
   WM_operatortype_append(OBJECT_OT_lightprobe_add);
-  WM_operatortype_append(OBJECT_OT_drop_named_image);
+  WM_operatortype_append(OBJECT_OT_empty_image_add);
   WM_operatortype_append(OBJECT_OT_gpencil_add);
   WM_operatortype_append(OBJECT_OT_grease_pencil_add);
   WM_operatortype_append(OBJECT_OT_light_add);
@@ -118,6 +118,7 @@ void ED_operatortypes_object()
 
   WM_operatortype_append(OBJECT_OT_modifier_add);
   WM_operatortype_append(OBJECT_OT_modifier_remove);
+  WM_operatortype_append(OBJECT_OT_modifiers_clear);
   WM_operatortype_append(OBJECT_OT_modifier_move_up);
   WM_operatortype_append(OBJECT_OT_modifier_move_down);
   WM_operatortype_append(OBJECT_OT_modifier_move_to_index);
@@ -126,6 +127,7 @@ void ED_operatortypes_object()
   WM_operatortype_append(OBJECT_OT_modifier_convert);
   WM_operatortype_append(OBJECT_OT_modifier_copy);
   WM_operatortype_append(OBJECT_OT_modifier_copy_to_selected);
+  WM_operatortype_append(OBJECT_OT_modifiers_copy_to_selected);
   WM_operatortype_append(OBJECT_OT_modifier_set_active);
   WM_operatortype_append(OBJECT_OT_multires_subdivide);
   WM_operatortype_append(OBJECT_OT_multires_reshape);
@@ -141,6 +143,12 @@ void ED_operatortypes_object()
   WM_operatortype_append(OBJECT_OT_skin_armature_create);
   WM_operatortype_append(OBJECT_OT_geometry_nodes_input_attribute_toggle);
   WM_operatortype_append(OBJECT_OT_geometry_node_tree_copy_assign);
+  WM_operatortype_append(OBJECT_OT_grease_pencil_dash_modifier_segment_add);
+  WM_operatortype_append(OBJECT_OT_grease_pencil_dash_modifier_segment_remove);
+  WM_operatortype_append(OBJECT_OT_grease_pencil_dash_modifier_segment_move);
+  WM_operatortype_append(OBJECT_OT_grease_pencil_time_modifier_segment_add);
+  WM_operatortype_append(OBJECT_OT_grease_pencil_time_modifier_segment_remove);
+  WM_operatortype_append(OBJECT_OT_grease_pencil_time_modifier_segment_move);
 
   /* grease pencil modifiers */
   WM_operatortype_append(OBJECT_OT_gpencil_modifier_add);
@@ -182,7 +190,6 @@ void ED_operatortypes_object()
   WM_operatortype_append(POSE_OT_constraint_add_with_targets);
   WM_operatortype_append(OBJECT_OT_constraints_copy);
   WM_operatortype_append(POSE_OT_constraints_copy);
-  WM_operatortype_append(POSE_OT_constraints_merge);
   WM_operatortype_append(OBJECT_OT_constraints_clear);
   WM_operatortype_append(POSE_OT_constraints_clear);
   WM_operatortype_append(POSE_OT_ik_add);

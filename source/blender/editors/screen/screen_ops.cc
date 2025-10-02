@@ -11,20 +11,16 @@
 
 #include "MEM_guardedalloc.h"
 
-#include "BLI_blenlib.h"
-#include "BLI_dlrbTree.h"
 #include "BLI_math_rotation.h"
 #include "BLI_math_vector.h"
 #include "BLI_utildefines.h"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "DNA_anim_types.h"
 #include "DNA_armature_types.h"
 #include "DNA_curve_types.h"
 #include "DNA_lattice_types.h"
-#include "DNA_mask_types.h"
-#include "DNA_mesh_types.h"
 #include "DNA_meta_types.h"
 #include "DNA_node_types.h"
 #include "DNA_object_types.h"
@@ -32,18 +28,18 @@
 #include "DNA_userdef_types.h"
 #include "DNA_workspace_types.h"
 
-#include "BKE_callbacks.h"
+#include "BKE_callbacks.hh"
 #include "BKE_context.hh"
 #include "BKE_editmesh.hh"
-#include "BKE_fcurve.h"
-#include "BKE_global.h"
+#include "BKE_fcurve.hh"
+#include "BKE_global.hh"
 #include "BKE_icons.h"
 #include "BKE_lib_id.hh"
 #include "BKE_main.hh"
 #include "BKE_mask.h"
 #include "BKE_object.hh"
-#include "BKE_report.h"
-#include "BKE_scene.h"
+#include "BKE_report.hh"
+#include "BKE_scene.hh"
 #include "BKE_screen.hh"
 #include "BKE_sound.h"
 #include "BKE_workspace.h"
@@ -56,7 +52,6 @@
 
 #include "ED_anim_api.hh"
 #include "ED_armature.hh"
-#include "ED_clip.hh"
 #include "ED_fileselect.hh"
 #include "ED_image.hh"
 #include "ED_keyframes_keylist.hh"
@@ -66,8 +61,6 @@
 #include "ED_screen.hh"
 #include "ED_screen_types.hh"
 #include "ED_sequencer.hh"
-#include "ED_undo.hh"
-#include "ED_util.hh"
 #include "ED_view3d.hh"
 
 #include "RNA_access.hh"
@@ -82,6 +75,8 @@
 #include "GPU_capabilities.h"
 
 #include "screen_intern.h" /* own module include */
+
+using blender::Vector;
 
 #define KM_MODAL_CANCEL 1
 #define KM_MODAL_APPLY 2
@@ -1468,7 +1463,7 @@ static int area_dupli_invoke(bContext *C, wmOperator *op, const wmEvent *event)
 
   /* Create new window. No need to set space_type since it will be copied over. */
   wmWindow *newwin = WM_window_open(C,
-                                    "Blender",
+                                    nullptr,
                                     &window_rect,
                                     SPACE_EMPTY,
                                     false,
@@ -2269,6 +2264,9 @@ static bool area_split_apply(bContext *C, wmOperator *op)
   WM_event_add_notifier(C, NC_SCREEN | NA_EDITED, nullptr);
   /* Update preview thumbnail */
   BKE_icon_changed(screen->id.icon_id);
+
+  /* We have more than one area now, so reset window title. */
+  WM_window_title(CTX_wm_manager(C), CTX_wm_window(C));
 
   return true;
 }
@@ -3548,12 +3546,19 @@ static bool area_join_apply(bContext *C, wmOperator *op)
     return false;
   }
 
-  if (!screen_area_join(C, CTX_wm_screen(C), jd->sa1, jd->sa2)) {
+  bScreen *screen = CTX_wm_screen(C);
+
+  if (!screen_area_join(C, screen, jd->sa1, jd->sa2)) {
     return false;
   }
   if (CTX_wm_area(C) == jd->sa2) {
     CTX_wm_area_set(C, nullptr);
     CTX_wm_region_set(C, nullptr);
+  }
+
+  if (BLI_listbase_is_single(&screen->areabase)) {
+    /* Areas reduced to just one, so show nicer title. */
+    WM_window_title(CTX_wm_manager(C), CTX_wm_window(C));
   }
 
   return true;
@@ -4072,7 +4077,7 @@ static int region_quadview_exec(bContext *C, wmOperator *op)
 
         if (ED_view3d_context_user_region(C, &v3d_user, &region_user)) {
           if (region != region_user) {
-            SWAP(void *, region->regiondata, region_user->regiondata);
+            std::swap(region->regiondata, region_user->regiondata);
             rv3d = static_cast<RegionView3D *>(region->regiondata);
           }
         }
@@ -4373,23 +4378,21 @@ static void screen_area_menu_items(ScrArea *area, uiLayout *layout)
 
   uiItemS(layout);
 
-  if (area->spacetype != SPACE_FILE) {
-    uiItemO(layout,
-            area->full ? IFACE_("Restore Areas") : IFACE_("Maximize Area"),
-            ICON_NONE,
-            "SCREEN_OT_screen_full_area");
+  uiItemO(layout,
+          area->full ? IFACE_("Restore Areas") : IFACE_("Maximize Area"),
+          ICON_NONE,
+          "SCREEN_OT_screen_full_area");
 
-    if (!area->full) {
-      uiItemFullO(layout,
-                  "SCREEN_OT_screen_full_area",
-                  IFACE_("Full Screen Area"),
-                  ICON_NONE,
-                  nullptr,
-                  WM_OP_INVOKE_DEFAULT,
-                  UI_ITEM_NONE,
-                  &ptr);
-      RNA_boolean_set(&ptr, "use_hide_panels", true);
-    }
+  if (area->spacetype != SPACE_FILE && !area->full) {
+    uiItemFullO(layout,
+                "SCREEN_OT_screen_full_area",
+                IFACE_("Full Screen Area"),
+                ICON_NONE,
+                nullptr,
+                WM_OP_INVOKE_DEFAULT,
+                UI_ITEM_NONE,
+                &ptr);
+    RNA_boolean_set(&ptr, "use_hide_panels", true);
   }
 
   uiItemO(layout, nullptr, ICON_NONE, "SCREEN_OT_area_dupli");
@@ -5226,7 +5229,7 @@ static int userpref_show_exec(bContext *C, wmOperator *op)
 
   /* changes context! */
   if (WM_window_open(C,
-                     IFACE_("Blender Preferences"),
+                     nullptr,
                      &window_rect,
                      SPACE_USERPREF,
                      false,
@@ -5572,7 +5575,7 @@ void ED_region_visibility_change_update_animated(bContext *C, ScrArea *area, ARe
     ED_area_init(wm, win, area);
   }
   else {
-    WM_event_remove_handlers(C, &region->handlers);
+    ED_region_visibility_change_update_ex(C, area, region, true, false);
   }
 
   if (region->next) {
@@ -5795,32 +5798,24 @@ static int space_workspace_cycle_invoke(bContext *C, wmOperator *op, const wmEve
   Main *bmain = CTX_data_main(C);
   const eScreenCycle direction = eScreenCycle(RNA_enum_get(op->ptr, "direction"));
   WorkSpace *workspace_src = WM_window_get_active_workspace(win);
-  WorkSpace *workspace_dst = nullptr;
 
-  ListBase ordered;
-  BKE_id_ordered_list(&ordered, &bmain->workspaces);
-
-  LISTBASE_FOREACH (LinkData *, link, &ordered) {
-    if (link->data == workspace_src) {
-      if (direction == SPACE_CONTEXT_CYCLE_PREV) {
-        workspace_dst = static_cast<WorkSpace *>((link->prev) ? link->prev->data : nullptr);
-      }
-      else {
-        workspace_dst = static_cast<WorkSpace *>((link->next) ? link->next->data : nullptr);
-      }
-    }
-  }
-
-  if (workspace_dst == nullptr) {
-    LinkData *link = static_cast<LinkData *>(
-        (direction == SPACE_CONTEXT_CYCLE_PREV) ? ordered.last : ordered.first);
-    workspace_dst = static_cast<WorkSpace *>(link->data);
-  }
-
-  BLI_freelistN(&ordered);
-
-  if (workspace_src == workspace_dst) {
+  Vector<ID *> ordered = BKE_id_ordered_list(&bmain->workspaces);
+  if (ordered.size() == 1) {
     return OPERATOR_CANCELLED;
+  }
+
+  const int index = ordered.first_index_of(&workspace_src->id);
+
+  WorkSpace *workspace_dst = nullptr;
+  switch (direction) {
+    case SPACE_CONTEXT_CYCLE_PREV:
+      workspace_dst = reinterpret_cast<WorkSpace *>(index == 0 ? ordered.last() :
+                                                                 ordered[index - 1]);
+      break;
+    case SPACE_CONTEXT_CYCLE_NEXT:
+      workspace_dst = reinterpret_cast<WorkSpace *>(
+          index == ordered.index_range().last() ? ordered.first() : ordered[index + 1]);
+      break;
   }
 
   win->workspace_hook->temp_workspace_store = workspace_dst;

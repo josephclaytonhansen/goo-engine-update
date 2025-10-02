@@ -3,7 +3,11 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 import bpy
-from bpy.types import Panel, Menu
+from bpy.types import (
+    Menu,
+    Panel,
+    UIList,
+)
 from rna_prop_ui import PropertyPanel
 from bpy.app.translations import (
     contexts as i18n_contexts,
@@ -83,9 +87,7 @@ class PARTICLE_MT_context_menu(Menu):
         props.remove_target_particles = True
 
         if psys is not None and psys.settings.type == 'HAIR':
-            layout.operator(
-                "curves.convert_from_particle_system",
-                text="Convert to Curves")
+            layout.operator("curves.convert_from_particle_system", text="Convert to Curves")
 
         layout.separator()
 
@@ -126,7 +128,7 @@ def find_modifier(ob, psys):
     return None
 
 
-class PARTICLE_UL_particle_systems(bpy.types.UIList):
+class PARTICLE_UL_particle_systems(UIList):
 
     def draw_item(self, _context, layout, data, item, icon, _active_data, _active_propname, _index, _flt_flag):
         ob = data

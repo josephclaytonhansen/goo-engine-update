@@ -73,6 +73,11 @@ void eevee_shader_material_create_info_amend(GPUMaterial *gpumat,
     info.define("USE_BARYCENTRICS");
   }
 
+  /* GooEngine: Set Depth node can write to gl_FragDepth arbitrarily.
+   * This shouldn't incur a performance penalty according to
+   * https://registry.khronos.org/OpenGL/extensions/ARB/ARB_conservative_depth.txt */
+  info.depth_write(DepthWrite::ANY);
+
   /* Lookdev - Add FragDepth. */
   if (options & VAR_MAT_LOOKDEV) {
     info.define("LOOKDEV");
@@ -131,7 +136,9 @@ void eevee_shader_material_create_info_amend(GPUMaterial *gpumat,
 
   attr_load << "void attrib_load()\n";
   attr_load << "{\n";
-  attr_load << ((codegen.attr_load) ? codegen.attr_load : "");
+  if (!codegen.attr_load.empty()) {
+    attr_load << codegen.attr_load;
+  }
   attr_load << "}\n\n";
 
   std::stringstream vert_gen, frag_gen, geom_gen;
@@ -152,20 +159,28 @@ void eevee_shader_material_create_info_amend(GPUMaterial *gpumat,
 
   {
     frag_gen << frag;
-    if (codegen.material_functions) {
+    if (!codegen.material_functions.empty()) {
       frag_gen << codegen.material_functions;
     }
     frag_gen << "Closure nodetree_exec()\n";
     frag_gen << "{\n";
     if (is_volume) {
-      frag_gen << ((codegen.volume) ? codegen.volume : "return CLOSURE_DEFAULT;\n");
+      if (!codegen.volume.empty()) {
+        frag_gen << codegen.volume;
+      } else {
+        frag_gen << "return CLOSURE_DEFAULT;\n";
+      }
     }
     else {
-      frag_gen << ((codegen.surface) ? codegen.surface : "return CLOSURE_DEFAULT;\n");
+      if (!codegen.surface.empty()) {
+        frag_gen << codegen.surface;
+      } else {
+        frag_gen << "return CLOSURE_DEFAULT;\n";
+      }
     }
     frag_gen << "}\n\n";
 
-    if (codegen.displacement && (is_hair || is_mesh)) {
+    if (!codegen.displacement.empty() && (is_hair || is_mesh)) {
       info.define("EEVEE_DISPLACEMENT_BUMP");
 
       frag_gen << "vec3 displacement_exec()\n";

@@ -3,10 +3,12 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 import bpy
-from bpy.types import Menu, Panel, UIList
 from bpy.app.translations import contexts as i18n_contexts
-from rna_prop_ui import PropertyPanel
+from bpy.types import Menu, Panel, UIList
 from bpy_extras.node_utils import find_node_input
+from rna_prop_ui import PropertyPanel
+
+from .space_properties import PropertiesAnimationMixin
 
 
 class MATERIAL_MT_context_menu(Menu):
@@ -238,7 +240,7 @@ def draw_material_settings(self, context):
     layout.prop(mat, "check_shadow_id")
 
     row = layout.row()
-    row.active = ((mat.blend_method == 'CLIP') or (mat.shadow_method == 'CLIP'))
+    row.active = (mat.blend_method == 'CLIP') or (mat.shadow_method == 'CLIP')
     row.prop(mat, "alpha_threshold")
 
     if mat.blend_method not in {'OPAQUE', 'CLIP', 'HASHED'}:
@@ -395,6 +397,31 @@ class MATERIAL_PT_lineart(MaterialButtonsPanel, Panel):
         subrow.prop(lineart, "intersection_priority", text="")
 
 
+class MATERIAL_PT_animation(MaterialButtonsPanel, Panel, PropertiesAnimationMixin):
+    COMPAT_ENGINES = {
+        'BLENDER_RENDER',
+        'BLENDER_EEVEE',
+        'BLENDER_EEVEE_NEXT',
+        'BLENDER_WORKBENCH',
+    }
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+
+        # MaterialButtonsPanel.poll ensures this is not None.
+        material = context.material
+
+        col = layout.column(align=True)
+        col.label(text="Material")
+        self.draw_action_and_slot_selector(context, col, material)
+
+        if node_tree := material.node_tree:
+            col = layout.column(align=True)
+            col.label(text="Shader Node Tree")
+            self.draw_action_and_slot_selector(context, col, node_tree)
+
+
 classes = (
     MATERIAL_MT_context_menu,
     MATERIAL_UL_matslots,
@@ -410,11 +437,13 @@ classes = (
     MATERIAL_PT_lineart,
     MATERIAL_PT_viewport,
     EEVEE_MATERIAL_PT_viewport_settings,
+    MATERIAL_PT_animation,
     MATERIAL_PT_custom_props,
 )
 
 
 if __name__ == "__main__":  # only for live edit.
     from bpy.utils import register_class
+
     for cls in classes:
         register_class(cls)

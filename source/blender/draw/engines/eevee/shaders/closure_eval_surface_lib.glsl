@@ -404,7 +404,8 @@ void calc_shader_info(vec3 position,
                       out vec4 half_light,
                       out float shadows,
                       out float self_shadows,
-                      out vec4 ambient)
+                      out vec4 ambient,
+                      out float half_lambert)
 {
   calc_shader_info(position,
                    normal,
@@ -413,7 +414,8 @@ void calc_shader_info(vec3 position,
                    half_light,
                    shadows,
                    self_shadows,
-                   ambient);
+                   ambient,
+                   half_lambert);
 }
 
 /* Use custom (Per-Node) light groups */
@@ -424,7 +426,8 @@ void calc_shader_info(vec3 position,
                       out vec4 half_light,
                       out float shadows,
                       out float self_shadows,
-                      out vec4 ambient)
+                      out vec4 ambient,
+                      out float half_lambert)
 {
   ClosureEvalCommon cl_common = closure_Common_eval_init(CLOSURE_INPUT_COMMON_DEFAULT);
   cl_common.P = position;
@@ -436,6 +439,7 @@ void calc_shader_info(vec3 position,
   float self_shadow_accum = 0.0;
   float light_accum = 0.0;
   half_light = vec4(0.0);
+  half_lambert = 0.0;
 
   for (int i = 0; i < laNumLight && i < MAX_LIGHT; i++) {
     ClosureLightData light = closure_light_eval_init(cl_common, i);
@@ -452,18 +456,45 @@ void calc_shader_info(vec3 position,
           (ld.light_group_bits.z & light_group_shadows.z) == 0 &&
           (ld.light_group_bits.w & light_group_shadows.w) == 0)) {
       float light_fac = max(ld.l_color.x, max(ld.l_color.y, ld.l_color.z)) * ld.l_diff;
-      shadow_accum += (1 - light.vis * light.contact_shadow) * light_fac;
-      self_shadow_accum += (1 - calc_self_shadows_only(light.data, position, light.L)) * light_fac;
+      shadow_accum += (1.0 - light.vis * light.contact_shadow) * light_fac;
+      self_shadow_accum += (1.0 - calc_self_shadows_only(light.data, position, light.L)) * light_fac;
       light_accum += light_fac;
     }
 
     float radiance = light_diffuse(light.data, n_n, cl_common.V, light.L);
     half_light += vec4(light.data.l_color * light.data.l_diff * radiance, 0.0);
+    vec3 L = (ld.l_type == SUN) ? -ld.l_forward : (light.L.xyz / light.L.w);
+    half_lambert += 0.5 * dot(L, n_n) + 0.5;
   }
 
   shadows = (1.0 - (shadow_accum / max(light_accum, 1.0)));
   self_shadows = (1.0 - (self_shadow_accum / max(light_accum, 1.0)));
   ambient = vec4(probe_evaluate_world_diff(n_n), 1.0);
+}
+
+/* Overloads without half_lambert parameter for Goo Engine compatibility */
+void calc_shader_info(vec3 position,
+                      vec3 normal,
+                      out vec4 half_light,
+                      out float shadows,
+                      out float self_shadows,
+                      out vec4 ambient)
+{
+  float half_lambert_unused;
+  calc_shader_info(position, normal, half_light, shadows, self_shadows, ambient, half_lambert_unused);
+}
+
+void calc_shader_info(vec3 position,
+                      vec3 normal,
+                      ivec4 light_groups,
+                      ivec4 light_group_shadows,
+                      out vec4 half_light,
+                      out float shadows,
+                      out float self_shadows,
+                      out vec4 ambient)
+{
+  float half_lambert_unused;
+  calc_shader_info(position, normal, light_groups, light_group_shadows, half_light, shadows, self_shadows, ambient, half_lambert_unused);
 }
 
 void screenspace_info(vec3 viewPos, out vec4 scene_col, out float scene_depth)

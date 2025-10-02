@@ -164,6 +164,11 @@ bool BKE_workspace_owner_id_check(const struct WorkSpace *workspace, const char 
 
 void BKE_workspace_id_tag_all_visible(struct Main *bmain, int tag) ATTR_NONNULL();
 
+/**
+ * Empty the Workspace status items to clear the status bar.
+ */
+void BKE_workspace_status_clear(struct WorkSpace *workspace);
+
 #undef GETTER_ATTRS
 #undef SETTER_ATTRS
 

@@ -39,8 +39,6 @@
 #  include "BLI_math_base.h" /* isfinite() */
 #endif
 
-#include "float.h" /* FLT_MAX */
-
 /* -------------------------------------------------------------------- */
 /** \name Fast Python to C Array Conversion for Primitive Types
  * \{ */
@@ -1055,6 +1053,11 @@ PyObject *PyC_UnicodeFromBytes(const char *str)
   return PyC_UnicodeFromBytesAndSize(str, strlen(str));
 }
 
+PyObject *PyC_UnicodeFromStdStr(const std::string &str)
+{
+  return PyC_UnicodeFromBytesAndSize(str.c_str(), str.length());
+}
+
 int PyC_ParseUnicodeAsBytesAndSize(PyObject *o, void *p)
 {
   PyC_UnicodeAsBytesAndSize_Data *data = static_cast<PyC_UnicodeAsBytesAndSize_Data *>(p);
@@ -1519,11 +1522,7 @@ bool PyC_RunString_AsNumber(const char *imports[],
       ok = false;
     }
     else if (!isfinite(val)) {
-      if (val > 0.0) {
-        *r_value = FLT_MAX;
-      } else {
-        *r_value = -FLT_MAX;
-      }
+      *r_value = 0.0;
     }
     else {
       *r_value = val;

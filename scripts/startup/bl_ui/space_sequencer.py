@@ -3,22 +3,20 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 import bpy
-from bpy.types import (
-    Header,
-    Menu,
-    Panel,
-)
-from bpy.app.translations import (
-    contexts as i18n_contexts,
-    pgettext_iface as iface_,
-    pgettext_rpt as rpt_,
-)
 from bl_ui.properties_grease_pencil_common import (
     AnnotationDataPanel,
     AnnotationOnionSkin,
 )
 from bl_ui.space_toolsystem_common import (
     ToolActivePanelHelper,
+)
+from bpy.app.translations import contexts as i18n_contexts
+from bpy.app.translations import pgettext_iface as iface_
+from bpy.app.translations import pgettext_rpt as rpt_
+from bpy.types import (
+    Header,
+    Menu,
+    Panel,
 )
 from rna_prop_ui import PropertyPanel
 
@@ -144,6 +142,7 @@ class SEQUENCER_HT_tool_header(Header):
         # Active Tool
         # -----------
         from bl_ui.space_toolsystem_common import ToolSelectPanelHelper
+
         # Most callers assign the `tool` & `tool_mode`, currently the result is not used.
         """
         tool = ToolSelectPanelHelper.draw_active_tool_header(context, layout)
@@ -382,7 +381,9 @@ class SEQUENCER_MT_preview_zoom(Menu):
                 "sequencer.view_zoom_ratio",
                 text=iface_("Zoom %d:%d") % (a, b),
                 translate=False,
-            ).ratio = a / b
+            ).ratio = (
+                a / b
+            )
         layout.operator_context = 'INVOKE_DEFAULT'
 
 
@@ -415,22 +416,24 @@ class SEQUENCER_MT_view(Menu):
             # mode, else the lookup for the shortcut will fail in
             # wm_keymap_item_find_props() (see #32595).
             layout.operator_context = 'INVOKE_REGION_PREVIEW'
+        layout.prop(st, "show_region_toolbar")
         layout.prop(st, "show_region_ui")
         layout.prop(st, "show_region_tool_header")
-        layout.prop(st, "show_region_toolbar")
         layout.operator_context = 'INVOKE_DEFAULT'
-
         if is_sequencer_view:
             layout.prop(st, "show_region_hud")
             layout.prop(st, "show_region_channels")
-
         layout.separator()
 
         if st.view_type == 'SEQUENCER':
             layout.prop(st, "show_backdrop", text="Preview as Backdrop")
         if is_preview or st.show_backdrop:
             layout.prop(st, "show_transform_preview", text="Preview During Transform")
+        layout.separator()
 
+        layout.operator_context = 'INVOKE_REGION_WIN'
+        layout.operator("sequencer.refresh_all", icon='FILE_REFRESH', text="Refresh All")
+        layout.operator_context = 'INVOKE_DEFAULT'
         layout.separator()
 
         layout.operator_context = 'INVOKE_REGION_WIN'
@@ -438,26 +441,27 @@ class SEQUENCER_MT_view(Menu):
             # See above (#32595)
             layout.operator_context = 'INVOKE_REGION_PREVIEW'
         layout.operator("sequencer.view_selected", text="Frame Selected")
-
         if is_sequencer_view:
             layout.operator_context = 'INVOKE_REGION_WIN'
             layout.operator("sequencer.view_all")
+            layout.operator(
+                "anim.scene_range_frame",
+                text="Frame Preview Range" if context.scene.use_preview_range else "Frame Scene Range",
+            )
             layout.operator("sequencer.view_frame")
-            layout.operator("view2d.zoom_border", text="Zoom")
+            layout.operator("view2d.zoom_border", text="Zoom to Border")
             layout.prop(st, "use_clamp_view")
 
         if is_preview:
+            if is_sequencer_view:
+                layout.separator()
             layout.operator_context = 'INVOKE_REGION_PREVIEW'
-            layout.separator()
-
             layout.operator("sequencer.view_all_preview", text="Fit Preview in Window")
-
             if is_sequencer_view:
                 layout.menu("SEQUENCER_MT_preview_zoom", text="Fractional Preview Zoom")
             else:
-                layout.operator("view2d.zoom_border", text="Zoom")
+                layout.operator("view2d.zoom_border", text="Zoom to Border")
                 layout.menu("SEQUENCER_MT_preview_zoom")
-
             layout.prop(st, "use_zoom_to_fit")
 
             if st.display_mode == 'WAVEFORM':
@@ -465,42 +469,34 @@ class SEQUENCER_MT_view(Menu):
                 layout.prop(st, "show_separate_color", text="Show Separate Color Channels")
 
             layout.separator()
-
             layout.menu("SEQUENCER_MT_proxy")
-
             layout.operator_context = 'INVOKE_DEFAULT'
-
-        layout.separator()
-        layout.operator_context = 'INVOKE_REGION_WIN'
-        layout.operator("sequencer.refresh_all", icon='FILE_REFRESH', text="Refresh All")
-        layout.operator_context = 'INVOKE_DEFAULT'
+            layout.separator()
 
         if is_sequencer_view:
+            layout.separator()
+
+            layout.prop(st, "show_markers")
+            layout.prop(st, "show_seconds")
+            layout.prop(st, "show_locked_time")
             layout.separator()
 
             layout.operator_context = 'INVOKE_DEFAULT'
             layout.menu("SEQUENCER_MT_navigation")
             layout.menu("SEQUENCER_MT_range")
-
             layout.separator()
-            layout.prop(st, "show_locked_time")
 
-            layout.separator()
-            layout.prop(st, "show_seconds")
-            layout.prop(st, "show_markers")
             if context.preferences.view.show_developer_ui:
-                layout.menu("SEQUENCER_MT_view_cache", text="Show Cache")
-
-        layout.separator()
+                layout.menu("SEQUENCER_MT_view_cache", text="Cache")
+                layout.separator()
 
         layout.operator("render.opengl", text="Sequence Render Image", icon='RENDER_STILL').sequencer = True
         props = layout.operator("render.opengl", text="Sequence Render Animation", icon='RENDER_ANIMATION')
         props.animation = True
         props.sequencer = True
-
         layout.separator()
-        layout.operator("sequencer.export_subtitles", text="Export Subtitles", icon='EXPORT')
 
+        layout.operator("sequencer.export_subtitles", text="Export Subtitles", icon='EXPORT')
         layout.separator()
 
         # Note that the context is needed for the shortcut to display properly.
@@ -514,7 +510,6 @@ class SEQUENCER_MT_view(Menu):
         props.value_1 = 'SEQUENCER'
         props.value_2 = 'PREVIEW'
         layout.operator_context = 'INVOKE_DEFAULT'
-
         layout.separator()
 
         layout.menu("INFO_MT_area")
@@ -606,6 +601,7 @@ class SEQUENCER_MT_marker(Menu):
         is_sequencer_view = st.view_type in {'SEQUENCER', 'SEQUENCER_PREVIEW'}
 
         from bl_ui.space_time import marker_menu_generic
+
         marker_menu_generic(layout, context)
 
         if is_sequencer_view:
@@ -804,20 +800,25 @@ class SEQUENCER_MT_add_effect(Menu):
         layout.operator_context = 'INVOKE_REGION_WIN'
 
         col = layout.column()
-        col.operator("sequencer.effect_strip_add", text="Add",
-                     text_ctxt=i18n_contexts.id_sequence).type = 'ADD'
-        col.operator("sequencer.effect_strip_add", text="Subtract",
-                     text_ctxt=i18n_contexts.id_sequence).type = 'SUBTRACT'
-        col.operator("sequencer.effect_strip_add", text="Multiply",
-                     text_ctxt=i18n_contexts.id_sequence).type = 'MULTIPLY'
-        col.operator("sequencer.effect_strip_add", text="Over Drop",
-                     text_ctxt=i18n_contexts.id_sequence).type = 'OVER_DROP'
-        col.operator("sequencer.effect_strip_add", text="Alpha Over",
-                     text_ctxt=i18n_contexts.id_sequence).type = 'ALPHA_OVER'
-        col.operator("sequencer.effect_strip_add", text="Alpha Under",
-                     text_ctxt=i18n_contexts.id_sequence).type = 'ALPHA_UNDER'
-        col.operator("sequencer.effect_strip_add", text="Color Mix",
-                     text_ctxt=i18n_contexts.id_sequence).type = 'COLORMIX'
+        col.operator("sequencer.effect_strip_add", text="Add", text_ctxt=i18n_contexts.id_sequence).type = 'ADD'
+        col.operator("sequencer.effect_strip_add", text="Subtract", text_ctxt=i18n_contexts.id_sequence).type = (
+            'SUBTRACT'
+        )
+        col.operator("sequencer.effect_strip_add", text="Multiply", text_ctxt=i18n_contexts.id_sequence).type = (
+            'MULTIPLY'
+        )
+        col.operator("sequencer.effect_strip_add", text="Over Drop", text_ctxt=i18n_contexts.id_sequence).type = (
+            'OVER_DROP'
+        )
+        col.operator("sequencer.effect_strip_add", text="Alpha Over", text_ctxt=i18n_contexts.id_sequence).type = (
+            'ALPHA_OVER'
+        )
+        col.operator("sequencer.effect_strip_add", text="Alpha Under", text_ctxt=i18n_contexts.id_sequence).type = (
+            'ALPHA_UNDER'
+        )
+        col.operator("sequencer.effect_strip_add", text="Color Mix", text_ctxt=i18n_contexts.id_sequence).type = (
+            'COLORMIX'
+        )
         col.enabled = selected_sequences_len(context) >= 2
 
         layout.separator()
@@ -1014,10 +1015,22 @@ class SEQUENCER_MT_strip(Menu):
                 layout.operator("sequencer.strip_modifier_copy", text="Copy Modifiers to Selection")
 
                 if strip_type in {
-                        'CROSS', 'ADD', 'SUBTRACT', 'ALPHA_OVER', 'ALPHA_UNDER',
-                        'GAMMA_CROSS', 'MULTIPLY', 'OVER_DROP', 'WIPE', 'GLOW',
-                        'TRANSFORM', 'COLOR', 'SPEED', 'MULTICAM', 'ADJUSTMENT',
-                        'GAUSSIAN_BLUR',
+                    'CROSS',
+                    'ADD',
+                    'SUBTRACT',
+                    'ALPHA_OVER',
+                    'ALPHA_UNDER',
+                    'GAMMA_CROSS',
+                    'MULTIPLY',
+                    'OVER_DROP',
+                    'WIPE',
+                    'GLOW',
+                    'TRANSFORM',
+                    'COLOR',
+                    'SPEED',
+                    'MULTICAM',
+                    'ADJUSTMENT',
+                    'GAUSSIAN_BLUR',
                 }:
                     layout.separator()
                     layout.menu("SEQUENCER_MT_strip_effect")
@@ -1180,10 +1193,22 @@ class SEQUENCER_MT_context_menu(Menu):
                 layout.operator("sequencer.fades_clear", text="Clear Fade")
 
             if strip_type in {
-                    'CROSS', 'ADD', 'SUBTRACT', 'ALPHA_OVER', 'ALPHA_UNDER',
-                    'GAMMA_CROSS', 'MULTIPLY', 'OVER_DROP', 'WIPE', 'GLOW',
-                    'TRANSFORM', 'COLOR', 'SPEED', 'MULTICAM', 'ADJUSTMENT',
-                    'GAUSSIAN_BLUR',
+                'CROSS',
+                'ADD',
+                'SUBTRACT',
+                'ALPHA_OVER',
+                'ALPHA_UNDER',
+                'GAMMA_CROSS',
+                'MULTIPLY',
+                'OVER_DROP',
+                'WIPE',
+                'GLOW',
+                'TRANSFORM',
+                'COLOR',
+                'SPEED',
+                'MULTICAM',
+                'ADJUSTMENT',
+                'GAUSSIAN_BLUR',
             }:
                 layout.separator()
                 layout.menu("SEQUENCER_MT_strip_effect")
@@ -1271,12 +1296,17 @@ class SEQUENCER_MT_pivot_pie(Menu):
 class SEQUENCER_MT_view_pie(Menu):
     bl_label = "View"
 
-    def draw(self, _context):
+    def draw(self, context):
         layout = self.layout
 
         pie = layout.menu_pie()
         pie.operator("sequencer.view_all")
         pie.operator("sequencer.view_selected", text="Frame Selected", icon='ZOOM_SELECTED')
+        pie.separator()
+        if context.scene.use_preview_range:
+            pie.operator("anim.scene_range_frame", text="Frame Preview Range")
+        else:
+            pie.operator("anim.scene_range_frame", text="Frame Scene Range")
 
 
 class SEQUENCER_MT_preview_view_pie(Menu):
@@ -1299,7 +1329,7 @@ class SequencerButtonsPanel:
 
     @staticmethod
     def has_sequencer(context):
-        return (context.space_data.view_type in {'SEQUENCER', 'SEQUENCER_PREVIEW'})
+        return context.space_data.view_type in {'SEQUENCER', 'SEQUENCER_PREVIEW'}
 
     @classmethod
     def poll(cls, context):
@@ -1326,7 +1356,7 @@ class SequencerColorTagPicker:
 
     @staticmethod
     def has_sequencer(context):
-        return (context.space_data.view_type in {'SEQUENCER', 'SEQUENCER_PREVIEW'})
+        return context.space_data.view_type in {'SEQUENCER', 'SEQUENCER_PREVIEW'}
 
     @classmethod
     def poll(cls, context):
@@ -1369,13 +1399,24 @@ class SEQUENCER_PT_strip(SequencerButtonsPanel, Panel):
         strip_type = strip.type
 
         if strip_type in {
-                'ADD', 'SUBTRACT', 'ALPHA_OVER', 'ALPHA_UNDER', 'MULTIPLY',
-                'OVER_DROP', 'GLOW', 'TRANSFORM', 'SPEED', 'MULTICAM',
-                'GAUSSIAN_BLUR', 'COLORMIX',
+            'ADD',
+            'SUBTRACT',
+            'ALPHA_OVER',
+            'ALPHA_UNDER',
+            'MULTIPLY',
+            'OVER_DROP',
+            'GLOW',
+            'TRANSFORM',
+            'SPEED',
+            'MULTICAM',
+            'GAUSSIAN_BLUR',
+            'COLORMIX',
         }:
             icon_header = 'SHADERFX'
         elif strip_type in {
-                'CROSS', 'GAMMA_CROSS', 'WIPE',
+            'CROSS',
+            'GAMMA_CROSS',
+            'WIPE',
         }:
             icon_header = 'ARROW_LEFTRIGHT'
         elif strip_type == 'SCENE':
@@ -1461,10 +1502,23 @@ class SEQUENCER_PT_effect(SequencerButtonsPanel, Panel):
             return False
 
         return strip.type in {
-            'ADD', 'SUBTRACT', 'ALPHA_OVER', 'ALPHA_UNDER',
-            'CROSS', 'GAMMA_CROSS', 'MULTIPLY', 'OVER_DROP',
-            'WIPE', 'GLOW', 'TRANSFORM', 'COLOR', 'SPEED',
-            'MULTICAM', 'GAUSSIAN_BLUR', 'TEXT', 'COLORMIX',
+            'ADD',
+            'SUBTRACT',
+            'ALPHA_OVER',
+            'ALPHA_UNDER',
+            'CROSS',
+            'GAMMA_CROSS',
+            'MULTIPLY',
+            'OVER_DROP',
+            'WIPE',
+            'GLOW',
+            'TRANSFORM',
+            'COLOR',
+            'SPEED',
+            'MULTICAM',
+            'GAUSSIAN_BLUR',
+            'TEXT',
+            'COLORMIX',
         }
 
     def draw(self, context):
@@ -1817,7 +1871,7 @@ class SEQUENCER_PT_scene(SequencerButtonsPanel, Panel):
         if not strip:
             return False
 
-        return (strip.type == 'SCENE')
+        return strip.type == 'SCENE'
 
     def draw(self, context):
         strip = context.active_sequence_strip
@@ -1856,7 +1910,7 @@ class SEQUENCER_PT_scene_sound(SequencerButtonsPanel, Panel):
         if not strip:
             return False
 
-        return (strip.type == 'SCENE')
+        return strip.type == 'SCENE'
 
     def draw(self, context):
         strip = context.active_sequence_strip
@@ -1889,7 +1943,7 @@ class SEQUENCER_PT_mask(SequencerButtonsPanel, Panel):
         if not strip:
             return False
 
-        return (strip.type == 'MASK')
+        return strip.type == 'MASK'
 
     def draw(self, context):
         layout = self.layout
@@ -2037,9 +2091,8 @@ class SEQUENCER_PT_time(SequencerButtonsPanel, Panel):
 
         col = layout.column(align=True)
         col = col.box()
-        col.active = (
-            (frame_current >= frame_final_start) and
-            (frame_current <= frame_final_start + frame_final_duration)
+        col.active = (frame_current >= frame_final_start) and (
+            frame_current <= frame_final_start + frame_final_duration
         )
 
         split = col.split(factor=factor + max_factor, align=True)
@@ -2218,11 +2271,28 @@ class SEQUENCER_PT_adjust_video(SequencerButtonsPanel, Panel):
             return False
 
         return strip.type in {
-            'MOVIE', 'IMAGE', 'SCENE', 'MOVIECLIP', 'MASK',
-            'META', 'ADD', 'SUBTRACT', 'ALPHA_OVER',
-            'ALPHA_UNDER', 'CROSS', 'GAMMA_CROSS', 'MULTIPLY',
-            'OVER_DROP', 'WIPE', 'GLOW', 'TRANSFORM', 'COLOR',
-            'MULTICAM', 'SPEED', 'ADJUSTMENT', 'COLORMIX',
+            'MOVIE',
+            'IMAGE',
+            'SCENE',
+            'MOVIECLIP',
+            'MASK',
+            'META',
+            'ADD',
+            'SUBTRACT',
+            'ALPHA_OVER',
+            'ALPHA_UNDER',
+            'CROSS',
+            'GAMMA_CROSS',
+            'MULTIPLY',
+            'OVER_DROP',
+            'WIPE',
+            'GLOW',
+            'TRANSFORM',
+            'COLOR',
+            'MULTICAM',
+            'SPEED',
+            'ADJUSTMENT',
+            'COLORMIX',
         }
 
     def draw(self, context):
@@ -2266,11 +2336,28 @@ class SEQUENCER_PT_adjust_color(SequencerButtonsPanel, Panel):
             return False
 
         return strip.type in {
-            'MOVIE', 'IMAGE', 'SCENE', 'MOVIECLIP', 'MASK',
-            'META', 'ADD', 'SUBTRACT', 'ALPHA_OVER',
-            'ALPHA_UNDER', 'CROSS', 'GAMMA_CROSS', 'MULTIPLY',
-            'OVER_DROP', 'WIPE', 'GLOW', 'TRANSFORM', 'COLOR',
-            'MULTICAM', 'SPEED', 'ADJUSTMENT', 'COLORMIX',
+            'MOVIE',
+            'IMAGE',
+            'SCENE',
+            'MOVIECLIP',
+            'MASK',
+            'META',
+            'ADD',
+            'SUBTRACT',
+            'ALPHA_OVER',
+            'ALPHA_UNDER',
+            'CROSS',
+            'GAMMA_CROSS',
+            'MULTIPLY',
+            'OVER_DROP',
+            'WIPE',
+            'GLOW',
+            'TRANSFORM',
+            'COLOR',
+            'MULTICAM',
+            'SPEED',
+            'ADJUSTMENT',
+            'COLORMIX',
         }
 
     def draw(self, context):
@@ -2679,7 +2766,7 @@ class SEQUENCER_PT_modifiers(SequencerButtonsPanel, Panel):
                             col.prop(mod, "gamma")
                 else:
                     if mod.type == 'SOUND_EQUALIZER':
-                        eq_row = box.row()
+                        # eq_row = box.row()
                         # eq_graphs = eq_row.operator_menu_enum("sequencer.strip_modifier_equalizer_redefine", "graphs")
                         # eq_graphs.name = mod.name
                         flow = box.grid_flow(
@@ -2733,6 +2820,8 @@ class SEQUENCER_PT_annotation_onion(AnnotationOnionSkin, SequencerButtonsPanel_O
     bl_space_type = 'SEQUENCE_EDITOR'
     bl_region_type = 'UI'
     bl_category = "View"
+    bl_parent_id = "SEQUENCER_PT_annotation"
+    bl_options = {'DEFAULT_CLOSED'}
 
     @staticmethod
     def has_preview(context):
@@ -2827,57 +2916,46 @@ classes = (
     SEQUENCER_MT_retiming,
     SEQUENCER_MT_view_pie,
     SEQUENCER_MT_preview_view_pie,
-
     SEQUENCER_PT_color_tag_picker,
-
     SEQUENCER_PT_active_tool,
     SEQUENCER_PT_strip,
-
     SEQUENCER_PT_gizmo_display,
     SEQUENCER_PT_overlay,
     SEQUENCER_PT_preview_overlay,
     SEQUENCER_PT_sequencer_overlay,
-
     SEQUENCER_PT_effect,
     SEQUENCER_PT_scene,
     SEQUENCER_PT_scene_sound,
     SEQUENCER_PT_mask,
     SEQUENCER_PT_effect_text_style,
     SEQUENCER_PT_effect_text_layout,
-
     SEQUENCER_PT_adjust_comp,
     SEQUENCER_PT_adjust_transform,
     SEQUENCER_PT_adjust_crop,
     SEQUENCER_PT_adjust_video,
     SEQUENCER_PT_adjust_color,
     SEQUENCER_PT_adjust_sound,
-
     SEQUENCER_PT_time,
     SEQUENCER_PT_source,
-
     SEQUENCER_PT_modifiers,
-
     SEQUENCER_PT_cache_settings,
     SEQUENCER_PT_strip_cache,
     SEQUENCER_PT_proxy_settings,
     SEQUENCER_PT_strip_proxy,
-
     SEQUENCER_PT_custom_props,
-
     SEQUENCER_PT_view,
     SEQUENCER_PT_view_cursor,
     SEQUENCER_PT_frame_overlay,
     SEQUENCER_PT_view_safe_areas,
     SEQUENCER_PT_view_safe_areas_center_cut,
     SEQUENCER_PT_preview,
-
     SEQUENCER_PT_annotation,
     SEQUENCER_PT_annotation_onion,
-
     SEQUENCER_PT_snapping,
 )
 
 if __name__ == "__main__":  # only for live edit.
     from bpy.utils import register_class
+
     for cls in classes:
         register_class(cls)

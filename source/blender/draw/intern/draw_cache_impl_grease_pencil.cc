@@ -199,6 +199,16 @@ BLI_INLINE int32_t pack_rotation_aspect_hardness(float rot, float asp, float har
   return packed;
 }
 
+static void copy_transformed_positions(const Span<float3> src_positions,
+                                       const IndexRange range,
+                                       const float4x4 &transform,
+                                       MutableSpan<float3> dst_positions)
+{
+  for (const int point_i : range) {
+    dst_positions[point_i] = math::transform_point(transform, src_positions[point_i]);
+  }
+}
+
 static void grease_pencil_edit_batch_ensure(Object &object,
                                             const GreasePencil &grease_pencil,
                                             const Scene &scene)
@@ -208,8 +218,17 @@ static void grease_pencil_edit_batch_ensure(Object &object,
   GreasePencilBatchCache *cache = static_cast<GreasePencilBatchCache *>(
       grease_pencil.runtime->batch_cache);
 
+  if (cache->edit_points_pos != nullptr) {
+    return;
+  }
+
+  /* Should be discarded together. */
+  BLI_assert(cache->edit_points_pos == nullptr && cache->edit_line_indices == nullptr &&
+             cache->edit_points_indices == nullptr);
+  BLI_assert(cache->edit_points == nullptr && cache->edit_lines == nullptr);
+
   /* Get the visible drawings. */
-  const Array<ed::greasepencil::DrawingInfo> drawings =
+  const Vector<ed::greasepencil::DrawingInfo> drawings =
       ed::greasepencil::retrieve_visible_drawings(scene, grease_pencil);
 
   const Span<const Layer *> layers = grease_pencil.layers();
@@ -225,8 +244,10 @@ static void grease_pencil_edit_batch_ensure(Object &object,
         &format_edit_points_selection, "selection", GPU_COMP_F32, 1, GPU_FETCH_FLOAT);
   }
 
-  cache->edit_points_pos = GPU_vertbuf_create_with_format(&format_edit_points_pos);
-  cache->edit_points_selection = GPU_vertbuf_create_with_format(&format_edit_points_selection);
+  GPUUsageType vbo_flag = GPU_USAGE_STATIC | GPU_USAGE_FLAG_BUFFER_TEXTURE_ONLY;
+  cache->edit_points_pos = GPU_vertbuf_create_with_format_ex(&format_edit_points_pos, vbo_flag);
+  cache->edit_points_selection = GPU_vertbuf_create_with_format_ex(&format_edit_points_selection,
+                                                                   vbo_flag);
 
   int total_points_num = 0;
   for (const ed::greasepencil::DrawingInfo &info : drawings) {
@@ -248,7 +269,8 @@ static void grease_pencil_edit_batch_ensure(Object &object,
   int total_line_ids_num = 0;
   int drawing_start_offset = 0;
   for (const ed::greasepencil::DrawingInfo &info : drawings) {
-    const Layer *layer = layers[info.layer_index];
+    const Layer &layer = *layers[info.layer_index];
+    const float4x4 layer_space_to_object_space = layer.to_object_space(object);
     const bke::CurvesGeometry &curves = info.drawing.strokes();
     const bke::AttributeAccessor attributes = curves.attributes();
     const OffsetIndices<int> points_by_curve = curves.points_by_curve();
@@ -261,11 +283,15 @@ static void grease_pencil_edit_batch_ensure(Object &object,
     const VArray<float> selection_float = *attributes.lookup_or_default<float>(
         ".selection", bke::AttrDomain::Point, true);
 
-    edit_points.slice(drawing_start_offset, curves.points_num()).copy_from(curves.positions());
-    MutableSpan<float> selection_slice = edit_points_selection.slice(drawing_start_offset,
-                                                                     curves.points_num());
+    const IndexRange points(drawing_start_offset, curves.points_num());
+    const Span<float3> positions = curves.positions();
+    MutableSpan<float3> positions_slice = edit_points.slice(points);
+    threading::parallel_for(curves.points_range(), 1024, [&](const IndexRange range) {
+      copy_transformed_positions(positions, range, layer_space_to_object_space, positions_slice);
+    });
+    MutableSpan<float> selection_slice = edit_points_selection.slice(points);
     /* Do not show selection for locked layers. */
-    if (layer->is_locked()) {
+    if (layer.is_locked()) {
       selection_slice.fill(0.0f);
     }
     else {
@@ -285,7 +311,7 @@ static void grease_pencil_edit_batch_ensure(Object &object,
     total_line_ids_num += array_utils::count_booleans(curves.cyclic(), editable_strokes);
 
     /* Do not show points for locked layers. */
-    if (layer->is_locked()) {
+    if (layer.is_locked()) {
       continue;
     }
 
@@ -371,6 +397,9 @@ static void grease_pencil_edit_batch_ensure(Object &object,
   cache->edit_lines = GPU_batch_create(
       GPU_PRIM_LINE_STRIP, cache->edit_points_pos, cache->edit_line_indices);
   GPU_batch_vertbuf_add(cache->edit_lines, cache->edit_points_selection, false);
+  /* Allow creation of buffer texture. */
+  GPU_vertbuf_use(cache->edit_points_pos);
+  GPU_vertbuf_use(cache->edit_points_selection);
 
   cache->is_dirty = false;
 }
@@ -393,7 +422,7 @@ static void grease_pencil_geom_batch_ensure(Object &object,
   BLI_assert(cache->geom_batch == nullptr);
 
   /* Get the visible drawings. */
-  const Array<ed::greasepencil::DrawingInfo> drawings =
+  const Vector<ed::greasepencil::DrawingInfo> drawings =
       ed::greasepencil::retrieve_visible_drawings(scene, grease_pencil);
 
   /* First, count how many vertices and triangles are needed for the whole object. Also record the
@@ -479,6 +508,9 @@ static void grease_pencil_geom_batch_ensure(Object &object,
   /* Fill buffers with data. */
   for (const int drawing_i : drawings.index_range()) {
     const ed::greasepencil::DrawingInfo &info = drawings[drawing_i];
+    const Layer &layer = *grease_pencil.layers()[info.layer_index];
+    const float4x4 layer_space_to_object_space = layer.to_object_space(object);
+    const float4x4 object_space_to_layer_space = math::invert(layer_space_to_object_space);
     const bke::CurvesGeometry &curves = info.drawing.strokes();
     const bke::AttributeAccessor attributes = curves.attributes();
     const OffsetIndices<int> points_by_curve = curves.points_by_curve();
@@ -507,6 +539,7 @@ static void grease_pencil_geom_batch_ensure(Object &object,
     const VArray<int> materials = *attributes.lookup_or_default<int>(
         "material_index", bke::AttrDomain::Curve, 0);
     const Span<uint3> triangles = info.drawing.triangles();
+    const Span<float4x2> texture_matrices = info.drawing.texture_matrices();
     const Span<int> verts_start_offsets = verts_start_offsets_per_visible_drawing[drawing_i];
     const Span<int> tris_start_offsets = tris_start_offsets_per_visible_drawing[drawing_i];
     IndexMaskMemory memory;
@@ -522,10 +555,15 @@ static void grease_pencil_geom_batch_ensure(Object &object,
                               int point_i,
                               int idx,
                               float length,
+                              const float4x2 &texture_matrix,
                               GreasePencilStrokeVert &s_vert,
                               GreasePencilColorVert &c_vert) {
-      copy_v3_v3(s_vert.pos, positions[point_i]);
+      const float3 pos = math::transform_point(layer_space_to_object_space, positions[point_i]);
+      copy_v3_v3(s_vert.pos, pos);
       s_vert.radius = radii[point_i] * ((end_cap == GP_STROKE_CAP_TYPE_ROUND) ? 1.0f : -1.0f);
+      /* Convert to legacy "pixel" space. The shader expects the values to be in this space.
+       * Otherwise the values will get clamped. */
+      s_vert.radius *= 1000.0f;
       s_vert.opacity = opacities[point_i] *
                        ((start_cap == GP_STROKE_CAP_TYPE_ROUND) ? 1.0f : -1.0f);
       s_vert.point_id = verts_range[idx];
@@ -535,8 +573,7 @@ static void grease_pencil_geom_batch_ensure(Object &object,
       s_vert.packed_asp_hard_rot = pack_rotation_aspect_hardness(
           rotations[point_i], stroke_point_aspect_ratios[curve_i], stroke_hardnesses[curve_i]);
       s_vert.u_stroke = length;
-      /* TODO: Populate fill UVs. */
-      s_vert.uv_fill[0] = s_vert.uv_fill[1] = 0;
+      copy_v2_v2(s_vert.uv_fill, texture_matrix * float4(pos, 1.0f));
 
       copy_v4_v4(c_vert.vcol, vertex_colors[point_i]);
       copy_v4_v4(c_vert.fcol, stroke_fill_colors[curve_i]);
@@ -556,6 +593,7 @@ static void grease_pencil_geom_batch_ensure(Object &object,
       IndexRange verts_range = IndexRange(verts_start_offset, num_verts);
       MutableSpan<GreasePencilStrokeVert> verts_slice = verts.slice(verts_range);
       MutableSpan<GreasePencilColorVert> cols_slice = cols.slice(verts_range);
+      const float4x2 texture_matrix = texture_matrices[curve_i] * object_space_to_layer_space;
 
       const Span<float> lengths = curves.evaluated_lengths_for_curve(curve_i, is_cyclic);
 
@@ -584,13 +622,14 @@ static void grease_pencil_geom_batch_ensure(Object &object,
                        points[i],
                        idx,
                        length,
+                       texture_matrix,
                        verts_slice[idx],
                        cols_slice[idx]);
       }
 
       if (is_cyclic) {
         const int idx = points.size() + 1;
-        const float length = lengths[points.size() - 1];
+        const float length = points.size() > 1 ? lengths[points.size() - 1] : 0.0f;
         populate_point(verts_range,
                        curve_i,
                        start_caps[curve_i],
@@ -598,6 +637,7 @@ static void grease_pencil_geom_batch_ensure(Object &object,
                        points[0],
                        idx,
                        length,
+                       texture_matrix,
                        verts_slice[idx],
                        cols_slice[idx]);
       }

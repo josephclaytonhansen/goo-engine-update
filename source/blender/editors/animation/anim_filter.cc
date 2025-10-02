@@ -62,26 +62,25 @@
 #include "MEM_guardedalloc.h"
 
 #include "BLI_alloca.h"
-#include "BLI_blenlib.h"
 #include "BLI_ghash.h"
 #include "BLI_string.h"
 #include "BLI_utildefines.h"
 
 #include "BKE_action.h"
-#include "BKE_anim_data.h"
-#include "BKE_collection.h"
+#include "BKE_anim_data.hh"
+#include "BKE_collection.hh"
 #include "BKE_context.hh"
-#include "BKE_fcurve.h"
+#include "BKE_fcurve.hh"
 #include "BKE_fcurve_driver.h"
-#include "BKE_global.h"
+#include "BKE_global.hh"
 #include "BKE_grease_pencil.hh"
-#include "BKE_key.h"
-#include "BKE_layer.h"
+#include "BKE_key.hh"
+#include "BKE_layer.hh"
 #include "BKE_main.hh"
 #include "BKE_mask.h"
 #include "BKE_material.h"
 #include "BKE_modifier.hh"
-#include "BKE_node.h"
+#include "BKE_node.hh"
 
 #include "ED_anim_api.hh"
 #include "ED_markers.hh"
@@ -90,8 +89,6 @@
 #include "SEQ_utils.hh"
 
 #include "ANIM_bone_collections.hh"
-
-#include "UI_resources.hh" /* for TH_KEYFRAME_SCALE lookup */
 
 /* ************************************************************ */
 /* Blender Context <-> Animation Context mapping */
@@ -105,7 +102,6 @@ static Key *actedit_get_shapekeys(bAnimContext *ac)
   Scene *scene = ac->scene;
   ViewLayer *view_layer = ac->view_layer;
   Object *ob;
-  Key *key;
 
   BKE_view_layer_synced_ensure(scene, view_layer);
   ob = BKE_view_layer_active_object_get(view_layer);
@@ -117,15 +113,7 @@ static Key *actedit_get_shapekeys(bAnimContext *ac)
   // if (saction->pin) { return nullptr; }
 
   /* shapekey data is stored with geometry data */
-  key = BKE_key_from_object(ob);
-
-  if (key) {
-    if (key->type == KEY_RELATIVE) {
-      return key;
-    }
-  }
-
-  return nullptr;
+  return BKE_key_from_object(ob);
 }
 
 /* Get data being edited in Action Editor (depending on current 'mode') */
@@ -942,14 +930,9 @@ static bAnimListElem *make_new_animlistelem(void *data,
           /* the corresponding keyframes are from the animdata */
           if (ale->adt && ale->adt->action) {
             bAction *act = ale->adt->action;
-            char *rna_path = BKE_keyblock_curval_rnapath_get(key, kb);
-
-            /* try to find the F-Curve which corresponds to this exactly,
-             * then free the MEM_alloc'd string
-             */
-            if (rna_path) {
-              ale->key_data = (void *)BKE_fcurve_find(&act->curves, rna_path, 0);
-              MEM_freeN(rna_path);
+            /* Try to find the F-Curve which corresponds to this exactly. */
+            if (std::optional<std::string> rna_path = BKE_keyblock_curval_rnapath_get(key, kb)) {
+              ale->key_data = (void *)BKE_fcurve_find(&act->curves, rna_path->c_str(), 0);
             }
           }
           ale->datatype = (ale->key_data) ? ALE_FCURVE : ALE_NONE;
@@ -1720,29 +1703,53 @@ static size_t animdata_filter_shapekey(bAnimContext *ac,
   if (filter_mode & ANIMFILTER_LIST_CHANNELS) {
     bDopeSheet *ads = ac->ads;
 
-    /* loop through the channels adding ShapeKeys as appropriate */
-    LISTBASE_FOREACH (KeyBlock *, kb, &key->block) {
-      /* skip the first one, since that's the non-animatable basis */
-      if (kb == key->block.first) {
-        continue;
-      }
+    if (key->type == KEY_RELATIVE) {
+      /* TODO: This currently doesn't take into account the animatable "Range Min/Max" keys on the
+       * keyblocks. */
 
-      /* Skip shapekey if the name doesn't match the filter string. */
-      if (ads != nullptr && ads->searchstr[0] != '\0' &&
-          name_matches_dopesheet_filter(ads, kb->name) == false)
+      /* loop through the channels adding ShapeKeys as appropriate */
+      LISTBASE_FOREACH (KeyBlock *, kb, &key->block) {
+        /* skip the first one, since that's the non-animatable basis */
+        if (kb == key->block.first) {
+          continue;
+        }
+
+        /* Skip shapekey if the name doesn't match the filter string. */
+        if (ads != nullptr && ads->searchstr[0] != '\0' &&
+            name_matches_dopesheet_filter(ads, kb->name) == false)
+        {
+          continue;
+        }
+
+        /* only work with this channel and its subchannels if it is editable */
+        if (!(filter_mode & ANIMFILTER_FOREDIT) || EDITABLE_SHAPEKEY(kb)) {
+          /* Only include this track if selected in a way consistent
+           * with the filtering requirements. */
+          if (ANIMCHANNEL_SELOK(SEL_SHAPEKEY(kb))) {
+            /* TODO: consider 'active' too? */
+
+            /* owner-id here must be key so that the F-Curve can be resolved... */
+            ANIMCHANNEL_NEW_CHANNEL(kb, ANIMTYPE_SHAPEKEY, key, nullptr);
+          }
+        }
+      }
+    }
+    else {
+      /* key->type == KEY_NORMAL */
+      if (!key->adt || !key->adt->action) {
+        return 0;
+      }
+      bAction *action = key->adt->action;
+      FCurve *first_fcu = static_cast<FCurve *>(action->curves.first);
+      for (FCurve *fcu = first_fcu;
+           (fcu = animfilter_fcurve_next(
+                ads, fcu, ANIMTYPE_FCURVE, filter_mode, nullptr, (ID *)key));
+           fcu = fcu->next)
       {
-        continue;
-      }
-
-      /* only work with this channel and its subchannels if it is editable */
-      if (!(filter_mode & ANIMFILTER_FOREDIT) || EDITABLE_SHAPEKEY(kb)) {
-        /* Only include this track if selected in a way consistent
-         * with the filtering requirements. */
-        if (ANIMCHANNEL_SELOK(SEL_SHAPEKEY(kb))) {
-          /* TODO: consider 'active' too? */
-
-          /* owner-id here must be key so that the F-Curve can be resolved... */
-          ANIMCHANNEL_NEW_CHANNEL(kb, ANIMTYPE_SHAPEKEY, key, nullptr);
+        /* Check if this is a "KEY_NORMAL" type keyframe */
+        if (STREQ(fcu->rna_path, "eval_time") || BLI_str_endswith(fcu->rna_path, ".interpolation"))
+        {
+          ANIMCHANNEL_NEW_CHANNEL(fcu, ANIMTYPE_FCURVE, (ID *)key, &action->id);
         }
       }
     }

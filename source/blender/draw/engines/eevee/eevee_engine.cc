@@ -12,7 +12,7 @@
 
 #include "BLI_rand.h"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "BKE_object.hh"
 
@@ -22,7 +22,7 @@
 
 #include "GPU_context.h"
 
-#include "IMB_imbuf.h"
+#include "IMB_imbuf.hh"
 
 #include "eevee_private.h"
 
@@ -127,9 +127,6 @@ void EEVEE_cache_populate(void *vedata, Object *ob)
       EEVEE_volumes_cache_object_add(
           sldata, static_cast<EEVEE_Data *>(vedata), draw_ctx->scene, ob);
     }
-    else if (!USE_SCENE_LIGHT(draw_ctx->v3d)) {
-      /* do not add any scene light sources to the cache */
-    }
     else if (ob->type == OB_LIGHTPROBE) {
       if ((ob->base_flag & BASE_FROM_DUPLI) != 0) {
         /* TODO: Special case for dupli objects because we cannot save the object pointer. */
@@ -138,7 +135,7 @@ void EEVEE_cache_populate(void *vedata, Object *ob)
         EEVEE_lightprobes_cache_add(sldata, static_cast<EEVEE_Data *>(vedata), ob);
       }
     }
-    else if (ob->type == OB_LAMP) {
+    else if (USE_SCENE_LIGHT(draw_ctx->v3d) && ob->type == OB_LAMP) {
       EEVEE_lights_cache_add(sldata, ob);
     }
   }
@@ -173,7 +170,7 @@ static void eevee_cache_finish(void *vedata)
   if (vl_samples > 0){
     tot_samples = vl_samples;
   }
-  
+
   if (tot_samples == 0) {
 
     /* Use a high number of samples so the outputs accumulation buffers
@@ -223,7 +220,11 @@ static void eevee_draw_scene(void *vedata)
   if (DRW_state_is_image_render()) {
     const DRWContextState *draw_ctx = DRW_context_state_get();
     const Scene *scene = draw_ctx->scene;
-    loop_len = std::max(1, scene->eevee.taa_samples);
+    /* Note: Cycles have different option for view layers sample overrides. The current behavior
+     * matches the default `Use`, which simply override if non-zero. */
+    uint64_t render_sample_count = (draw_ctx->view_layer->samples > 0) ? draw_ctx->view_layer->samples :
+                                                                          scene->eevee.taa_render_samples;
+    loop_len = std::max(1, int(render_sample_count));
   }
 
   if (stl->effects->bypass_drawing) {
@@ -482,7 +483,7 @@ static void eevee_render_to_image(void *vedata,
   Depsgraph *depsgraph = draw_ctx->depsgraph;
   Scene *scene = DEG_get_evaluated_scene(depsgraph);
   EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_ensure();
-  const bool do_motion_blur = (scene->eevee.flag & SCE_EEVEE_MOTION_BLUR_ENABLED) != 0;
+  const bool do_motion_blur = (scene->r.mode & R_MBLUR) != 0;
   const bool do_motion_blur_fx = do_motion_blur && (scene->eevee.motion_blur_max > 0);
 
   if (!EEVEE_render_init(static_cast<EEVEE_Data *>(vedata), engine, depsgraph)) {
@@ -678,7 +679,7 @@ RenderEngineType DRW_engine_viewport_eevee_type = {
     /*next*/ nullptr,
     /*prev*/ nullptr,
     /*idname*/ EEVEE_ENGINE,
-    /*name*/ N_("Goo Engine (Legacy)"),
+    /*name*/ N_("Fruitbat"),
     /*flag*/ RE_INTERNAL | RE_USE_PREVIEW | RE_USE_STEREO_VIEWPORT | RE_USE_GPU_CONTEXT,
     /*update*/ nullptr,
     /*render*/ &DRW_render_to_image,

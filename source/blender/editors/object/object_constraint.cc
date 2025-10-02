@@ -17,7 +17,7 @@
 #include "BLI_math_vector.h"
 #include "BLI_utildefines.h"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "DNA_anim_types.h"
 #include "DNA_armature_types.h"
@@ -32,11 +32,11 @@
 #include "BKE_armature.hh"
 #include "BKE_constraint.h"
 #include "BKE_context.hh"
-#include "BKE_fcurve.h"
-#include "BKE_layer.h"
+#include "BKE_fcurve.hh"
+#include "BKE_layer.hh"
 #include "BKE_main.hh"
 #include "BKE_object.hh"
-#include "BKE_report.h"
+#include "BKE_report.hh"
 #include "BKE_tracking.h"
 
 #include "DEG_depsgraph.hh"
@@ -56,7 +56,6 @@
 #include "RNA_path.hh"
 #include "RNA_prototypes.h"
 
-#include "ED_keyframing.hh"
 #include "ED_object.hh"
 #include "ED_screen.hh"
 
@@ -67,7 +66,10 @@
 #include "UI_resources.hh"
 
 #include "object_intern.h"
+<<<<<<< HEAD
+=======
 #include "BKE_lib_id.hh"
+>>>>>>> 8457395892beec33d4605ef9d894a1aff4a8d79f
 
 /* ------------------------------------------------------------------- */
 /** \name Constraint Data Accessors
@@ -1090,28 +1092,22 @@ static int followpath_path_animate_exec(bContext *C, wmOperator *op)
   else {
     /* animate constraint's "fixed offset" */
     PropertyRNA *prop;
-    char *path;
 
     /* get RNA pointer to constraint's "offset_factor" property - to build RNA path */
     PointerRNA ptr = RNA_pointer_create(&ob->id, &RNA_FollowPathConstraint, con);
     prop = RNA_struct_find_property(&ptr, "offset_factor");
 
-    path = RNA_path_from_ID_to_property(&ptr, prop);
+    const std::optional<std::string> path = RNA_path_from_ID_to_property(&ptr, prop);
 
     /* create F-Curve for constraint */
     act = blender::animrig::id_action_ensure(bmain, &ob->id);
-    fcu = blender::animrig::action_fcurve_ensure(bmain, act, nullptr, nullptr, path, 0);
+    fcu = blender::animrig::action_fcurve_ensure(bmain, act, nullptr, nullptr, path->c_str(), 0);
 
     /* standard vertical range - 0.0 to 1.0 */
     standardRange = 1.0f;
 
     /* enable "Use Fixed Position" so that animating this has effect */
     data->followflag |= FOLLOWPATH_STATIC;
-
-    /* path needs to be freed */
-    if (path) {
-      MEM_freeN(path);
-    }
   }
 
   /* setup dummy 'generator' modifier here to get 1-1 correspondence still working
@@ -1370,7 +1366,7 @@ void ED_object_constraint_tag_update(Main *bmain, Object *ob, bConstraint *con)
   /* Do Copy-on-Write tag here too, otherwise constraint
    * influence/mute buttons in UI have no effect
    */
-  DEG_id_tag_update(&ob->id, ID_RECALC_COPY_ON_WRITE);
+  DEG_id_tag_update(&ob->id, ID_RECALC_SYNC_TO_EVAL);
 }
 
 void ED_object_constraint_dependency_tag_update(Main *bmain, Object *ob, bConstraint *con)
@@ -2200,6 +2196,8 @@ void OBJECT_OT_constraints_copy(wmOperatorType *ot)
 /** \} */
 
 /* ------------------------------------------------------------------- */
+<<<<<<< HEAD
+=======
 /** \name Goo Merge Bone Constraints Operator
  * \{ */
 
@@ -2390,6 +2388,7 @@ void POSE_OT_constraints_merge(wmOperatorType *ot)
 /** \} */
 
 /* ------------------------------------------------------------------- */
+>>>>>>> 8457395892beec33d4605ef9d894a1aff4a8d79f
 /** \name Add Constraints Operator
  * \{ */
 
@@ -2522,14 +2521,14 @@ static bool get_new_constraint_target(
       /* Since by default, IK targets the tip of the last bone,
        * use the tip of the active PoseChannel if adding a target for an IK Constraint. */
       if (con_type == CONSTRAINT_TYPE_KINEMATIC) {
-        mul_v3_m4v3(obt->loc, obact->object_to_world, pchanact->pose_tail);
+        mul_v3_m4v3(obt->loc, obact->object_to_world().ptr(), pchanact->pose_tail);
       }
       else {
-        mul_v3_m4v3(obt->loc, obact->object_to_world, pchanact->pose_head);
+        mul_v3_m4v3(obt->loc, obact->object_to_world().ptr(), pchanact->pose_head);
       }
     }
     else {
-      copy_v3_v3(obt->loc, obact->object_to_world[3]);
+      copy_v3_v3(obt->loc, obact->object_to_world().location());
     }
 
     /* restore, BKE_object_add sets active */

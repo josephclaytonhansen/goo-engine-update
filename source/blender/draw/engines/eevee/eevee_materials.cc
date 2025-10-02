@@ -16,7 +16,7 @@
 #include "BLI_rand.h"
 #include "BLI_string_utils.hh"
 
-#include "BKE_global.h"
+#include "BKE_global.hh"
 #include "BKE_paint.hh"
 #include "BKE_particle.h"
 
@@ -25,7 +25,7 @@
 #include "DNA_view3d_types.h"
 #include "DNA_world_types.h"
 
-#include "GPU_material.h"
+#include "GPU_material.hh"
 
 #include "DEG_depsgraph_query.hh"
 
@@ -95,6 +95,13 @@ void EEVEE_material_bind_resources(DRWShadingGroup *shgrp,
   DRW_shgroup_uniform_block_ref(shgrp, "renderpass_block", &pd->renderpass_ubo);
 
   DRW_shgroup_uniform_float_copy(shgrp, "alphaClipThreshold", alpha_clip_threshold);
+
+  /* Set material light groups for Goo Engine */
+  int light_groups[4];
+  GPU_material_light_group_bits_get(gpumat, light_groups);
+  DRW_shgroup_uniform_ivec4_copy(shgrp, "lightGroups", light_groups);
+  GPU_material_light_group_shadow_bits_get(gpumat, light_groups);
+  DRW_shgroup_uniform_ivec4_copy(shgrp, "lightGroupShadows", light_groups);
 
   DRW_shgroup_uniform_int_copy(shgrp, "outputSssId", 1);
   DRW_shgroup_uniform_texture(shgrp, "utilTex", e_data.util_tex);
@@ -361,6 +368,12 @@ void EEVEE_materials_init(EEVEE_ViewLayerData *sldata,
     if (g_data->render_passes & EEVEE_RENDER_PASS_ENVIRONMENT) {
       Scene *scene = draw_ctx->scene;
       World *wo = scene->world;
+      
+      World *world_override = draw_ctx->view_layer->world_override;
+      if (world_override) {
+        wo = world_override;
+      }
+      
       if (wo && wo->use_nodes) {
         EEVEE_material_get(vedata, scene, nullptr, wo, VAR_WORLD_BACKGROUND);
       }
@@ -395,6 +408,11 @@ void EEVEE_materials_cache_init(EEVEE_ViewLayerData *sldata, EEVEE_Data *vedata)
     if (grp == nullptr) {
       Scene *scene = draw_ctx->scene;
       World *world = (scene->world) ? scene->world : EEVEE_world_default_get();
+      
+      World *world_override = draw_ctx->view_layer->world_override;
+      if (world_override) {
+        world = world_override;
+      }
 
       const int options = VAR_WORLD_BACKGROUND;
       GPUMaterial *gpumat = EEVEE_material_get(vedata, scene, nullptr, world, options);
@@ -528,6 +546,8 @@ BLI_INLINE void material_shadow(EEVEE_Data *vedata,
       /* This GPUShader has already been used by another material.
        * Add new shading group just after to avoid shader switching cost. */
       grp = DRW_shgroup_create_sub(*grp_p);
+      /* Per material uniforms. */
+      DRW_shgroup_uniform_float_copy(grp, "alphaClipThreshold", alpha_clip_threshold);
     }
     else {
       *grp_p = grp = DRW_shgroup_create(sh, psl->shadow_pass);
@@ -608,6 +628,8 @@ static EeveeMaterialCache material_opaque(EEVEE_Data *vedata,
       /* This GPUShader has already been used by another material.
        * Add new shading group just after to avoid shader switching cost. */
       grp = DRW_shgroup_create_sub(*grp_p);
+      /* Per material uniforms. */
+      DRW_shgroup_uniform_float_copy(grp, "alphaClipThreshold", alpha_clip_threshold);
     }
     else {
       *grp_p = grp = DRW_shgroup_create(sh, depth_ps);
@@ -655,6 +677,7 @@ static EeveeMaterialCache material_opaque(EEVEE_Data *vedata,
       grp = DRW_shgroup_create_sub(*grp_p);
 
       /* Per material uniforms. */
+      DRW_shgroup_uniform_float_copy(grp, "alphaClipThreshold", alpha_clip_threshold);
       if (use_ssrefract) {
         DRW_shgroup_uniform_float_copy(grp, "refractionDepth", ma->refract_depth);
       }
@@ -758,7 +781,10 @@ static EeveeMaterialCache material_transparent(EEVEE_Data *vedata,
 /* Return correct material or empty default material if slot is empty. */
 BLI_INLINE Material *eevee_object_material_get(Object *ob, int slot, bool holdout)
 {
-  Material *ma = BKE_object_material_get_eval(ob, slot + 1);
+  const DRWContextState *draw_ctx = DRW_context_state_get();
+  Material *material_override = draw_ctx->view_layer->mat_override;
+  
+  Material *ma = (material_override) ? material_override : BKE_object_material_get_eval(ob, slot + 1);
   bool use_custom = BKE_material_use_custom_holdout(ma);
   if (holdout && !use_custom) {
     return BKE_material_default_holdout();
@@ -907,7 +933,7 @@ void EEVEE_materials_cache_populate(EEVEE_Data *vedata,
 
         if (G.debug_value == 889 && ob->sculpt && BKE_object_sculpt_pbvh_get(ob)) {
           int debug_node_nr = 0;
-          DRW_debug_modelmat(ob->object_to_world);
+          DRW_debug_modelmat(ob->object_to_world().ptr());
           BKE_pbvh_draw_debug_cb(
               BKE_object_sculpt_pbvh_get(ob), DRW_sculpt_debug_cb, &debug_node_nr);
         }

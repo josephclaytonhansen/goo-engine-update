@@ -3,20 +3,18 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 import bpy
+from bl_ui.properties_grease_pencil_common import (
+    GreasePencilLayerAdjustmentsPanel,
+    GreasePencilLayerDisplayPanel,
+    GreasePencilLayerMasksPanel,
+    GreasePencilLayerRelationsPanel,
+    GreasePencilLayerTransformPanel,
+)
 from bpy.types import (
     Header,
     Menu,
     Panel,
 )
-
-from bl_ui.properties_grease_pencil_common import (
-    GreasePencilLayerMasksPanel,
-    GreasePencilLayerTransformPanel,
-    GreasePencilLayerAdjustmentsPanel,
-    GreasePencilLayerRelationsPanel,
-    GreasePencilLayerDisplayPanel,
-)
-
 from rna_prop_ui import PropertyPanel
 
 #######################################
@@ -37,6 +35,7 @@ def dopesheet_filter(layout, context):
         row.prop(dopesheet, "show_missing_nla", text="")
     else:  # graph and dopesheet editors - F-Curves and drivers only
         row.prop(dopesheet, "show_only_errors", text="")
+
 
 #######################################
 # Dope-sheet Filtering Popovers
@@ -179,8 +178,7 @@ class DOPESHEET_PT_filters(DopesheetFilterPopoverBase, Panel):
         if ds_mode in {'DOPESHEET', 'ACTION', 'GPENCIL'}:
             layout.separator()
             generic_filters_only = ds_mode != 'DOPESHEET'
-            DopesheetFilterPopoverBase.draw_search_filters(context, layout,
-                                                           generic_filters_only=generic_filters_only)
+            DopesheetFilterPopoverBase.draw_search_filters(context, layout, generic_filters_only=generic_filters_only)
 
         if ds_mode == 'DOPESHEET':
             layout.separator()
@@ -189,6 +187,7 @@ class DOPESHEET_PT_filters(DopesheetFilterPopoverBase, Panel):
 
 #######################################
 # DopeSheet Editor - General/Standard UI
+
 
 class DOPESHEET_HT_header(Header):
     bl_space_type = 'DOPESHEET_EDITOR'
@@ -202,9 +201,10 @@ class DOPESHEET_HT_header(Header):
 
         if st.mode == 'TIMELINE':
             from bl_ui.space_time import (
-                TIME_MT_editor_menus,
                 TIME_HT_editor_buttons,
+                TIME_MT_editor_menus,
             )
+
             TIME_MT_editor_menus.draw_collapsible(context, layout)
             TIME_HT_editor_buttons.draw_header(context, layout)
         else:
@@ -221,6 +221,7 @@ class DOPESHEET_HT_editor_buttons:
     def draw_header(context, layout):
         st = context.space_data
         tool_settings = context.tool_settings
+        scene = context.scene
 
         if st.mode in {'ACTION', 'SHAPEKEY'}:
             # TODO: These buttons need some tidying up -
@@ -236,27 +237,65 @@ class DOPESHEET_HT_editor_buttons:
             layout.separator_spacer()
 
             layout.template_ID(st, "action", new="action.new", unlink="action.unlink")
+            
+            row = layout.row()
+            if scene.show_subframe:
+                row.scale_x = 1.15
+                row.prop(scene, "frame_float", text="")
+            else:
+                row.scale_x = 0.95
+                row.prop(scene, "frame_current", text="")
+
+            row = layout.row(align=True)
+            row.prop(scene, "use_preview_range", text="", toggle=True)
+            sub = row.row(align=True)
+            sub.scale_x = 0.8
+            if not scene.use_preview_range:
+                sub.prop(scene, "frame_start", text="Start")
+                sub.prop(scene, "frame_end", text="End")
+            else:
+                sub.prop(scene, "frame_preview_start", text="Start")
+                sub.prop(scene, "frame_preview_end", text="End")
 
         # Layer management
         if st.mode == 'GPENCIL':
             ob = context.active_object
-            enable_but = ob is not None and ob.type == 'GPENCIL'
 
-            row = layout.row(align=True)
-            row.enabled = enable_but
-            row.operator("gpencil.layer_add", icon='ADD', text="")
-            row.operator("gpencil.layer_remove", icon='REMOVE', text="")
-            row.menu("GPENCIL_MT_layer_context_menu", icon='DOWNARROW_HLT', text="")
+            if context.preferences.experimental.use_grease_pencil_version3:
+                enable_but = ob is not None and ob.type == 'GREASEPENCIL'
 
-            row = layout.row(align=True)
-            row.enabled = enable_but
-            row.operator("gpencil.layer_move", icon='TRIA_UP', text="").type = 'UP'
-            row.operator("gpencil.layer_move", icon='TRIA_DOWN', text="").type = 'DOWN'
+                row = layout.row(align=True)
+                row.enabled = enable_but
+                row.operator("grease_pencil.layer_add", icon='ADD', text="")
+                row.operator("grease_pencil.layer_remove", icon='REMOVE', text="")
+                row.menu("GREASE_PENCIL_MT_grease_pencil_add_layer_extra", icon='DOWNARROW_HLT', text="")
 
-            row = layout.row(align=True)
-            row.enabled = enable_but
-            row.operator("gpencil.layer_isolate", icon='RESTRICT_VIEW_ON', text="").affect_visibility = True
-            row.operator("gpencil.layer_isolate", icon='LOCKED', text="").affect_visibility = False
+                row = layout.row(align=True)
+                row.enabled = enable_but
+                row.operator("anim.channels_move", icon='TRIA_UP', text="").direction = 'UP'
+                row.operator("anim.channels_move", icon='TRIA_DOWN', text="").direction = 'DOWN'
+
+                row = layout.row(align=True)
+                row.enabled = enable_but
+                row.operator("grease_pencil.layer_isolate", icon='RESTRICT_VIEW_ON', text="").affect_visibility = True
+                row.operator("grease_pencil.layer_isolate", icon='LOCKED', text="").affect_visibility = False
+            else:
+                enable_but = ob is not None and ob.type == 'GPENCIL'
+                row = layout.row(align=True)
+                row.enabled = enable_but
+                row.operator("gpencil.layer_add", icon='ADD', text="")
+                row.operator("gpencil.layer_remove", icon='REMOVE', text="")
+                row.menu("GPENCIL_MT_layer_context_menu", icon='DOWNARROW_HLT', text="")
+
+                row = layout.row(align=True)
+                row.enabled = enable_but
+                row.operator("gpencil.layer_move", icon='TRIA_UP', text="").type = 'UP'
+                row.operator("gpencil.layer_move", icon='TRIA_DOWN', text="").type = 'DOWN'
+
+                row = layout.row(align=True)
+                row.enabled = enable_but
+                row.operator("gpencil.layer_isolate", icon='RESTRICT_VIEW_ON', text="").affect_visibility = True
+                row.operator("gpencil.layer_isolate", icon='LOCKED', text="").affect_visibility = False
 
         layout.separator_spacer()
 
@@ -363,11 +402,19 @@ class DOPESHEET_MT_view(Menu):
 
         layout.prop(st, "show_region_ui")
         layout.prop(st, "show_region_hud")
+        layout.prop(st, "show_region_channels")
+        layout.separator()
 
+        layout.operator("action.view_selected")
+        layout.operator("action.view_all")
+        if context.scene.use_preview_range:
+            layout.operator("anim.scene_range_frame", text="Frame Preview Range")
+        else:
+            layout.operator("anim.scene_range_frame", text="Frame Scene Range")
+        layout.operator("action.view_frame")
         layout.separator()
 
         layout.prop(st.dopesheet, "use_multi_word_filter", text="Multi-Word Match Search")
-
         layout.separator()
 
         layout.prop(st, "use_realtime_update")
@@ -380,44 +427,41 @@ class DOPESHEET_MT_view(Menu):
         layout.prop(st, "show_interpolation")
         layout.prop(st, "show_extremes")
         layout.prop(st, "use_auto_merge_keyframes")
-
         layout.separator()
+
         layout.prop(st, "show_markers")
-
-        layout.separator()
         layout.prop(st, "show_seconds")
         layout.prop(st, "show_locked_time")
-
         layout.separator()
+
         layout.operator("anim.previewrange_set")
         layout.operator("anim.previewrange_clear")
         layout.operator("action.previewrange_set")
-
         layout.separator()
-        layout.operator("action.view_all")
-        layout.operator("action.view_selected")
-        layout.operator("action.view_frame")
 
         # Add this to show key-binding (reverse action in dope-sheet).
-        layout.separator()
         props = layout.operator("wm.context_set_enum", text="Toggle Graph Editor", icon='GRAPH')
         props.data_path = "area.type"
         props.value = 'GRAPH_EDITOR'
-
         layout.separator()
+
         layout.menu("INFO_MT_area")
 
 
 class DOPESHEET_MT_view_pie(Menu):
     bl_label = "View"
 
-    def draw(self, _context):
+    def draw(self, context):
         layout = self.layout
 
         pie = layout.menu_pie()
         pie.operator("action.view_all")
         pie.operator("action.view_selected", icon='ZOOM_SELECTED')
         pie.operator("action.view_frame")
+        if context.scene.use_preview_range:
+            pie.operator("anim.scene_range_frame", text="Frame Preview Range")
+        else:
+            pie.operator("anim.scene_range_frame", text="Frame Scene Range")
 
 
 class DOPESHEET_MT_select(Menu):
@@ -469,6 +513,7 @@ class DOPESHEET_MT_marker(Menu):
         layout = self.layout
 
         from bl_ui.space_time import marker_menu_generic
+
         marker_menu_generic(layout, context)
 
         st = context.space_data
@@ -481,6 +526,7 @@ class DOPESHEET_MT_marker(Menu):
                 layout.operator("action.markers_make_local")
 
         layout.prop(st, "use_marker_sync")
+
 
 #######################################
 # Keyframe Editing
@@ -622,6 +668,7 @@ class DOPESHEET_PT_action(DopesheetActionPanelBase, Panel):
 
 #######################################
 # Grease Pencil Editing
+
 
 class DOPESHEET_MT_gpencil_channel(Menu):
     bl_label = "Channel"
@@ -900,10 +947,11 @@ classes = (
     DOPESHEET_PT_gpencil_layer_relations,
     DOPESHEET_PT_gpencil_layer_display,
     DOPESHEET_PT_custom_props_action,
-    DOPESHEET_PT_snapping
+    DOPESHEET_PT_snapping,
 )
 
 if __name__ == "__main__":  # only for live edit.
     from bpy.utils import register_class
+
     for cls in classes:
         register_class(cls)

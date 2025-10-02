@@ -223,8 +223,7 @@ class OUTLINER_MT_collection(Menu):
 
         space = context.space_data
 
-        layout.operator("outliner.collection_new", text="New",
-                        text_ctxt=i18n_contexts.id_collection).nested = True
+        layout.operator("outliner.collection_new", text="New", text_ctxt=i18n_contexts.id_collection).nested = True
         layout.operator("outliner.collection_duplicate", text="Duplicate Collection")
         layout.operator("outliner.collection_duplicate_linked", text="Duplicate Linked")
         layout.operator("outliner.id_copy", text="Copy", icon='COPYDOWN')
@@ -479,9 +478,6 @@ class OUTLINER_PT_filter(Panel):
             row = sub.row()
             row.label(icon='ARMATURE_DATA')
             row.prop(space, "use_filter_object_armature", text="Armatures")
-            row = sub.row()
-            row.label(icon='BONE_DATA')
-            row.prop(space, "use_filter_bone_flag", text="Hidden PoseBones")
         if bpy.data.lights:
             row = sub.row()
             row.label(icon='LIGHT_DATA')

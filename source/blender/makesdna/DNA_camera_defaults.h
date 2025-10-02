@@ -8,7 +8,6 @@
 
 #pragma once
 
-/* Struct members on own line. */
 /* clang-format off */
 
 /* -------------------------------------------------------------------- */
@@ -41,6 +40,9 @@
     .ortho_scale = 6.0, \
     .flag = CAM_SHOWPASSEPARTOUT, \
     .passepartalpha = 0.5f, \
+    .resolution_x = 1920, \
+    .resolution_y = 1080, \
+    .resolution_percentage = 100.0f, \
  \
     .panorama_type = CAM_PANORAMA_FISHEYE_EQUISOLID,\
     .fisheye_fov = M_PI,\

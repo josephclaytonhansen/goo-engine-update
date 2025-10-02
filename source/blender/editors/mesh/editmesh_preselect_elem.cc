@@ -146,7 +146,7 @@ void EDBM_preselect_elem_draw(EditMesh_PreSelElem *psel, const float matrix[4][4
     if (psel->preview_lines_len > 0) {
 
       immUniformColor4ub(3, 161, 252, 200);
-      GPU_line_width(2.0f);
+      GPU_line_width(2.0f * U.viewport_line_width);
       immBegin(GPU_PRIM_LINES, psel->preview_lines_len * 2);
       for (int i = 0; i < psel->preview_lines_len; i++) {
         immVertex3fv(pos, psel->preview_lines[i][0]);
@@ -164,7 +164,7 @@ void EDBM_preselect_elem_draw(EditMesh_PreSelElem *psel, const float matrix[4][4
   }
 
   if (psel->edges_len > 0) {
-    GPU_line_width(3.0f);
+    GPU_line_width(3.0f * U.viewport_line_width);
     immBegin(GPU_PRIM_LINES, psel->edges_len * 2);
 
     for (int i = 0; i < psel->edges_len; i++) {
@@ -243,9 +243,9 @@ static void view3d_preselect_update_preview_triangle_from_vert(
   }
 
   if (e_pair[1] != nullptr) {
-    mul_v3_m4v3(center, vc->obedit->object_to_world, v_act->co);
+    mul_v3_m4v3(center, vc->obedit->object_to_world().ptr(), v_act->co);
     ED_view3d_win_to_3d_int(vc->v3d, vc->region, center, mval, center);
-    mul_m4_v3(vc->obedit->world_to_object, center);
+    mul_m4_v3(vc->obedit->world_to_object().ptr(), center);
 
     psel->preview_tris = static_cast<float(*)[3][3]>(
         MEM_mallocN(sizeof(*psel->preview_tris) * 2, __func__));
@@ -313,9 +313,9 @@ static void view3d_preselect_update_preview_triangle_from_edge(
   psel->preview_lines = static_cast<float(*)[2][3]>(
       MEM_mallocN(sizeof(*psel->preview_lines) * 3, __func__));
   mid_v3_v3v3(center, eed->v1->co, eed->v2->co);
-  mul_m4_v3(vc->obedit->object_to_world, center);
+  mul_m4_v3(vc->obedit->object_to_world().ptr(), center);
   ED_view3d_win_to_3d_int(vc->v3d, vc->region, center, mval, center);
-  mul_m4_v3(vc->obedit->world_to_object, center);
+  mul_m4_v3(vc->obedit->world_to_object().ptr(), center);
 
   copy_v3_v3(psel->preview_tris[0][0], eed->v1->co);
   copy_v3_v3(psel->preview_tris[0][1], eed->v2->co);

@@ -20,7 +20,7 @@
 #include "BLI_utildefines.h"
 
 #include "BKE_context.hh"
-#include "BKE_fcurve.h"
+#include "BKE_fcurve.hh"
 #include "BKE_lib_query.hh"
 #include "BKE_lib_remap.hh"
 #include "BKE_screen.hh"
@@ -31,7 +31,6 @@
 #include "ED_space_api.hh"
 #include "ED_time_scrub_ui.hh"
 
-#include "GPU_framebuffer.h"
 #include "GPU_immediate.h"
 #include "GPU_state.h"
 
@@ -243,8 +242,10 @@ static void graph_main_region_draw(const bContext *C, ARegion *region)
     graph_draw_curves(&ac, sipo, region, 1);
 
     /* XXX(ton): the slow way to set tot rect... but for nice sliders needed. */
+    /* Excluding handles from the calculation to save performance. This cuts the time it takes for
+     * this function to run in half which is a major performance bottleneck on heavy scenes.  */
     get_graph_keyframe_extents(
-        &ac, &v2d->tot.xmin, &v2d->tot.xmax, &v2d->tot.ymin, &v2d->tot.ymax, false, true);
+        &ac, &v2d->tot.xmin, &v2d->tot.xmax, &v2d->tot.ymin, &v2d->tot.ymax, false, false);
     /* extra offset so that these items are visible */
     v2d->tot.xmin -= 10.0f;
     v2d->tot.xmax += 10.0f;
@@ -332,16 +333,19 @@ static void graph_main_region_draw_overlay(const bContext *C, ARegion *region)
     ED_time_scrub_draw_current_frame(region, scene, sipo->flag & SIPO_DRAWTIME);
   }
 
-  /* scrollers */
-  /* FIXME: args for scrollers depend on the type of data being shown. */
-  UI_view2d_scrollers_draw(v2d, nullptr);
+  if (region->winy > HEADERY * UI_SCALE_FAC) {
+    /* scrollers */
+    const rcti scroller_mask = ED_time_scrub_clamp_scroller_mask(v2d->mask);
+    /* FIXME: args for scrollers depend on the type of data being shown. */
+    UI_view2d_scrollers_draw(v2d, &scroller_mask);
 
-  /* scale numbers */
-  {
-    rcti rect;
-    BLI_rcti_init(
-        &rect, 0, 15 * UI_SCALE_FAC, 15 * UI_SCALE_FAC, region->winy - UI_TIME_SCRUB_MARGIN_Y);
-    UI_view2d_draw_scale_y__values(region, v2d, &rect, TH_SCROLL_TEXT);
+    /* scale numbers */
+    {
+      rcti rect;
+      BLI_rcti_init(
+          &rect, 0, 15 * UI_SCALE_FAC, 15 * UI_SCALE_FAC, region->winy - UI_TIME_SCRUB_MARGIN_Y);
+      UI_view2d_draw_scale_y__values(region, v2d, &rect, TH_SCROLL_TEXT);
+    }
   }
 }
 
@@ -367,20 +371,34 @@ static void graph_channel_region_init(wmWindowManager *wm, ARegion *region)
   WM_event_add_keymap_handler(&region->handlers, keymap);
 }
 
+static void set_v2d_height(View2D *v2d, const size_t item_count)
+{
+  const int height = ANIM_UI_get_channels_total_height(v2d, item_count);
+  v2d->tot.ymin = -height;
+  UI_view2d_curRect_clamp_y(v2d);
+}
+
 static void graph_channel_region_draw(const bContext *C, ARegion *region)
 {
   bAnimContext ac;
+  if (!ANIM_animdata_get_context(C, &ac)) {
+    return;
+  }
   View2D *v2d = &region->v2d;
 
   /* clear and setup matrix */
   UI_ThemeClearColor(TH_BACK);
 
+  ListBase anim_data = {nullptr, nullptr};
+  const eAnimFilter_Flags filter = (ANIMFILTER_DATA_VISIBLE | ANIMFILTER_LIST_VISIBLE |
+                                    ANIMFILTER_LIST_CHANNELS | ANIMFILTER_FCURVESONLY);
+  const size_t item_count = ANIM_animdata_filter(
+      &ac, &anim_data, filter, ac.data, eAnimCont_Types(ac.datatype));
+  set_v2d_height(v2d, item_count);
   UI_view2d_view_ortho(v2d);
 
   /* draw channels */
-  if (ANIM_animdata_get_context(C, &ac)) {
-    graph_draw_channel_names((bContext *)C, &ac, region);
-  }
+  graph_draw_channel_names((bContext *)C, &ac, region, anim_data);
 
   /* channel filter next to scrubbing area */
   ED_time_scrub_channel_search_draw(C, region, ac.ads);
@@ -390,6 +408,8 @@ static void graph_channel_region_draw(const bContext *C, ARegion *region)
 
   /* scrollers */
   UI_view2d_scrollers_draw(v2d, nullptr);
+
+  ANIM_animdata_freelist(&anim_data);
 }
 
 /* add handlers, stuff you only do once or on area/region changes */
@@ -796,15 +816,17 @@ static void graph_refresh(const bContext *C, ScrArea *area)
   graph_refresh_fcurve_colors(C);
 }
 
-static void graph_id_remap(ScrArea * /*area*/, SpaceLink *slink, const IDRemapper *mappings)
+static void graph_id_remap(ScrArea * /*area*/,
+                           SpaceLink *slink,
+                           const blender::bke::id::IDRemapper &mappings)
 {
   SpaceGraph *sgraph = (SpaceGraph *)slink;
   if (!sgraph->ads) {
     return;
   }
 
-  BKE_id_remapper_apply(mappings, (ID **)&sgraph->ads->filter_grp, ID_REMAP_APPLY_DEFAULT);
-  BKE_id_remapper_apply(mappings, (ID **)&sgraph->ads->source, ID_REMAP_APPLY_DEFAULT);
+  mappings.apply(reinterpret_cast<ID **>(&sgraph->ads->filter_grp), ID_REMAP_APPLY_DEFAULT);
+  mappings.apply(reinterpret_cast<ID **>(&sgraph->ads->source), ID_REMAP_APPLY_DEFAULT);
 }
 
 static void graph_foreach_id(SpaceLink *space_link, LibraryForeachIDData *data)
@@ -874,7 +896,7 @@ static void graph_space_blend_write(BlendWriter *writer, SpaceLink *sl)
 
 void ED_spacetype_ipo()
 {
-  SpaceType *st = static_cast<SpaceType *>(MEM_callocN(sizeof(SpaceType), "spacetype ipo"));
+  std::unique_ptr<SpaceType> st = std::make_unique<SpaceType>();
   ARegionType *art;
 
   st->spaceid = SPACE_GRAPH;
@@ -949,5 +971,5 @@ void ED_spacetype_ipo()
   art = ED_area_type_hud(st->spaceid);
   BLI_addhead(&st->regiontypes, art);
 
-  BKE_spacetype_register(st);
+  BKE_spacetype_register(std::move(st));
 }

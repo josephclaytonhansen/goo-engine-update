@@ -1109,6 +1109,13 @@ typedef enum eLineArtGPencilModifierFlags {
   LRT_GPENCIL_INVERT_SILHOUETTE_FILTER = (1 << 7),
 } eLineArtGPencilModifierFlags;
 
+/** Aliases for compatibility with RNA code. */
+#define MOD_LINEART_IS_BAKED LRT_GPENCIL_IS_BAKED
+#define MOD_LINEART_USE_CACHE LRT_GPENCIL_USE_CACHE
+#define MOD_LINEART_OFFSET_TOWARDS_CUSTOM_CAMERA LRT_GPENCIL_OFFSET_TOWARDS_CUSTOM_CAMERA
+#define MOD_LINEART_INVERT_COLLECTION LRT_GPENCIL_INVERT_COLLECTION
+#define MOD_LINEART_INVERT_SILHOUETTE_FILTER LRT_GPENCIL_INVERT_SILHOUETTE_FILTER
+
 typedef enum eLineartGpencilMaskSwitches {
   LRT_GPENCIL_MATERIAL_MASK_ENABLE = (1 << 0),
   /** When set, material mask bit comparisons are done with bit wise "AND" instead of "OR". */
@@ -1125,7 +1132,7 @@ typedef struct LineartGpencilModifierData {
 
   uint16_t edge_types; /* line type enable flags, bits in eLineartEdgeFlag */
 
-  /** Object or Collection, from #eLineartGpencilModifierSource. */
+  /** Object or Collection, from #GreasePencilLineartModifierSource. */
   char source_type;
 
   char use_multiple_levels;
@@ -1164,7 +1171,7 @@ typedef struct LineartGpencilModifierData {
   float opacity;
   short thickness;
 
-  unsigned char mask_switches; /* #eLineartGpencilMaskSwitches */
+  unsigned char mask_switches; /* #GreasePencilLineartMaskSwitches */
   unsigned char material_mask_bits;
   unsigned char intersection_mask;
 

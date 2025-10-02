@@ -12,6 +12,7 @@
 #include <cstring>
 #include <ctime>
 #include <fcntl.h>
+#include <optional>
 #ifndef WIN32
 #  include <unistd.h>
 #else
@@ -28,12 +29,12 @@
 
 #include "MEM_guardedalloc.h"
 
-#include "IMB_colormanagement.h"
-#include "IMB_imbuf.h"
-#include "IMB_imbuf_types.h"
-#include "IMB_metadata.h"
-#include "IMB_moviecache.h"
-#include "IMB_openexr.h"
+#include "IMB_colormanagement.hh"
+#include "IMB_imbuf.hh"
+#include "IMB_imbuf_types.hh"
+#include "IMB_metadata.hh"
+#include "IMB_moviecache.hh"
+#include "IMB_openexr.hh"
 
 /* Allow using deprecated functionality for .blend file I/O. */
 #define DNA_DEPRECATED_ALLOW
@@ -60,13 +61,13 @@
 #include "BLI_timecode.h" /* For stamp time-code format. */
 #include "BLI_utildefines.h"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
-#include "BKE_bpath.h"
+#include "BKE_bpath.hh"
 #include "BKE_colortools.hh"
-#include "BKE_global.h"
+#include "BKE_global.hh"
 #include "BKE_icons.h"
-#include "BKE_idtype.h"
+#include "BKE_idtype.hh"
 #include "BKE_image.h"
 #include "BKE_image_format.h"
 #include "BKE_lib_id.hh"
@@ -76,17 +77,17 @@
 #include "BKE_node_tree_update.hh"
 #include "BKE_packedFile.h"
 #include "BKE_preview_image.hh"
-#include "BKE_report.h"
-#include "BKE_scene.h"
+#include "BKE_report.hh"
+#include "BKE_scene.hh"
 #include "BKE_workspace.h"
 
-#include "BLF_api.h"
+#include "BLF_api.hh"
 
 #include "RE_pipeline.h"
 
 #include "SEQ_utils.hh" /* SEQ_get_topmost_sequence() */
 
-#include "GPU_material.h"
+#include "GPU_material.hh"
 #include "GPU_texture.h"
 
 #include "BLI_sys_types.h" /* for intptr_t support */
@@ -156,7 +157,11 @@ static void image_init_data(ID *id)
   }
 }
 
-static void image_copy_data(Main * /*bmain*/, ID *id_dst, const ID *id_src, const int flag)
+static void image_copy_data(Main * /*bmain*/,
+                            std::optional<Library *> /*owner_library*/,
+                            ID *id_dst,
+                            const ID *id_src,
+                            const int flag)
 {
   Image *image_dst = (Image *)id_dst;
   const Image *image_src = (const Image *)id_src;
@@ -235,7 +240,7 @@ static void image_foreach_cache(ID *id,
 {
   Image *image = (Image *)id;
   IDCacheKey key;
-  key.id_session_uuid = id->session_uuid;
+  key.id_session_uid = id->session_uid;
   key.identifier = offsetof(Image, cache);
   function_callback(id, &key, (void **)&image->cache, 0, user_data);
 
@@ -440,6 +445,7 @@ constexpr IDTypeInfo get_type_info()
   IDTypeInfo info{};
   info.id_code = ID_IM;
   info.id_filter = FILTER_ID_IM;
+  info.dependencies_id_types = 0;
   info.main_listbase_index = INDEX_ID_IM;
   info.struct_size = sizeof(Image);
   info.name = "Image";
@@ -775,7 +781,7 @@ void BKE_image_merge(Main *bmain, Image *dest, Image *source)
   }
 }
 
-bool BKE_image_scale(Image *image, int width, int height)
+bool BKE_image_scale(Image *image, int width, int height, ImageUser *iuser)
 {
   /* NOTE: We could be clever and scale all imbuf's
    * but since some are mipmaps its not so simple. */
@@ -783,7 +789,7 @@ bool BKE_image_scale(Image *image, int width, int height)
   ImBuf *ibuf;
   void *lock;
 
-  ibuf = BKE_image_acquire_ibuf(image, nullptr, &lock);
+  ibuf = BKE_image_acquire_ibuf(image, iuser, &lock);
 
   if (ibuf) {
     IMB_scaleImBuf(ibuf, width, height);
@@ -1420,9 +1426,19 @@ bool BKE_image_memorypack(Image *ima)
     ima->views_format = R_IMF_VIEWS_INDIVIDUAL;
   }
 
-  if (ok && ima->source == IMA_SRC_GENERATED) {
-    ima->source = IMA_SRC_FILE;
-    ima->type = IMA_TYPE_IMAGE;
+  /* Images which were "generated" before packing should now be
+   * treated as if they were saved as real files. */
+  if (ok) {
+    if (ima->source == IMA_SRC_GENERATED) {
+      ima->source = IMA_SRC_FILE;
+      ima->type = IMA_TYPE_IMAGE;
+    }
+
+    /* Clear the per-tile generated flag if all tiles were ok.
+     * Mirrors similar processing inside #BKE_image_save. */
+    LISTBASE_FOREACH (ImageTile *, tile, &ima->tiles) {
+      tile->gen_flag &= ~IMA_GEN_TILE;
+    }
   }
 
   return ok;
@@ -1484,7 +1500,7 @@ void BKE_image_packfiles_from_mem(ReportList *reports,
 
 void BKE_image_tag_time(Image *ima)
 {
-  ima->lastused = BLI_check_seconds_timer_i();
+  ima->lastused = BLI_time_now_seconds_i();
 }
 
 static uintptr_t image_mem_size(Image *image)
@@ -1650,7 +1666,6 @@ struct StampDataCustomField {
 
 struct StampData {
   char file[512];
-  char filename[512];
   char note[512];
   char date[512];
   char marker[512];
@@ -1688,12 +1703,8 @@ static void stampdata(
   if (scene->r.stamp & R_STAMP_FILENAME) {
     const char *blendfile_path = BKE_main_blendfile_path_from_global();
     SNPRINTF(stamp_data->file,
-             do_prefix ? "Path %s" : "%s",
-             (blendfile_path[0] != '\0') ? blendfile_path : "<unsaved>");
-
-    const char* filename = BLI_path_basename(blendfile_path);
-    SNPRINTF(stamp_data->filename,
-             do_prefix ? "File %s" : "%s", (filename[0] != '\0') ? filename : "<untitled>");
+             do_prefix ? "File %s" : "%s",
+             (blendfile_path[0] != '\0') ? blendfile_path : "<untitled>");
   }
   else {
     stamp_data->file[0] = '\0';
@@ -2049,28 +2060,6 @@ void BKE_image_stamp_buf(Scene *scene,
 
     /* and draw the text. */
     BLF_position(mono, x, y + y_ofs, 0.0);
-    BLF_draw_buffer(mono, stamp_data.filename, sizeof(stamp_data.filename));
-
-    /* the extra pixel for background. */
-    y -= BUFF_MARGIN_Y * 2;
-
-    /* Draw file *path* here, under the basename */
-    y -= h;
-
-    /* also a little of space to the background. */
-    buf_rectfill_area(rect,
-                      rectf,
-                      width,
-                      height,
-                      scene->r.bg_stamp,
-                      display,
-                      x - BUFF_MARGIN_X,
-                      y - BUFF_MARGIN_Y,
-                      w + BUFF_MARGIN_X,
-                      y + h + BUFF_MARGIN_Y);
-
-    /* and draw the text. */
-    BLF_position(mono, x, y + y_ofs, 0.0);
     BLF_draw_buffer(mono, stamp_data.file, sizeof(stamp_data.file));
 
     /* the extra pixel for background. */
@@ -2170,29 +2159,6 @@ void BKE_image_stamp_buf(Scene *scene,
   }
 
   /* Top left corner, below: File, Date, Memory, Render-time, Host-name. */
-  if (TEXT_SIZE_CHECK(stamp_data.frame, w, h)) {
-    y -= h;
-
-    /* and space for background. */
-    buf_rectfill_area(rect,
-                      rectf,
-                      width,
-                      height,
-                      scene->r.bg_stamp,
-                      display,
-                      0,
-                      y - BUFF_MARGIN_Y,
-                      w + BUFF_MARGIN_X,
-                      y + h + BUFF_MARGIN_Y);
-
-    BLF_position(mono, x, y + y_ofs, 0.0);
-    BLF_draw_buffer(mono, stamp_data.frame, sizeof(stamp_data.frame));
-
-    /* the extra pixel for background. */
-    y -= BUFF_MARGIN_Y * 2;
-  }
-
-  /* Top left corner, below File, Date, Memory, Rendertime, Hostname */
   BLF_enable(mono, BLF_WORD_WRAP);
   if (TEXT_SIZE_CHECK_WORD_WRAP(stamp_data.note, w, h)) {
     y -= h;
@@ -2676,20 +2642,23 @@ int BKE_imbuf_write_stamp(const Scene *scene,
   return BKE_imbuf_write(ibuf, filepath, imf);
 }
 
-anim *openanim_noload(const char *filepath,
-                      int flags,
-                      int streamindex,
-                      char colorspace[IMA_MAX_SPACE])
+ImBufAnim *openanim_noload(const char *filepath,
+                           int flags,
+                           int streamindex,
+                           char colorspace[IMA_MAX_SPACE])
 {
-  anim *anim;
+  ImBufAnim *anim;
 
   anim = IMB_open_anim(filepath, flags, streamindex, colorspace);
   return anim;
 }
 
-anim *openanim(const char *filepath, int flags, int streamindex, char colorspace[IMA_MAX_SPACE])
+ImBufAnim *openanim(const char *filepath,
+                    int flags,
+                    int streamindex,
+                    char colorspace[IMA_MAX_SPACE])
 {
-  anim *anim;
+  ImBufAnim *anim;
   ImBuf *ibuf;
 
   anim = IMB_open_anim(filepath, flags, streamindex, colorspace);
@@ -3032,8 +3001,8 @@ static void image_tag_frame_recalc(Image *ima, ID *iuser_id, ImageUser *iuser, v
     iuser->flag |= IMA_NEED_FRAME_RECALC;
 
     if (iuser_id) {
-      /* Must copy image user changes to CoW data-block. */
-      DEG_id_tag_update(iuser_id, ID_RECALC_COPY_ON_WRITE);
+      /* Must copy image user changes to evaluated data-block. */
+      DEG_id_tag_update(iuser_id, ID_RECALC_SYNC_TO_EVAL);
     }
   }
 }
@@ -3047,8 +3016,8 @@ static void image_tag_reload(Image *ima, ID *iuser_id, ImageUser *iuser, void *c
       image_update_views_format(ima, iuser);
     }
     if (iuser_id) {
-      /* Must copy image user changes to CoW data-block. */
-      DEG_id_tag_update(iuser_id, ID_RECALC_COPY_ON_WRITE);
+      /* Must copy image user changes to evaluated data-block. */
+      DEG_id_tag_update(iuser_id, ID_RECALC_SYNC_TO_EVAL);
     }
     BKE_image_partial_update_mark_full_update(ima);
   }
@@ -4826,6 +4795,31 @@ bool BKE_image_has_ibuf(Image *ima, ImageUser *iuser)
   IMB_freeImBuf(ibuf);
 
   return ibuf != nullptr;
+}
+
+ImBuf *BKE_image_preview(Image *ima, const short max_size, short *r_width, short *r_height)
+{
+  void *lock;
+  ImBuf *image_ibuf = BKE_image_acquire_ibuf(ima, nullptr, &lock);
+  if (image_ibuf == nullptr) {
+    return nullptr;
+  }
+
+  ImBuf *preview = IMB_dupImBuf(image_ibuf);
+  float scale = float(max_size) / float(std::max(image_ibuf->x, image_ibuf->y));
+  if (r_width) {
+    *r_width = image_ibuf->x;
+  }
+  if (r_height) {
+    *r_height = image_ibuf->y;
+  }
+  BKE_image_release_ibuf(ima, image_ibuf, lock);
+
+  /* Resize. */
+  IMB_scaleImBuf(preview, scale * image_ibuf->x, scale * image_ibuf->y);
+  IMB_rect_from_float(preview);
+
+  return preview;
 }
 
 /** \} */

@@ -15,7 +15,6 @@
 #include "DNA_gpencil_legacy_types.h"
 #include "DNA_grease_pencil_types.h"
 #include "DNA_mask_types.h"
-#include "DNA_node_types.h"
 #include "DNA_object_types.h"
 #include "DNA_scene_types.h"
 #include "DNA_sequence_types.h"
@@ -24,13 +23,13 @@
 #include "BLI_utildefines.h"
 
 #include "BKE_action.h"
-#include "BKE_anim_data.h"
+#include "BKE_anim_data.hh"
 #include "BKE_context.hh"
-#include "BKE_fcurve.h"
+#include "BKE_fcurve.hh"
 #include "BKE_gpencil_legacy.h"
 #include "BKE_grease_pencil.hh"
-#include "BKE_main.hh"
-#include "BKE_node.h"
+#include "BKE_screen.hh"
+#include "BKE_workspace.h"
 
 #include "DEG_depsgraph.hh"
 
@@ -41,6 +40,13 @@
 #include "SEQ_utils.hh"
 
 #include "ED_anim_api.hh"
+#include "ED_screen.hh"
+
+#include "ANIM_action.hh"
+
+#include "WM_api.hh"
+
+#include "BLI_set.hh"
 
 /* **************************** depsgraph tagging ******************************** */
 
@@ -404,4 +410,65 @@ void ANIM_animdata_freelist(ListBase *anim_data)
 #else
   BLI_freelistN(anim_data);
 #endif
+}
+
+void ANIM_deselect_keys_in_animation_editors(bContext *C)
+{
+  using namespace blender;
+
+  wmWindow *ctx_window = CTX_wm_window(C);
+  ScrArea *ctx_area = CTX_wm_area(C);
+  ARegion *ctx_region = CTX_wm_region(C);
+
+  Set<bAction *> dna_actions;
+  LISTBASE_FOREACH (wmWindow *, win, &CTX_wm_manager(C)->windows) {
+    bScreen *screen = BKE_workspace_active_screen_get(win->workspace_hook);
+
+    LISTBASE_FOREACH (ScrArea *, area, &screen->areabase) {
+      if (!ELEM(area->spacetype, SPACE_GRAPH, SPACE_ACTION)) {
+        continue;
+      }
+      ARegion *window_region = BKE_area_find_region_type(area, RGN_TYPE_WINDOW);
+
+      if (!window_region) {
+        continue;
+      }
+
+      CTX_wm_window_set(C, win);
+      CTX_wm_area_set(C, area);
+      CTX_wm_region_set(C, window_region);
+      bAnimContext ac;
+      if (!ANIM_animdata_get_context(C, &ac)) {
+        continue;
+      }
+      ListBase anim_data = {nullptr, nullptr};
+      int filter = 0;
+      if (ac.spacetype == SPACE_GRAPH) {
+        SpaceGraph *graph_editor = (SpaceGraph *)ac.sl;
+        filter = graph_editor->ads->filterflag;
+      }
+      else {
+        BLI_assert(ac.spacetype == SPACE_ACTION);
+        SpaceAction *action_editor = (SpaceAction *)ac.sl;
+        filter = action_editor->ads.filterflag;
+      }
+      ANIM_animdata_filter(
+          &ac, &anim_data, eAnimFilter_Flags(filter), ac.data, eAnimCont_Types(ac.datatype));
+      LISTBASE_FOREACH (bAnimListElem *, ale, &anim_data) {
+        if (!ale->adt || !ale->adt->action) {
+          continue;
+        }
+        dna_actions.add(ale->adt->action);
+      }
+      ANIM_animdata_freelist(&anim_data);
+    }
+  }
+
+  CTX_wm_window_set(C, ctx_window);
+  CTX_wm_area_set(C, ctx_area);
+  CTX_wm_region_set(C, ctx_region);
+
+  for (bAction *dna_action : dna_actions) {
+    animrig::action_deselect_keys(*dna_action);
+  }
 }

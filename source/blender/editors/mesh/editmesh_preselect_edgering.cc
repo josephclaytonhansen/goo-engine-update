@@ -164,7 +164,7 @@ void EDBM_preselect_edgering_draw(EditMesh_PreSelEdgeRing *psel, const float mat
     immBindBuiltinProgram(GPU_SHADER_3D_POLYLINE_UNIFORM_COLOR);
     immUniform2fv("viewportSize", &viewport[2]);
     immUniformThemeColor3(TH_GIZMO_PRIMARY);
-    immUniform1f("lineWidth", U.pixelsize);
+    immUniform1f("lineWidth", U.viewport_line_width);
     immBegin(GPU_PRIM_LINES, psel->edges_len * 2);
 
     for (int i = 0; i < psel->edges_len; i++) {
@@ -183,7 +183,7 @@ void EDBM_preselect_edgering_draw(EditMesh_PreSelEdgeRing *psel, const float mat
 
     /* Same size as an edit mode vertex */
     immUniform1f("size",
-                 2.0 * U.pixelsize *
+                 2.0 * U.viewport_line_width *
                      max_ff(1.0f, UI_GetThemeValuef(TH_VERTEX_SIZE) * float(M_SQRT2) / 2.0f));
 
     immBegin(GPU_PRIM_POINTS, psel->verts_len);

@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include "COM_Enums.h"
-
 namespace blender::compositor {
 
 typedef enum QualityHelper {
@@ -15,14 +13,10 @@ typedef enum QualityHelper {
 
 class QualityStepHelper {
  private:
-  eCompositorQuality quality_;
   int step_;
   int offsetadd_;
 
  protected:
-  /**
-   * Initialize the execution
-   */
   void init_execution(QualityHelper helper);
 
   inline int get_step() const
@@ -36,11 +30,6 @@ class QualityStepHelper {
 
  public:
   QualityStepHelper();
-
-  void set_quality(eCompositorQuality quality)
-  {
-    quality_ = quality;
-  }
 };
 
 }  // namespace blender::compositor

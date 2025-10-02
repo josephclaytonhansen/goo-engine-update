@@ -7,6 +7,7 @@ from bpy.types import Panel
 from bpy.app.translations import contexts as i18n_contexts
 from rna_prop_ui import PropertyPanel
 from bl_ui.utils import PresetPanel
+from .space_properties import PropertiesAnimationMixin
 
 
 class CameraButtonsPanel:
@@ -144,6 +145,27 @@ class DATA_PT_lens(CameraButtonsPanel, Panel):
         sub.prop(cam, "clip_end", text="End")
 
 
+class DATA_PT_camera_resolution(CameraButtonsPanel, Panel):
+    bl_label = "Resolution"
+    COMPAT_ENGINES = {
+        'BLENDER_RENDER',
+        'BLENDER_EEVEE',
+        'BLENDER_EEVEE_NEXT',
+        'BLENDER_WORKBENCH',
+    }
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+
+        cam = context.camera
+
+        col = layout.column(align=True)
+        col.prop(cam, "resolution_x", text="Resolution X")
+        col.prop(cam, "resolution_y", text="Y")
+        col.prop(cam, "resolution_percentage", text="%")
+
+
 class DATA_PT_camera_stereoscopy(CameraButtonsPanel, Panel):
     bl_label = "Stereoscopy"
     COMPAT_ENGINES = {
@@ -156,8 +178,7 @@ class DATA_PT_camera_stereoscopy(CameraButtonsPanel, Panel):
     @classmethod
     def poll(cls, context):
         render = context.scene.render
-        return (super().poll(context) and render.use_multiview and
-                render.views_format == 'STEREO_3D')
+        return (super().poll(context) and render.use_multiview and render.views_format == 'STEREO_3D')
 
     def draw(self, context):
         layout = self.layout
@@ -307,7 +328,7 @@ class DATA_PT_camera_background_image(CameraButtonsPanel, Panel):
         use_multiview = context.scene.render.use_multiview
 
         col = layout.column()
-        col.operator("view3d.background_image_add", text="Add Image")
+        col.operator("view3d.camera_background_image_add", text="Add Image")
 
         for i, bg in enumerate(cam.background_images):
             layout.active = cam.show_background_images
@@ -331,7 +352,7 @@ class DATA_PT_camera_background_image(CameraButtonsPanel, Panel):
                 icon='RESTRICT_VIEW_OFF' if bg.show_background_image else 'RESTRICT_VIEW_ON',
             )
 
-            row.operator("view3d.background_image_remove", text="", emboss=False, icon='X').index = i
+            row.operator("view3d.camera_background_image_remove", text="", emboss=False, icon='X').index = i
 
             if bg.show_expanded:
                 row = box.row()
@@ -380,7 +401,7 @@ class DATA_PT_camera_background_image(CameraButtonsPanel, Panel):
                     col = box.column()
                     if bg.image is not None:
                         col.prop(bg.image, "use_view_as_render")
-                    col.prop(bg, "alpha", slider=True)
+                    col.prop(bg, "alpha")
                     col.row().prop(bg, "display_depth", expand=True)
 
                     col.row().prop(bg, "frame_method", expand=True)
@@ -465,6 +486,9 @@ class DATA_PT_camera_display_composition_guides(CameraButtonsPanel, Panel):
         col = layout.column(heading="Harmony", align=True)
         col.prop(cam, "show_composition_harmony_tri_a", text="Triangle A")
         col.prop(cam, "show_composition_harmony_tri_b", text="Triangle B")
+        
+        col = layout.column()
+        col.prop(cam, "composition_guide_color", text="Color")
 
 
 class DATA_PT_camera_safe_areas(CameraButtonsPanel, Panel):
@@ -533,6 +557,16 @@ class DATA_PT_camera_safe_areas_center_cut(CameraButtonsPanel, Panel):
         col.prop(safe_data, "action_center", slider=True)
 
 
+class DATA_PT_camera_animation(CameraButtonsPanel, PropertiesAnimationMixin, PropertyPanel, Panel):
+    COMPAT_ENGINES = {
+        'BLENDER_RENDER',
+        'BLENDER_EEVEE',
+        'BLENDER_EEVEE_NEXT',
+        'BLENDER_WORKBENCH',
+    }
+    _animated_id_context_property = 'camera'
+
+
 class DATA_PT_custom_props_camera(CameraButtonsPanel, PropertyPanel, Panel):
     COMPAT_ENGINES = {
         'BLENDER_RENDER',
@@ -572,6 +606,7 @@ classes = (
     CAMERA_PT_safe_areas_presets,
     DATA_PT_context_camera,
     DATA_PT_lens,
+    DATA_PT_camera_resolution,
     DATA_PT_camera_dof,
     DATA_PT_camera_dof_aperture,
     DATA_PT_camera,
@@ -581,6 +616,7 @@ classes = (
     DATA_PT_camera_background_image,
     DATA_PT_camera_display,
     DATA_PT_camera_display_composition_guides,
+    DATA_PT_camera_animation,
     DATA_PT_custom_props_camera,
 )
 

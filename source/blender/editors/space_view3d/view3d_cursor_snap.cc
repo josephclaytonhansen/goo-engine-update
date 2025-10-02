@@ -18,11 +18,11 @@
 #include "MEM_guardedalloc.h"
 
 #include "BKE_context.hh"
-#include "BKE_global.h"
-#include "BKE_layer.h"
+#include "BKE_global.hh"
+#include "BKE_layer.hh"
 #include "BKE_main.hh"
 #include "BKE_object.hh"
-#include "BKE_scene.h"
+#include "BKE_scene.hh"
 #include "BKE_screen.hh"
 
 #include "GPU_immediate.h"
@@ -141,10 +141,6 @@ static bool v3d_cursor_snap_calc_incremental(
   const float grid_size = ED_view3d_grid_view_scale(scene, v3d, region, nullptr);
   if (UNLIKELY(grid_size == 0.0f)) {
     return false;
-  }
-
-  if (scene->toolsettings->snap_flag & SCE_SNAP_ABS_GRID) {
-    co_relative = nullptr;
   }
 
   if (co_relative != nullptr) {
@@ -811,11 +807,12 @@ static void v3d_cursor_snap_update(V3DSnapCursorState *state,
       ED_view3d_win_to_3d(v3d, region, co_depth, mval_fl, co);
     }
 
-    if (snap_data->is_enabled && (snap_elements & SCE_SNAP_TO_INCREMENT)) {
-      v3d_cursor_snap_calc_incremental(scene, v3d, region, state->prevpoint, co);
+    if (snap_data->is_enabled && (snap_elements & (SCE_SNAP_TO_INCREMENT | SCE_SNAP_TO_GRID))) {
+      const float *co_relative = (snap_elements & SCE_SNAP_TO_GRID) ? nullptr : state->prevpoint;
+      v3d_cursor_snap_calc_incremental(scene, v3d, region, co_relative, co);
     }
   }
-  else if (snap_elem == SCE_SNAP_TO_VERTEX) {
+  else if (snap_elem & SCE_SNAP_TO_VERTEX) {
     snap_elem_index[0] = index;
   }
   else if (snap_elem &

@@ -4,12 +4,31 @@
 Light group key management for Goo Engine (EEVEE)
 """
 
-import bpy
-from bpy.types import Panel,  Material, Light, PropertyGroup, UIList, UI_UL_list, Operator, ShaderNodeShaderInfo, ShaderNodeTree
-from bpy.props import StringProperty, CollectionProperty, IntProperty, PointerProperty, EnumProperty, BoolProperty
-from bpy.utils import register_classes_factory
-from bpy.app.handlers import persistent
 from itertools import chain
+
+import bpy
+from bl_ui import UI_UL_list
+from bpy.app.handlers import persistent
+from bpy.props import (
+    BoolProperty,
+    CollectionProperty,
+    EnumProperty,
+    IntProperty,
+    PointerProperty,
+    StringProperty,
+)
+from bpy.types import (
+    Light,
+    Material,
+    Operator,
+    Panel,
+    PropertyGroup,
+    ShaderNodeShaderInfo,
+    ShaderNodeTree,
+    UIList,
+)
+from bpy.utils import register_classes_factory
+
 # from time import perf_counter
 
 SIZEOF_INT = 32
@@ -58,6 +77,7 @@ def iter_light_group_owners():
     for light in bpy.data.lights:
         yield light
 
+
 def sync_light_groups():
     # Populate light bit set with groups from Light objects, merging duplicates
     light_names = set()
@@ -77,16 +97,24 @@ def sync_light_groups():
         map_bits(data, bit_mapping)
 
 
+# Global flag to prevent recursion
+_syncing_in_progress = False
+
+
 def update_handler(_s, _c):
     sync_light_groups()
+
 
 @persistent
 def sync_handler(*_):
     sync_light_groups()
 
+
 @persistent
 def sync_dg_handler(scn, dg):
-    if dg.mode == 'RENDER':
+    global _syncing_in_progress
+
+    if _syncing_in_progress or dg.mode == 'RENDER':
         return
 
     for update in dg.updates:
@@ -96,7 +124,11 @@ def sync_dg_handler(scn, dg):
             continue
 
         if isinstance(uid, bpy.types.Material) or isinstance(uid, bpy.types.Light):
-            sync_light_groups()
+            _syncing_in_progress = True
+            try:
+                sync_light_groups()
+            finally:
+                _syncing_in_progress = False
             return
 
 
@@ -122,14 +154,30 @@ def set_name(self, value):
 class LightGroup(PropertyGroup):
     name: StringProperty()
     viz_name: StringProperty(name="Name", get=get_name, set=set_name)
-    ignore_shadow: BoolProperty(name="Ignore Shadows", description="Ignore shadows cast from this light group", default=False, options=set(), update=update_handler)
+    ignore_shadow: BoolProperty(
+        name="Ignore Shadows",
+        description="Ignore shadows cast from this light group",
+        default=False,
+        options=set(),
+        update=update_handler,
+    )
 
 
 class LightGroups(PropertyGroup):
     groups: CollectionProperty(type=LightGroup)
     group_index: IntProperty(name="Active Light Group", update=update_handler)
-    use_default: BoolProperty(name="Use default Light Group", default=True, description="Use builtin default light group", update=update_handler)
-    ignore_default_shadow: BoolProperty(name="Ignore default Light Group shadows", default=False, description="Ignore default light group shadows", update=update_handler)
+    use_default: BoolProperty(
+        name="Use default Light Group",
+        default=True,
+        description="Use builtin default light group",
+        update=update_handler,
+    )
+    ignore_default_shadow: BoolProperty(
+        name="Ignore default Light Group shadows",
+        default=False,
+        description="Ignore default light group shadows",
+        update=update_handler,
+    )
 
 
 def get_name_set():
@@ -153,16 +201,18 @@ def unique_group_name():
 
 
 class MAT_UL_LightGroupList(UIList):
-    def draw_item(self,
-                  context: 'Context',
-                  layout: 'UILayout',
-                  data: 'AnyType',
-                  item: 'AnyType',
-                  icon: int,
-                  active_data: 'AnyType',
-                  active_property: str,
-                  index: int = 0,
-                  flt_flag: int = 0):
+    def draw_item(
+        self,
+        context: 'Context',
+        layout: 'UILayout',
+        data: 'AnyType',
+        item: 'AnyType',
+        icon: int,
+        active_data: 'AnyType',
+        active_property: str,
+        index: int = 0,
+        flt_flag: int = 0,
+    ):
         row = layout.row(align=True)
         row.prop(item, "viz_name", emboss=False, text="")
         if isinstance(data.id_data, (Material, ShaderNodeTree)):
@@ -201,16 +251,13 @@ class ALightGroupPanel(Panel):
     def get_groups(self, ctx):
         return get_groups_ctx(ctx)
 
-    def draw_header(self, context):
-        ...
+    def draw_header(self, context): ...
 
     def draw(self, ctx: 'bpy.types.Context'):
         layout = self.layout
         groups = self.get_groups(ctx)
         row = layout.row()
-        row.template_list("MAT_UL_LightGroupList", "",
-                          groups, "groups", groups, "group_index",
-                          rows=5, type='DEFAULT')
+        row.template_list("MAT_UL_LightGroupList", "", groups, "groups", groups, "group_index", rows=5, type='DEFAULT')
         # Right hand column with operators
         col = row.column(align=True)
         col.operator('light_groups.link', icon='LINKED', text="")
@@ -246,6 +293,7 @@ class OBJ_PT_MLightGroupPanel(ALightGroupPanel):
     @classmethod
     def poll(cls, ctx):
         return ctx.material
+
 
 class OBJ_PT_LLightGroupPanel(ALightGroupPanel):
     bl_context = 'data'
@@ -315,7 +363,8 @@ class LightGroupSelectionOp(Operator):
 
 
 class MAT_OT_NewLightGroup(LightGroupOp):
-    """ Create a new unique light group """
+    """Create a new unique light group"""
+
     bl_label = "New Light Group"
     bl_idname = 'light_groups.new'
 
@@ -338,12 +387,15 @@ def get_groups_ctx(ctx):
 
 
 class MAT_OT_LinkLightGroup(LightGroupOp):
-    """ Link an existing light group to this data-block """
+    """Link an existing light group to this data-block"""
+
     bl_label = "Link Existing Light Group"
     bl_idname = 'light_groups.link'
     bl_property = "name"
 
-    name: EnumProperty(items=lambda scn, ctx: sorted([(x, x, x) for x in get_name_set() if x not in get_groups_ctx(ctx).groups]))
+    name: EnumProperty(
+        items=lambda scn, ctx: sorted([(x, x, x) for x in get_name_set() if x not in get_groups_ctx(ctx).groups])
+    )
 
     def invoke(self, context: 'Context', event: 'Event'):
         context.window_manager.invoke_search_popup(self)
@@ -361,7 +413,8 @@ class MAT_OT_LinkLightGroup(LightGroupOp):
 
 
 class MAT_OT_DeleteLightGroup(LightGroupSelectionOp):
-    """ Remove this light group from all data-blocks """
+    """Remove this light group from all data-blocks"""
+
     bl_label = "Delete Light Group"
     bl_idname = 'light_groups.remove'
 
@@ -384,7 +437,8 @@ class MAT_OT_DeleteLightGroup(LightGroupSelectionOp):
 
 
 class MAT_OT_UnlinkLightGroup(LightGroupSelectionOp):
-    """ Remove this light group from this data-block """
+    """Remove this light group from this data-block"""
+
     bl_label = "Unlink Light Group"
     bl_idname = 'light_groups.unlink'
 
@@ -399,7 +453,8 @@ class MAT_OT_UnlinkLightGroup(LightGroupSelectionOp):
 
 
 class MAT_OT_ResyncLightGroups(LightGroupOp):
-    """ Ensure light group layers are up to date """
+    """Ensure light group layers are up to date"""
+
     bl_label = "Resync Light Groups"
     bl_idname = 'light_groups.resync'
 
@@ -419,7 +474,7 @@ _classes = (
     MAT_OT_LinkLightGroup,
     MAT_OT_DeleteLightGroup,
     MAT_OT_UnlinkLightGroup,
-    MAT_OT_ResyncLightGroups
+    MAT_OT_ResyncLightGroups,
 )
 
 _register, _unregister = register_classes_factory(classes=_classes)

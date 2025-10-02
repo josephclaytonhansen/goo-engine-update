@@ -7,13 +7,12 @@
  */
 
 #include "BLI_math_matrix.h"
-#include "BLI_math_vector.h"
 #include "BLI_sys_types.h"
 
 #include "DNA_object_types.h"
 #include "DNA_scene_types.h"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "BKE_context.hh"
 #include "BKE_editmesh.hh"
@@ -28,7 +27,7 @@
 #include "ED_object.hh"
 #include "ED_screen.hh"
 
-#include "mesh_intern.h" /* own include */
+#include "mesh_intern.hh" /* own include */
 
 #define MESH_ADD_VERTS_MAXI 10000000
 
@@ -205,7 +204,7 @@ void MESH_OT_primitive_cube_add(wmOperatorType *ot)
 {
   /* identifiers */
   ot->name = "Add Cube";
-  ot->description = "Construct a cube mesh";
+  ot->description = "Construct a cube mesh that consists of six square faces";
   ot->idname = "MESH_OT_primitive_cube_add";
 
   /* api callbacks */
@@ -509,7 +508,7 @@ void MESH_OT_primitive_grid_add(wmOperatorType *ot)
 {
   /* identifiers */
   ot->name = "Add Grid";
-  ot->description = "Construct a grid mesh";
+  ot->description = "Construct a subdivided plane mesh";
   ot->idname = "MESH_OT_primitive_grid_add";
 
   /* api callbacks */
@@ -532,72 +531,6 @@ void MESH_OT_primitive_grid_add(wmOperatorType *ot)
   ED_object_add_generic_props(ot, true);
 }
 
-static int add_primitive_monkey_exec(bContext *C, wmOperator *op)
-{
-  MakePrimitiveData creation_data;
-  Object *obedit;
-  BMEditMesh *em;
-  float loc[3], rot[3];
-  float dia;
-  bool enter_editmode;
-  ushort local_view_bits;
-  const bool calc_uvs = RNA_boolean_get(op->ptr, "calc_uvs");
-
-  WM_operator_view3d_unit_defaults(C, op);
-  ED_object_add_generic_get_opts(
-      C, op, 'Y', loc, rot, nullptr, &enter_editmode, &local_view_bits, nullptr);
-
-  obedit = make_prim_init(C,
-                          CTX_DATA_(BLT_I18NCONTEXT_ID_MESH, "Suzanne"),
-                          loc,
-                          rot,
-                          nullptr,
-                          local_view_bits,
-                          &creation_data);
-  dia = RNA_float_get(op->ptr, "size") / 2.0f;
-  mul_mat3_m4_fl(creation_data.mat, dia);
-
-  em = BKE_editmesh_from_object(obedit);
-
-  if (calc_uvs) {
-    ED_mesh_uv_ensure(static_cast<Mesh *>(obedit->data), nullptr);
-  }
-
-  if (!EDBM_op_call_and_selectf(em,
-                                op,
-                                "verts.out",
-                                false,
-                                "create_monkey matrix=%m4 calc_uvs=%b",
-                                creation_data.mat,
-                                calc_uvs))
-  {
-    return OPERATOR_CANCELLED;
-  }
-
-  make_prim_finish(C, obedit, &creation_data, enter_editmode);
-
-  return OPERATOR_FINISHED;
-}
-
-void MESH_OT_primitive_monkey_add(wmOperatorType *ot)
-{
-  /* identifiers */
-  ot->name = "Add Monkey";
-  ot->description = "Construct a Suzanne mesh";
-  ot->idname = "MESH_OT_primitive_monkey_add";
-
-  /* api callbacks */
-  ot->exec = add_primitive_monkey_exec;
-  ot->poll = ED_operator_scene_editable;
-
-  /* flags */
-  ot->flag = OPTYPE_REGISTER | OPTYPE_UNDO;
-
-  /* props */
-  ED_object_add_unit_props_size(ot);
-  ED_object_add_mesh_props(ot);
-  ED_object_add_generic_props(ot, true);
-}
 
 static int add_primitive_uvsphere_exec(bContext *C, wmOperator *op)
 {
@@ -649,7 +582,9 @@ void MESH_OT_primitive_uv_sphere_add(wmOperatorType *ot)
 {
   /* identifiers */
   ot->name = "Add UV Sphere";
-  ot->description = "Construct a UV sphere mesh";
+  ot->description =
+      "Construct a spherical mesh with quad faces, except for triangle faces at the top and "
+      "bottom";
   ot->idname = "MESH_OT_primitive_uv_sphere_add";
 
   /* api callbacks */
@@ -717,7 +652,7 @@ void MESH_OT_primitive_ico_sphere_add(wmOperatorType *ot)
 {
   /* identifiers */
   ot->name = "Add Ico Sphere";
-  ot->description = "Construct an Icosphere mesh";
+  ot->description = "Construct a spherical mesh that consists of equally sized triangles";
   ot->idname = "MESH_OT_primitive_ico_sphere_add";
 
   /* api callbacks */

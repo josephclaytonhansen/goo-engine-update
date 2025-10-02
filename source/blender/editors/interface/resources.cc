@@ -21,13 +21,13 @@
 #include "BLI_utildefines.h"
 
 #include "BKE_addon.h"
-#include "BKE_appdir.h"
+#include "BKE_appdir.hh"
 #include "BKE_main.hh"
 #include "BKE_mesh_runtime.hh"
 
-#include "BLO_readfile.h" /* for UserDef version patching. */
+#include "BLO_userdef_default.h"
 
-#include "BLF_api.h"
+#include "BLF_api.hh"
 
 #include "ED_screen.hh"
 
@@ -513,6 +513,12 @@ const uchar *UI_ThemeGetColorPtr(bTheme *btheme, int spacetype, int colorid)
           break;
         case TH_CFRAME:
           cp = ts->cframe;
+          break;
+        case TH_FRAME_BEFORE:
+          cp = ts->before_current_frame;
+          break;
+        case TH_FRAME_AFTER:
+          cp = ts->after_current_frame;
           break;
         case TH_TIME_KEYFRAME:
           cp = ts->time_keyframe;
@@ -1001,6 +1007,9 @@ const uchar *UI_ThemeGetColorPtr(bTheme *btheme, int spacetype, int colorid)
         case TH_ICON_FOLDER:
           cp = btheme->tui.icon_folder;
           break;
+        case TH_ICON_AUTOKEY:
+          cp = btheme->tui.icon_autokey;
+          break;
         case TH_ICON_FUND: {
           /* Development fund icon color is not part of theme. */
           static const uchar red[4] = {204, 48, 72, 255};
@@ -1436,6 +1445,9 @@ bool UI_GetIconThemeColor4ubv(int colorid, uchar col[4])
   }
   if (colorid == TH_ICON_FUND) {
     /* Always color development fund icon. */
+  }
+  else if (colorid == TH_ICON_AUTOKEY) {
+    /* Always color auto-keying icon to indicate recording state. */
   }
   else if (!((g_theme_state.spacetype == SPACE_OUTLINER &&
               g_theme_state.regionid == RGN_TYPE_WINDOW) ||

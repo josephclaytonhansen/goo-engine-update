@@ -20,7 +20,6 @@ void VectorBlurNode::convert_to_operations(NodeConverter &converter,
 
   VectorBlurOperation *operation = new VectorBlurOperation();
   operation->set_vector_blur_settings(vector_blur_settings);
-  operation->set_quality(context.get_quality());
   converter.add_operation(operation);
 
   converter.map_input_socket(get_input_socket(0), operation->get_input_socket(0));

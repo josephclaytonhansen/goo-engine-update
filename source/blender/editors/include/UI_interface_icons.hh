@@ -30,6 +30,7 @@ struct IconFile {
 
 struct IconTextOverlay {
   char text[5];
+  uchar color[4] = {0};
 };
 
 #define UI_NO_ICON_OVERLAY_TEXT NULL
@@ -45,11 +46,11 @@ struct IconTextOverlay {
 #define PREVIEW_DEFAULT_HEIGHT 128
 
 enum eAlertIcon {
+  ALERT_ICON_NONE = -1,
   ALERT_ICON_WARNING = 0,
   ALERT_ICON_QUESTION = 1,
   ALERT_ICON_ERROR = 2,
   ALERT_ICON_INFO = 3,
-  ALERT_ICON_BLENDER = 4,
   ALERT_ICON_MAX,
 };
 
@@ -110,7 +111,8 @@ void UI_icon_draw_ex(float x,
                      float desaturate,
                      const uchar mono_color[4],
                      bool mono_border,
-                     const IconTextOverlay *text_overlay);
+                     const IconTextOverlay *text_overlay,
+                     const bool inverted = false);
 
 void UI_icons_free();
 void UI_icons_free_drawinfo(void *drawinfo);

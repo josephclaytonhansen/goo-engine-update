@@ -20,7 +20,6 @@
 #include "DNA_modifier_types.h"
 #include "DNA_object_types.h"
 #include "DNA_scene_types.h"
-#include "DNA_workspace_types.h"
 
 #include "BLI_array.hh"
 #include "BLI_bitmap.h"
@@ -33,23 +32,21 @@
 #include "BKE_attribute.hh"
 #include "BKE_context.hh"
 #include "BKE_customdata.hh"
-#include "BKE_deform.h"
+#include "BKE_deform.hh"
 #include "BKE_editmesh.hh"
+#include "BKE_grease_pencil_vertex_groups.hh"
 #include "BKE_lattice.hh"
-#include "BKE_layer.h"
 #include "BKE_mesh.hh"
 #include "BKE_mesh_mapping.hh"
-#include "BKE_mesh_runtime.hh"
 #include "BKE_modifier.hh"
 #include "BKE_object.hh"
 #include "BKE_object_deform.h"
-#include "BKE_report.h"
+#include "BKE_report.hh"
 
 #include "DEG_depsgraph.hh"
 #include "DEG_depsgraph_build.hh"
-#include "DEG_depsgraph_query.hh"
 
-#include "BLT_translation.h"
+#include "BLT_translation.hh"
 
 #include "DNA_armature_types.h"
 #include "RNA_access.hh"
@@ -70,6 +67,7 @@
 using blender::float3;
 using blender::MutableSpan;
 using blender::Span;
+using blender::Vector;
 
 static bool vertex_group_supported_poll_ex(bContext *C, const Object *ob);
 
@@ -86,9 +84,9 @@ static bool object_array_for_wpaint_filter(const Object *ob, void *user_data)
   return false;
 }
 
-static Object **object_array_for_wpaint(bContext *C, uint *r_objects_len)
+static Vector<Object *> object_array_for_wpaint(bContext *C)
 {
-  return ED_object_array_in_mode_or_selected(C, object_array_for_wpaint_filter, C, r_objects_len);
+  return ED_object_array_in_mode_or_selected(C, object_array_for_wpaint_filter, C);
 }
 
 static bool vertex_group_use_vert_sel(Object *ob)
@@ -165,8 +163,7 @@ bool ED_vgroup_parray_alloc(ID *id,
       case ID_ME: {
         Mesh *mesh = (Mesh *)id;
 
-        if (mesh->edit_mesh) {
-          BMEditMesh *em = mesh->edit_mesh;
+        if (BMEditMesh *em = mesh->runtime->edit_mesh) {
           BMesh *bm = em->bm;
           const int cd_dvert_offset = CustomData_get_offset(&bm->vdata, CD_MDEFORMVERT);
           BMIter iter;
@@ -534,7 +531,7 @@ static void ED_mesh_defvert_mirror_update_em(
     Object *ob, BMVert *eve, int def_nr, int vidx, const int cd_dvert_offset)
 {
   Mesh *mesh = static_cast<Mesh *>(ob->data);
-  BMEditMesh *em = mesh->edit_mesh;
+  BMEditMesh *em = mesh->runtime->edit_mesh;
   BMVert *eve_mirr;
   bool use_topology = (mesh->editflag & ME_EDIT_MIRROR_TOPO) != 0;
 
@@ -572,7 +569,7 @@ static void ED_mesh_defvert_mirror_update_ob(Object *ob, int def_nr, int vidx)
 void ED_vgroup_vert_active_mirror(Object *ob, int def_nr)
 {
   Mesh *mesh = static_cast<Mesh *>(ob->data);
-  BMEditMesh *em = mesh->edit_mesh;
+  BMEditMesh *em = mesh->runtime->edit_mesh;
   MDeformVert *dvert_act;
 
   if (mesh->symmetry & ME_SYMMETRY_X) {
@@ -608,7 +605,7 @@ static void vgroup_remove_weight(Object *ob, const int def_nr)
 static bool vgroup_normalize_active_vertex(Object *ob, eVGroupSelect subset_type)
 {
   Mesh *mesh = static_cast<Mesh *>(ob->data);
-  BMEditMesh *em = mesh->edit_mesh;
+  BMEditMesh *em = mesh->runtime->edit_mesh;
   BMVert *eve_act;
   int v_act;
   MDeformVert *dvert_act;
@@ -648,7 +645,7 @@ static void vgroup_copy_active_to_sel(Object *ob, eVGroupSelect subset_type)
 {
   using namespace blender;
   Mesh *mesh = static_cast<Mesh *>(ob->data);
-  BMEditMesh *em = mesh->edit_mesh;
+  BMEditMesh *em = mesh->runtime->edit_mesh;
   MDeformVert *dvert_act;
   int i, vgroup_tot, subset_count;
   const bool *vgroup_validmap = BKE_object_defgroup_subset_from_select_type(
@@ -945,8 +942,8 @@ static float get_vert_def_nr(Object *ob, const int def_nr, const int vertnum)
   if (ob->type == OB_MESH) {
     Mesh *mesh = static_cast<Mesh *>(ob->data);
 
-    if (mesh->edit_mesh) {
-      BMEditMesh *em = mesh->edit_mesh;
+    if (mesh->runtime->edit_mesh) {
+      BMEditMesh *em = mesh->runtime->edit_mesh;
       const int cd_dvert_offset = CustomData_get_offset(&em->bm->vdata, CD_MDEFORMVERT);
       /* warning, this lookup is _not_ fast */
 
@@ -1023,15 +1020,16 @@ static void vgroup_select_verts(Object *ob, int select)
   const int def_nr = BKE_object_defgroup_active_index_get(ob) - 1;
 
   const ListBase *defbase = BKE_object_defgroup_list(ob);
-  if (!BLI_findlink(defbase, def_nr)) {
+  const bDeformGroup *def_group = static_cast<bDeformGroup *>(BLI_findlink(defbase, def_nr));
+  if (!def_group) {
     return;
   }
 
   if (ob->type == OB_MESH) {
     Mesh *mesh = static_cast<Mesh *>(ob->data);
 
-    if (mesh->edit_mesh) {
-      BMEditMesh *em = mesh->edit_mesh;
+    if (mesh->runtime->edit_mesh) {
+      BMEditMesh *em = mesh->runtime->edit_mesh;
       const int cd_dvert_offset = CustomData_get_offset(&em->bm->vdata, CD_MDEFORMVERT);
 
       if (cd_dvert_offset != -1) {
@@ -1105,6 +1103,11 @@ static void vgroup_select_verts(Object *ob, int select)
         }
       }
     }
+  }
+  else if (ob->type == OB_GREASE_PENCIL) {
+    GreasePencil *grease_pencil = static_cast<GreasePencil *>(ob->data);
+    blender::bke::greasepencil::select_from_group(*grease_pencil, def_group->name, bool(select));
+    DEG_id_tag_update(&grease_pencil->id, ID_RECALC_GEOMETRY);
   }
 }
 
@@ -2045,7 +2048,7 @@ void ED_vgroup_mirror(Object *ob,
   /* only the active group */
   if (ob->type == OB_MESH) {
     Mesh *mesh = static_cast<Mesh *>(ob->data);
-    BMEditMesh *em = mesh->edit_mesh;
+    BMEditMesh *em = mesh->runtime->edit_mesh;
 
     if (em) {
       const int cd_dvert_offset = CustomData_get_offset(&em->bm->vdata, CD_MDEFORMVERT);
@@ -2239,8 +2242,8 @@ static void vgroup_assign_verts(Object *ob, const float weight)
   if (ob->type == OB_MESH) {
     Mesh *mesh = static_cast<Mesh *>(ob->data);
 
-    if (mesh->edit_mesh) {
-      BMEditMesh *em = mesh->edit_mesh;
+    if (mesh->runtime->edit_mesh) {
+      BMEditMesh *em = mesh->runtime->edit_mesh;
       int cd_dvert_offset;
 
       BMIter iter;
@@ -2307,6 +2310,12 @@ static void vgroup_assign_verts(Object *ob, const float weight)
         }
       }
     }
+  }
+  else if (ob->type == OB_GREASE_PENCIL) {
+    GreasePencil *grease_pencil = static_cast<GreasePencil *>(ob->data);
+    const bDeformGroup *defgroup = static_cast<const bDeformGroup *>(
+        BLI_findlink(BKE_object_defgroup_list(ob), def_nr));
+    blender::bke::greasepencil::assign_to_vertex_group(*grease_pencil, defgroup->name, weight);
   }
 }
 
@@ -2705,7 +2714,7 @@ static int vertex_group_select_exec(bContext *C, wmOperator * /*op*/)
   }
 
   vgroup_select_verts(ob, 1);
-  DEG_id_tag_update(static_cast<ID *>(ob->data), ID_RECALC_COPY_ON_WRITE | ID_RECALC_SELECT);
+  DEG_id_tag_update(static_cast<ID *>(ob->data), ID_RECALC_SYNC_TO_EVAL | ID_RECALC_SELECT);
   WM_event_add_notifier(C, NC_GEOM | ND_SELECT, ob->data);
 
   return OPERATOR_FINISHED;
@@ -2737,7 +2746,7 @@ static int vertex_group_deselect_exec(bContext *C, wmOperator * /*op*/)
   Object *ob = ED_object_context(C);
 
   vgroup_select_verts(ob, 0);
-  DEG_id_tag_update(static_cast<ID *>(ob->data), ID_RECALC_COPY_ON_WRITE | ID_RECALC_SELECT);
+  DEG_id_tag_update(static_cast<ID *>(ob->data), ID_RECALC_SYNC_TO_EVAL | ID_RECALC_SELECT);
   WM_event_add_notifier(C, NC_GEOM | ND_SELECT, ob->data);
 
   return OPERATOR_FINISHED;
@@ -3155,12 +3164,8 @@ static int vertex_group_smooth_exec(bContext *C, wmOperator *op)
       RNA_enum_get(op->ptr, "group_select_mode"));
   const float fac_expand = RNA_float_get(op->ptr, "expand");
 
-  uint objects_len;
-  Object **objects = object_array_for_wpaint(C, &objects_len);
-
-  for (uint ob_index = 0; ob_index < objects_len; ob_index++) {
-    Object *ob = objects[ob_index];
-
+  const Vector<Object *> objects = object_array_for_wpaint(C);
+  for (Object *ob : objects) {
     int subset_count, vgroup_tot;
 
     const bool *vgroup_validmap = BKE_object_defgroup_subset_from_select_type(
@@ -3173,7 +3178,6 @@ static int vertex_group_smooth_exec(bContext *C, wmOperator *op)
     WM_event_add_notifier(C, NC_OBJECT | ND_DRAW, ob);
     WM_event_add_notifier(C, NC_GEOM | ND_DATA, ob->data);
   }
-  MEM_freeN(objects);
 
   return OPERATOR_FINISHED;
 }
@@ -3220,12 +3224,8 @@ static int vertex_group_clean_exec(bContext *C, wmOperator *op)
   const eVGroupSelect subset_type = static_cast<eVGroupSelect>(
       RNA_enum_get(op->ptr, "group_select_mode"));
 
-  uint objects_len;
-  Object **objects = object_array_for_wpaint(C, &objects_len);
-
-  for (uint ob_index = 0; ob_index < objects_len; ob_index++) {
-    Object *ob = objects[ob_index];
-
+  const Vector<Object *> objects = object_array_for_wpaint(C);
+  for (Object *ob : objects) {
     int subset_count, vgroup_tot;
 
     const bool *vgroup_validmap = BKE_object_defgroup_subset_from_select_type(
@@ -3238,7 +3238,6 @@ static int vertex_group_clean_exec(bContext *C, wmOperator *op)
     WM_event_add_notifier(C, NC_OBJECT | ND_DRAW, ob);
     WM_event_add_notifier(C, NC_GEOM | ND_DATA, ob->data);
   }
-  MEM_freeN(objects);
 
   return OPERATOR_FINISHED;
 }
@@ -3333,10 +3332,8 @@ static int vertex_group_limit_total_exec(bContext *C, wmOperator *op)
       RNA_enum_get(op->ptr, "group_select_mode"));
   int remove_multi_count = 0;
 
-  uint objects_len;
-  Object **objects = object_array_for_wpaint(C, &objects_len);
-  for (uint ob_index = 0; ob_index < objects_len; ob_index++) {
-    Object *ob = objects[ob_index];
+  const Vector<Object *> objects = object_array_for_wpaint(C);
+  for (Object *ob : objects) {
 
     int subset_count, vgroup_tot;
     const bool *vgroup_validmap = BKE_object_defgroup_subset_from_select_type(
@@ -3352,7 +3349,6 @@ static int vertex_group_limit_total_exec(bContext *C, wmOperator *op)
     }
     remove_multi_count += remove_count;
   }
-  MEM_freeN(objects);
 
   if (remove_multi_count) {
     BKE_reportf(op->reports,
@@ -3885,7 +3881,7 @@ static void vgroup_copy_active_to_sel_single(Object *ob, const int def_nr)
   MDeformVert *dvert_act;
 
   Mesh *mesh = static_cast<Mesh *>(ob->data);
-  BMEditMesh *em = mesh->edit_mesh;
+  BMEditMesh *em = mesh->runtime->edit_mesh;
   int i;
 
   if (em) {

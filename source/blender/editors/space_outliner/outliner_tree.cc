@@ -6,6 +6,7 @@
  * \ingroup spoutliner
  */
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 
@@ -19,7 +20,7 @@
 #include "BLI_mempool.h"
 #include "BLI_utildefines.h"
 
-#include "BKE_layer.h"
+#include "BKE_layer.hh"
 #include "BKE_main.hh"
 #include "BKE_modifier.hh"
 #include "BKE_outliner_treehash.hh"
@@ -691,7 +692,7 @@ static void outliner_restore_scrolling_position(SpaceOutliner *space_outliner,
       int ys_new = te_new->ys;
       int ys_old = focus->ys;
 
-      float y_move = MIN2(ys_new - ys_old, -v2d->cur.ymax);
+      float y_move = std::min(float(ys_new - ys_old), -v2d->cur.ymax);
       BLI_rctf_translate(&v2d->cur, 0, y_move);
     }
     else {
@@ -870,11 +871,6 @@ static bool outliner_element_visible_get(const Scene *scene,
   }
 
   TreeStoreElem *tselem = TREESTORE(te);
-  if ((exclude_filter & SO_FILTER_NO_BONE_FLAG) && (tselem->type == TSE_POSE_CHANNEL)) {
-      auto *pchan = (bPoseChannel*)te->directdata;
-      return pchan->drawflag & PCHAN_DRAW_SHOW_OUTLINER;
-  }
-
   if ((tselem->type == TSE_SOME_ID) && (te->idcode == ID_OB)) {
     if ((exclude_filter & SO_FILTER_OB_TYPE) == SO_FILTER_OB_TYPE) {
       return false;
@@ -1001,11 +997,6 @@ static bool outliner_element_is_collection_or_object(TreeElement *te)
 
   if ((tselem->type == TSE_SOME_ID) && (te->idcode == ID_OB)) {
     return true;
-  }
-
-  /* WORKAROUND: Pose Bones can be hidden while having visible children. */
-  if (tselem->type == TSE_POSE_CHANNEL) {
-      return true;
   }
 
   /* Collection instance datablocks should not be extracted. */

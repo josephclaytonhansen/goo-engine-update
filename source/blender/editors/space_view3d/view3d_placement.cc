@@ -20,7 +20,6 @@
 
 #include "RNA_access.hh"
 #include "RNA_define.hh"
-#include "RNA_enum_types.hh"
 
 #include "WM_api.hh"
 #include "WM_toolsystem.hh"
@@ -226,10 +225,6 @@ static bool idp_snap_calc_incremental(
     return false;
   }
 
-  if (scene->toolsettings->snap_flag & SCE_SNAP_ABS_GRID) {
-    co_relative = nullptr;
-  }
-
   if (co_relative != nullptr) {
     sub_v3_v3(co, co_relative);
   }
@@ -272,7 +267,7 @@ static void draw_line_loop(const float coords[][3], int coords_len, const float 
   float viewport[4];
   GPU_viewport_size_get_f(viewport);
   GPU_batch_uniform_2fv(batch, "viewportSize", &viewport[2]);
-  GPU_batch_uniform_1f(batch, "lineWidth", U.pixelsize);
+  GPU_batch_uniform_1f(batch, "lineWidth", U.viewport_line_width);
 
   GPU_batch_draw(batch);
 
@@ -305,7 +300,7 @@ static void draw_line_pairs(const float coords_a[][3],
   float viewport[4];
   GPU_viewport_size_get_f(viewport);
   GPU_batch_uniform_2fv(batch, "viewportSize", &viewport[2]);
-  GPU_batch_uniform_1f(batch, "lineWidth", U.pixelsize);
+  GPU_batch_uniform_1f(batch, "lineWidth", U.viewport_line_width);
 
   GPU_batch_draw(batch);
 
@@ -351,7 +346,7 @@ static void draw_line_bounds(const BoundBox *bounds, const float color[4])
   float viewport[4];
   GPU_viewport_size_get_f(viewport);
   GPU_batch_uniform_2fv(batch, "viewportSize", &viewport[2]);
-  GPU_batch_uniform_1f(batch, "lineWidth", U.pixelsize);
+  GPU_batch_uniform_1f(batch, "lineWidth", U.viewport_line_width);
 
   GPU_batch_draw(batch);
 
@@ -1134,7 +1129,7 @@ static int view3d_interactive_add_modal(bContext *C, wmOperator *op, const wmEve
             bToolRef *tref = ipd->area->runtime.tool;
             PointerRNA temp_props;
             WM_toolsystem_ref_properties_init_for_keymap(tref, &temp_props, &op_props, ot);
-            SWAP(PointerRNA, temp_props, op_props);
+            std::swap(temp_props, op_props);
             WM_operator_properties_free(&temp_props);
           }
 
@@ -1206,9 +1201,10 @@ static int view3d_interactive_add_modal(bContext *C, wmOperator *op, const wmEve
           /* pass */
         }
 
-        if (ipd->use_snap && (ipd->snap_to & SCE_SNAP_TO_INCREMENT)) {
+        if (ipd->use_snap && (ipd->snap_to & (SCE_SNAP_TO_INCREMENT | SCE_SNAP_TO_GRID))) {
+          const float *co_relative = (ipd->snap_to & SCE_SNAP_TO_GRID) ? nullptr : ipd->co_src;
           if (idp_snap_calc_incremental(
-                  ipd->scene, ipd->v3d, ipd->region, ipd->co_src, ipd->step[STEP_BASE].co_dst))
+                  ipd->scene, ipd->v3d, ipd->region, co_relative, ipd->step[STEP_BASE].co_dst))
           {
           }
         }
@@ -1230,9 +1226,10 @@ static int view3d_interactive_add_modal(bContext *C, wmOperator *op, const wmEve
           /* pass */
         }
 
-        if (ipd->use_snap && (ipd->snap_to & SCE_SNAP_TO_INCREMENT)) {
+        if (ipd->use_snap && (ipd->snap_to & (SCE_SNAP_TO_INCREMENT | SCE_SNAP_TO_GRID))) {
+          const float *co_relative = (ipd->snap_to & SCE_SNAP_TO_GRID) ? nullptr : ipd->co_src;
           if (idp_snap_calc_incremental(
-                  ipd->scene, ipd->v3d, ipd->region, ipd->co_src, ipd->step[STEP_DEPTH].co_dst))
+                  ipd->scene, ipd->v3d, ipd->region, co_relative, ipd->step[STEP_DEPTH].co_dst))
           {
           }
         }

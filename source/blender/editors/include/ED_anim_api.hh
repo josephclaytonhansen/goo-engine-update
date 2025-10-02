@@ -489,6 +489,9 @@ bool ANIM_animdata_get_context(const bContext *C, bAnimContext *ac);
  * - AnimContext to write to is provided as pointer to var on stack so that we don't have
  *   allocation/freeing costs (which are not that avoidable with channels).
  * \return whether the operation was successful.
+ *
+ * \note This may also update the space data. For example, `SpaceAction::action`
+ * is set to the currently active object's Action.
  */
 bool ANIM_animdata_context_getdata(bAnimContext *ac);
 
@@ -498,6 +501,12 @@ bool ANIM_animdata_context_getdata(bAnimContext *ac);
 void ANIM_animdata_update(bAnimContext *ac, ListBase *anim_data);
 
 void ANIM_animdata_freelist(ListBase *anim_data);
+
+/**
+ * Deselect all selected keyframes in all open animation editors
+ * (Graph Editor and Dope Sheet).
+ */
+void ANIM_deselect_keys_in_animation_editors(bContext *C);
 
 /**
  * Check if the given animation container can contain grease pencil layer keyframes.

@@ -17,7 +17,6 @@ void DirectionalBlurNode::convert_to_operations(NodeConverter &converter,
 {
   const NodeDBlurData *data = (const NodeDBlurData *)this->get_bnode()->storage;
   DirectionalBlurOperation *operation = new DirectionalBlurOperation();
-  operation->set_quality(context.get_quality());
   operation->set_data(data);
   converter.add_operation(operation);
 

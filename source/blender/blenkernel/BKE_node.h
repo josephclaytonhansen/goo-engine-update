@@ -396,6 +396,8 @@ typedef struct bNodeType {
 
   /** True when the node cannot be muted. */
   bool no_muting;
+  /** True when the node still works but it's usage is discouraged. */
+  const char *deprecation_notice;
 
   /* RNA integration */
   ExtensionRNA rna_ext;
@@ -984,6 +986,17 @@ void BKE_nodetree_remove_layer_n(struct bNodeTree *ntree, struct Scene *scene, i
 #define SH_NODE_SET_DEPTH 806
 #define SH_NODE_CURVATURE 807
 
+/* Fruitbat Nodes */
+#define SH_NODE_COLOR_PALETTE 900
+#define SH_NODE_LIGHT_INFO 901
+#define SH_NODE_TEX_HEXAGON 902
+#define SH_NODE_TWIRL 903
+#define SH_NODE_WATER_RIPPLES 904
+#define SH_NODE_OKLAB_COLOR_RAMP 907
+
+/* Not really Fruitbat but it fits*/
+#define SH_NODE_TEX_GABOR 905
+
 /** \} */
 
 /* -------------------------------------------------------------------- */
@@ -1337,6 +1350,7 @@ void BKE_nodetree_remove_layer_n(struct bNodeTree *ntree, struct Scene *scene, i
 #define GEO_NODE_GET_NAMED_GRID 2121
 #define GEO_NODE_STORE_NAMED_GRID 2122
 #define GEO_NODE_SORT_ELEMENTS 2123
+#define GEO_NODE_MENU_SWITCH 2124
 
 /** \} */
 

@@ -18,7 +18,7 @@ if NOT "%1" == "" (
 	) else if "%1" == "with_tests" (
 		set TESTS_CMAKE_ARGS=%TESTS_CMAKE_ARGS% -DWITH_GTESTS=On
 	) else if "%1" == "with_gpu_tests" (
-		set TESTS_CMAKE_ARGS=%TESTS_CMAKE_ARGS% -DWITH_GPU_DRAW_TESTS=On -DWITH_GPU_RENDER_TESTS=On
+		set TESTS_CMAKE_ARGS=%TESTS_CMAKE_ARGS% -DWITH_GPU_DRAW_TESTS=On -DWITH_GPU_RENDER_TESTS=On -DWITH_GPU_RENDER_TESTS_SILENT=Off
 	) else if "%1" == "full" (
 		set TARGET=Full
 		set BUILD_CMAKE_ARGS=%BUILD_CMAKE_ARGS% ^
@@ -26,6 +26,9 @@ if NOT "%1" == "" (
 	) else if "%1" == "lite" (
 		set TARGET=Lite
 		set BUILD_CMAKE_ARGS=%BUILD_CMAKE_ARGS% -C"%BLENDER_DIR%\build_files\cmake\config\blender_lite.cmake"
+	) else if "%1" == "goo" (
+		set TARGET=GooEngine
+		set BUILD_CMAKE_ARGS=%BUILD_CMAKE_ARGS% -C"%BLENDER_DIR%\build_files\cmake\config\goo_engine.cmake"
 	) else if "%1" == "cycles" (
 		set TARGET=Cycles
 		set BUILD_CMAKE_ARGS=%BUILD_CMAKE_ARGS% -C"%BLENDER_DIR%\build_files\cmake\config\cycles_standalone.cmake"
@@ -109,9 +112,6 @@ if NOT "%1" == "" (
 		goto EOF
 	) else if "%1" == "doc_py" (
 		set DOC_PY=1
-		goto EOF
-	) else if "%1" == "svnfix" (
-		set SVN_FIX=1
 		goto EOF
 	) else (
 		echo Command "%1" unknown, aborting!

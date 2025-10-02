@@ -19,7 +19,6 @@ set(INC
   ../../render
   ../../windowmanager
   ../../../../intern/ghost
-  ../../../../extern/fmtlib/include
   ../../bmesh
   # RNA_prototypes.h
   ${CMAKE_BINARY_DIR}/source/blender/makesrna
@@ -35,6 +34,7 @@ set(SRC
   eyedroppers/eyedropper_depth.cc
   eyedroppers/eyedropper_driver.cc
   eyedroppers/eyedropper_gpencil_color.cc
+  eyedroppers/eyedropper_bone.cc
   eyedroppers/interface_eyedropper.cc
   interface.cc
   interface_align.cc
@@ -103,6 +103,7 @@ set(LIB
   PRIVATE bf::depsgraph
   PRIVATE bf::dna
   bf_editor_datafiles
+  PRIVATE bf::extern::fmtlib
   PRIVATE bf::intern::guardedalloc
   PRIVATE bf::animrig
 )
