@@ -422,6 +422,9 @@ typedef struct PaletteColor {
   /* two values, one to store rgb, other to store values for sculpt/weight */
   float rgb[3];
   float value;
+  /** Index in the palette's color list (used for stable ordering and Python access). */
+  int index;
+  char _pad[4];
 } PaletteColor;
 
 typedef struct Palette {
@@ -431,7 +434,8 @@ typedef struct Palette {
   ListBase colors;
 
   int active_color;
-  char _pad[4];
+  /** Counter incremented whenever colors are added/removed/reordered. */
+  int version;
 } Palette;
 
 typedef struct PaintCurvePoint {

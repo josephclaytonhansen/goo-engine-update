@@ -61,6 +61,17 @@ static void rna_Palette_color_clear(Palette *palette)
   BKE_palette_clear(palette);
 }
 
+static void rna_PaletteColor_color_update(Main * /*bmain*/, Scene * /*scene*/, PointerRNA *ptr)
+{
+  PaletteColor *color = static_cast<PaletteColor *>(ptr->data);
+  /* Find the palette that contains this color and increment its version */
+  ID *id = ptr->owner_id;
+  if (id && GS(id->name) == ID_PAL) {
+    Palette *palette = reinterpret_cast<Palette *>(id);
+    palette->version++;
+  }
+}
+
 static PointerRNA rna_Palette_active_color_get(PointerRNA *ptr)
 {
   Palette *palette = static_cast<Palette *>(ptr->data);
@@ -89,6 +100,47 @@ static void rna_Palette_active_color_set(PointerRNA *ptr,
   else {
     palette->active_color = BLI_findindex(&palette->colors, color);
   }
+}
+
+static bool rna_Palette_color_move_up(Palette *palette, ReportList *reports, PointerRNA *color_ptr)
+{
+  if (ID_IS_LINKED(palette) || ID_IS_OVERRIDE_LIBRARY(palette)) {
+    BKE_report(reports, RPT_ERROR, "Cannot reorder colors in linked or library override palette");
+    return false;
+  }
+
+  PaletteColor *color = static_cast<PaletteColor *>(color_ptr->data);
+
+  if (BLI_findindex(&palette->colors, color) == -1) {
+    BKE_reportf(
+        reports, RPT_ERROR, "Palette '%s' does not contain color given", palette->id.name + 2);
+    return false;
+  }
+
+  return BKE_palette_color_move_up(palette, color);
+}
+
+static bool rna_Palette_color_move_down(Palette *palette, ReportList *reports, PointerRNA *color_ptr)
+{
+  if (ID_IS_LINKED(palette) || ID_IS_OVERRIDE_LIBRARY(palette)) {
+    BKE_report(reports, RPT_ERROR, "Cannot reorder colors in linked or library override palette");
+    return false;
+  }
+
+  PaletteColor *color = static_cast<PaletteColor *>(color_ptr->data);
+
+  if (BLI_findindex(&palette->colors, color) == -1) {
+    BKE_reportf(
+        reports, RPT_ERROR, "Palette '%s' does not contain color given", palette->id.name + 2);
+    return false;
+  }
+
+  return BKE_palette_color_move_down(palette, color);
+}
+
+static PaletteColor *rna_Palette_color_get_by_index(Palette *palette, int index)
+{
+  return BKE_palette_color_get_by_index(palette, index);
 }
 
 #else
@@ -122,6 +174,31 @@ static void rna_def_palettecolors(BlenderRNA *brna, PropertyRNA *cprop)
   func = RNA_def_function(srna, "clear", "rna_Palette_color_clear");
   RNA_def_function_ui_description(func, "Remove all colors from the palette");
 
+  func = RNA_def_function(srna, "move_up", "rna_Palette_color_move_up");
+  RNA_def_function_ui_description(func, "Move a color up in the palette (toward index 0)");
+  RNA_def_function_flag(func, FUNC_USE_REPORTS);
+  parm = RNA_def_pointer(func, "color", "PaletteColor", "", "The color to move");
+  RNA_def_parameter_flags(parm, PROP_NEVER_NULL, PARM_REQUIRED | PARM_RNAPTR);
+  RNA_def_parameter_clear_flags(parm, PROP_THICK_WRAP, ParameterFlag(0));
+  parm = RNA_def_boolean(func, "success", false, "Success", "True if color was moved");
+  RNA_def_function_return(func, parm);
+
+  func = RNA_def_function(srna, "move_down", "rna_Palette_color_move_down");
+  RNA_def_function_ui_description(func, "Move a color down in the palette (toward end)");
+  RNA_def_function_flag(func, FUNC_USE_REPORTS);
+  parm = RNA_def_pointer(func, "color", "PaletteColor", "", "The color to move");
+  RNA_def_parameter_flags(parm, PROP_NEVER_NULL, PARM_REQUIRED | PARM_RNAPTR);
+  RNA_def_parameter_clear_flags(parm, PROP_THICK_WRAP, ParameterFlag(0));
+  parm = RNA_def_boolean(func, "success", false, "Success", "True if color was moved");
+  RNA_def_function_return(func, parm);
+
+  func = RNA_def_function(srna, "get", "rna_Palette_color_get_by_index");
+  RNA_def_function_ui_description(func, "Get a color by its index");
+  parm = RNA_def_int(func, "index", 0, 0, INT_MAX, "Index", "Index of the color to retrieve", 0, INT_MAX);
+  RNA_def_parameter_flags(parm, PropertyFlag(0), PARM_REQUIRED);
+  parm = RNA_def_pointer(func, "color", "PaletteColor", "", "The color at the given index");
+  RNA_def_function_return(func, parm);
+
   prop = RNA_def_property(srna, "active", PROP_POINTER, PROP_NONE);
   RNA_def_property_struct_type(prop, "PaletteColor");
   RNA_def_property_pointer_funcs(
@@ -144,19 +221,12 @@ static void rna_def_palettecolor(BlenderRNA *brna)
   RNA_def_property_flag(prop, PROP_LIB_EXCEPTION);
   RNA_def_property_array(prop, 3);
   RNA_def_property_ui_text(prop, "Color", "");
-  RNA_def_property_update(prop, NC_SCENE | ND_TOOLSETTINGS, nullptr);
+  RNA_def_property_update(prop, NC_SCENE | ND_TOOLSETTINGS, "rna_PaletteColor_color_update");
 
-  prop = RNA_def_property(srna, "strength", PROP_FLOAT, PROP_NONE);
-  RNA_def_property_range(prop, 0.0, 1.0);
-  RNA_def_property_float_sdna(prop, nullptr, "value");
-  RNA_def_property_ui_text(prop, "Value", "");
-  RNA_def_property_update(prop, NC_SCENE | ND_TOOLSETTINGS, nullptr);
-
-  prop = RNA_def_property(srna, "weight", PROP_FLOAT, PROP_NONE);
-  RNA_def_property_range(prop, 0.0, 1.0);
-  RNA_def_property_float_sdna(prop, nullptr, "value");
-  RNA_def_property_ui_text(prop, "Weight", "");
-  RNA_def_property_update(prop, NC_SCENE | ND_TOOLSETTINGS, nullptr);
+  prop = RNA_def_property(srna, "index", PROP_INT, PROP_NONE);
+  RNA_def_property_int_sdna(prop, nullptr, "index");
+  RNA_def_property_clear_flag(prop, PROP_EDITABLE);
+  RNA_def_property_ui_text(prop, "Index", "Position of the color in the palette");
 }
 
 static void rna_def_palette(BlenderRNA *brna)
@@ -171,6 +241,11 @@ static void rna_def_palette(BlenderRNA *brna)
   prop = RNA_def_property(srna, "colors", PROP_COLLECTION, PROP_NONE);
   RNA_def_property_struct_type(prop, "PaletteColor");
   rna_def_palettecolors(brna, prop);
+
+  prop = RNA_def_property(srna, "version", PROP_INT, PROP_NONE);
+  RNA_def_property_int_sdna(prop, nullptr, "version");
+  RNA_def_property_clear_flag(prop, PROP_EDITABLE);
+  RNA_def_property_ui_text(prop, "Version", "Counter incremented when colors are added/removed/reordered");
 }
 
 void RNA_def_palette(BlenderRNA *brna)

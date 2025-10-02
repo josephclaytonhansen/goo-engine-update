@@ -399,6 +399,10 @@ static int palette_color_add_exec(bContext *C, wmOperator * /*op*/)
     }
   }
 
+  WM_event_add_notifier(C, NC_BRUSH | NA_EDITED, nullptr);
+  WM_event_add_notifier(C, NC_NODE | NA_EDITED, nullptr);
+  WM_event_add_notifier(C, NC_SCENE | ND_TOOLSETTINGS, nullptr);
+
   return OPERATOR_FINISHED;
 }
 
@@ -426,6 +430,10 @@ static int palette_color_delete_exec(bContext *C, wmOperator * /*op*/)
   if (color) {
     BKE_palette_color_remove(palette, color);
   }
+
+  WM_event_add_notifier(C, NC_BRUSH | NA_EDITED, nullptr);
+  WM_event_add_notifier(C, NC_NODE | NA_EDITED, nullptr);
+  WM_event_add_notifier(C, NC_SCENE | ND_TOOLSETTINGS, nullptr);
 
   return OPERATOR_FINISHED;
 }
@@ -637,13 +645,23 @@ static int palette_color_move_exec(bContext *C, wmOperator *op)
 
   const int direction = RNA_enum_get(op->ptr, "type");
 
-  BLI_assert(ELEM(direction, -1, 0, 1)); /* we use value below */
-  if (BLI_listbase_link_move(&palette->colors, palcolor, direction)) {
+  BLI_assert(ELEM(direction, -1, 1)); /* -1 = up, 1 = down */
+  
+  bool success = false;
+  if (direction == -1) {
+    success = BKE_palette_color_move_up(palette, palcolor);
+  }
+  else if (direction == 1) {
+    success = BKE_palette_color_move_down(palette, palcolor);
+  }
+  
+  if (success) {
     palette->active_color += direction;
     WM_event_add_notifier(C, NC_BRUSH | NA_EDITED, nullptr);
+    return OPERATOR_FINISHED;
   }
 
-  return OPERATOR_FINISHED;
+  return OPERATOR_CANCELLED;
 }
 
 static void PALETTE_OT_color_move(wmOperatorType *ot)

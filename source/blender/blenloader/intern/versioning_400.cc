@@ -3090,6 +3090,17 @@ void blo_do_versions_400(FileData *fd, Library * /*lib*/, Main *bmain)
     }
   }
 
+  if (!MAIN_VERSION_FILE_ATLEAST(bmain, 402, 21)) {
+    /* Initialize palette color indices for existing palettes. */
+    LISTBASE_FOREACH (Palette *, palette, &bmain->palettes) {
+      int index = 0;
+      LISTBASE_FOREACH (PaletteColor *, color, &palette->colors) {
+        color->index = index++;
+      }
+      palette->version = 0;
+    }
+  }
+
   if (MAIN_VERSION_FILE_ATLEAST(bmain, 402, 0)) {
     /* These matrices are runtime data and in 4.2 they are not contained in DNA.
      * They will be computed properly by the depsgraph, so no initialization needed. */

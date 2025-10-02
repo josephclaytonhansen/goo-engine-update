@@ -472,13 +472,8 @@ void uiTemplateBoneCollectionTree(uiLayout *layout, bContext *C)
   ui::AbstractTreeView *tree_view = UI_block_add_view(
       *block,
       "Bone Collection Tree View",
-<<<<<<< HEAD
       std::make_unique<blender::ui::bonecollections::BoneCollectionTreeView>(*armature));
   tree_view->set_min_rows(3);
-=======
-      std::make_unique<blender::ui::bonecollections::BoneCollectionTreeView>(*arm));
-  tree_view->set_default_rows(3);
->>>>>>> 8457395892beec33d4605ef9d894a1aff4a8d79f
 
   ui::TreeViewBuilder::build_tree_view(*tree_view, *layout);
 }

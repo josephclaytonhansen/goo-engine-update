@@ -57,13 +57,8 @@ GPU_SHADER_CREATE_INFO(eevee_legacy_lights_lib)
     .additional_info("eevee_legacy_raytrace_lib")
     .uniform_buf(5, "ShadowBlock", "shadow_block", Frequency::PASS)
     .uniform_buf(6, "LightBlock", "light_block", Frequency::PASS)
-<<<<<<< HEAD
     .push_constant(Type::IVEC4, "lightGroups")
     .push_constant(Type::IVEC4, "lightGroupShadows")
-=======
-    .push_constant(Type::IVEC4, "light_groups_in")
-    .push_constant(Type::IVEC4, "light_group_shadows_in")
->>>>>>> 8457395892beec33d4605ef9d894a1aff4a8d79f
     .sampler(8, ImageType::SHADOW_2D_ARRAY, "shadowCubeTexture")
     .sampler(9, ImageType::SHADOW_2D_ARRAY, "shadowCascadeTexture")
     /* GooEngine: Use slots 15,16 as others are already taken. */
