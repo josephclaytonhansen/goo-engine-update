@@ -6322,10 +6322,26 @@ static int ui_do_but_COLOR(bContext *C, uiBut *but, uiHandleButtonData *data, co
       return WM_UI_HANDLER_BREAK;
     }
 #endif
-    /* regular open menu */
-    if (ELEM(event->type, LEFTMOUSE, EVT_PADENTER, EVT_RETKEY) && event->val == KM_PRESS) {
+    /* For palette colors: Shift+Click opens color picker for editing */
+    if (color_but->is_pallete_color && event->type == LEFTMOUSE && event->val == KM_PRESS &&
+        (event->modifier & KM_SHIFT))
+    {
       ui_palette_set_active(color_but);
       button_activate_state(C, but, BUTTON_STATE_MENU_OPEN);
+      return WM_UI_HANDLER_BREAK;
+    }
+    /* regular open menu (for non-palette colors or palette colors without modifier) */
+    if (ELEM(event->type, LEFTMOUSE, EVT_PADENTER, EVT_RETKEY) && event->val == KM_PRESS) {
+      ui_palette_set_active(color_but);
+      /* For palette colors without Shift, go to WAIT_DRAG instead of opening menu */
+      if (color_but->is_pallete_color && event->type == LEFTMOUSE) {
+        button_activate_state(C, but, BUTTON_STATE_WAIT_DRAG);
+        data->dragstartx = event->xy[0];
+        data->dragstarty = event->xy[1];
+      }
+      else {
+        button_activate_state(C, but, BUTTON_STATE_MENU_OPEN);
+      }
       return WM_UI_HANDLER_BREAK;
     }
     if (ELEM(event->type, MOUSEPAN, WHEELDOWNMOUSE, WHEELUPMOUSE) && (event->modifier & KM_CTRL)) {

@@ -213,14 +213,13 @@ typedef struct Material {
   char blend_flag;
   char check_shadow_id;
   char volume_intersection_method;
-  char _pad1[3];  /* Align to 4 bytes */
+  char _pad1[3];
 
-  /* --------------------------------- ListBase and struct alignment section */
-  int _pad2[2];  /* Align to 8 bytes */
+  /** Runtime cache for GLSL materials. */
   ListBase gpumaterial;
-  int _pad3[2];  /* Align to 8 bytes */
+  int _pad2[2];
   struct MaterialLineArt lineart;
-  int _pad4[2];  /* Final alignment to 8 bytes */
+  int _pad3[2];
 } Material;
 
 /* **************** MATERIAL ********************* */
@@ -361,16 +360,14 @@ enum {
   MA_BS_HASHED = 3,
 };
 
-enum {
-  MA_SHADOW_ID = (1 << 0)
-};
-
 /** #Material::displacement_method */
 enum {
   MA_DISPLACEMENT_BUMP = 0,
   MA_DISPLACEMENT_DISPLACE = 1,
   MA_DISPLACEMENT_BOTH = 2,
 };
+
+#define MA_SHADOW_ID (1 << 0)
 
 /* Grease Pencil Stroke styles */
 enum {

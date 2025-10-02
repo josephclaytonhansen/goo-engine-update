@@ -108,12 +108,12 @@ static Palette *create_node_palette_copy(Main *bmain, Palette *source, const cha
   
   Palette *node_palette = (Palette *)BKE_id_new(bmain, ID_PAL, palette_name);
   
-  /* Copy all colors from source palette */
+  /* Copy all colors from source palette with proper indexing */
   BLI_listbase_clear(&node_palette->colors);
   LISTBASE_FOREACH(PaletteColor *, src_color, &source->colors) {
     PaletteColor *new_color = (PaletteColor *)MEM_callocN(sizeof(PaletteColor), "palette color");
     copy_v3_v3(new_color->rgb, src_color->rgb);
-    new_color->value = src_color->value;
+    new_color->index = src_color->index;
     BLI_addtail(&node_palette->colors, new_color);
   }
   
@@ -131,9 +131,8 @@ static void sync_node_palette_from_source(bContext *C, bNode *node, NodeShaderCo
   Palette *source = data->source_palette;
   Palette *node_palette = data->palette;
   
-  /* Simple version tracking - compare color count as a proxy for changes */
-  int source_color_count = BLI_listbase_count(&source->colors);
-  int current_version = source_color_count; /* Simplified - in production could use proper versioning */
+  /* Use the palette's version field for tracking changes */
+  int current_version = source->version;
   
   if (current_version != data->last_sync_version) {
     /* Source palette has changed - update our copy */
@@ -141,15 +140,15 @@ static void sync_node_palette_from_source(bContext *C, bNode *node, NodeShaderCo
     /* Clear existing colors */
     BLI_freelistN(&node_palette->colors);
     
-    /* Copy all colors from source */
+    /* Copy all colors from source using proper indexing */
     LISTBASE_FOREACH(PaletteColor *, src_color, &source->colors) {
       PaletteColor *new_color = (PaletteColor *)MEM_callocN(sizeof(PaletteColor), "palette color");
       copy_v3_v3(new_color->rgb, src_color->rgb);
-      new_color->value = src_color->value;
+      new_color->index = src_color->index;
       BLI_addtail(&node_palette->colors, new_color);
     }
     
-    /* Update sync version */
+    /* Update sync version to match source version */
     data->last_sync_version = current_version;
     
     /* Clamp palette active_color to valid range */
@@ -185,8 +184,17 @@ static void node_shader_draw_color_palette(uiLayout *layout, bContext *C, Pointe
   bNode *node = (bNode *)ptr->data;
   NodeShaderColorPalette *data = (NodeShaderColorPalette *)node->storage;
   
-  /* Show palette selector */
-  uiItemR(layout, ptr, "palette", UI_ITEM_NONE, nullptr, ICON_COLOR);
+  /* Show palette selector with New button */
+  uiTemplateID(layout,
+               C,
+               ptr,
+               "palette",
+               "palette.new",
+               nullptr,
+               nullptr,
+               0,
+               ICON_NONE,
+               nullptr);
   
   /* If we have a palette, sync from source and show color grid */
   if (data->palette != nullptr) {
@@ -311,7 +319,7 @@ static void node_shader_update_color_palette(bNodeTree *ntree, bNode *node)
       if (node_copy) {
         data->palette = node_copy;
         data->palette->active_color = 0; /* Default to first color */
-        data->last_sync_version = BLI_listbase_count(&data->source_palette->colors);
+        data->last_sync_version = data->source_palette->version;
       }
     }
   }
@@ -332,7 +340,7 @@ static void node_shader_update_color_palette(bNodeTree *ntree, bNode *node)
         if (node_copy) {
           data->palette = node_copy;
           data->palette->active_color = 0; /* Default to first color */
-          data->last_sync_version = BLI_listbase_count(&data->source_palette->colors);
+          data->last_sync_version = data->source_palette->version;
         }
       }
     }

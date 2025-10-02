@@ -1268,8 +1268,88 @@ class NODE_PT_annotation(AnnotationDataPanel, Panel):
 
     @classmethod
     def poll(cls, context):
+        return True
+
+
+# Color Palette Node Editor Panel
+class NODE_PT_color_palette_editor(Panel):
+    bl_space_type = 'NODE_EDITOR'
+    bl_region_type = 'UI'
+    bl_category = "Node"
+    bl_label = "Color Palette"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    @classmethod
+    def poll(cls, context):
+        """Only show when Color Palette shader node is selected"""
         snode = context.space_data
-        return snode is not None and snode.node_tree is not None
+        if snode.tree_type != 'ShaderNodeTree':
+            return False
+        
+        node = context.active_node
+        if node is None:
+            return False
+        
+        # Check if this is the Color Palette node
+        return node.type == 'COLOR_PALETTE'
+
+    def draw(self, context):
+        layout = self.layout
+        node = context.active_node
+        
+        # Get the palette from the node
+        palette = node.palette if hasattr(node, 'palette') else None
+        
+        if palette is None:
+            layout.label(text="No palette assigned", icon='INFO')
+            layout.operator("palette.new", text="Create New Palette", icon='ADD')
+            return
+        
+        # Palette selector with New button
+        layout.template_ID(node, "palette", new="palette.new")
+        
+        layout.separator()
+        
+        # Color grid display using template_palette
+        layout.template_palette(node, "palette", color=True)
+        
+        layout.separator()
+        
+        # Color management buttons
+        row = layout.row(align=True)
+        row.operator("palette.color_add", text="Add Color", icon='ADD')
+        row.operator("palette.color_delete", text="Remove Color", icon='REMOVE')
+        
+        # Show active color properties if we have colors
+        if palette.colors:
+            box = layout.box()
+            box.label(text="Active Color:", icon='COLOR')
+            
+            # Get the active color
+            active_color = palette.colors.active
+            if active_color:
+                col = box.column(align=True)
+                
+                # Color picker
+                col.prop(active_color, "color", text="")
+                
+                # Show index (read-only)
+                row = box.row()
+                row.enabled = False
+                row.prop(active_color, "index", text="Index")
+                
+                # Reorder buttons
+                box.separator()
+                row = box.row(align=True)
+                row.label(text="Reorder:")
+                op = row.operator("palette.color_move", text="", icon='TRIA_UP')
+                op.type = 'UP'
+                op = row.operator("palette.color_move", text="", icon='TRIA_DOWN')
+                op.type = 'DOWN'
+        
+        # Show color count
+        layout.separator()
+        layout.label(text=f"Colors: {len(palette.colors)}", icon='INFO')
 
 
 def node_draw_tree_view(_layout, _context):
@@ -1321,6 +1401,7 @@ classes = (
     NODE_PT_backdrop,
     NODE_PT_quality,
     NODE_PT_annotation,
+    NODE_PT_color_palette_editor,
     NODE_PT_overlay,
     NODE_UL_simulation_zone_items,
     NODE_PT_simulation_zone_items,

@@ -194,6 +194,23 @@ class ColorPalettePanel(BrushPanel):
         layout.template_ID(settings, "palette", new="palette.new")
         if settings.palette:
             layout.template_palette(settings, "palette", color=True)
+            
+            # Show active color properties for editing
+            palette = settings.palette
+            if palette.colors:
+                box = layout.box()
+                box.label(text="Active Color Properties:")
+                
+                # Get the active color
+                active_color = palette.colors.active
+                if active_color:
+                    col = box.column(align=True)
+                    col.prop(active_color, "color", text="Color")
+                    
+                    # Show index (read-only)
+                    row = box.row()
+                    row.enabled = False
+                    row.prop(active_color, "index", text="Index")
 
 
 class ClonePanel(BrushPanel):

@@ -804,12 +804,17 @@ void BKE_palette_color_remove(Palette *palette, PaletteColor *color)
   }
 
   MEM_freeN(color);
+  
+  /* Rebuild indices and increment version */
+  BKE_palette_color_reindex(palette);
+  palette->version++;
 }
 
 void BKE_palette_clear(Palette *palette)
 {
   BLI_freelistN(&palette->colors);
   palette->active_color = 0;
+  palette->version++;
 }
 
 Palette *BKE_palette_add(Main *bmain, const char *name)
@@ -822,7 +827,74 @@ PaletteColor *BKE_palette_color_add(Palette *palette)
 {
   PaletteColor *color = MEM_cnew<PaletteColor>(__func__);
   BLI_addtail(&palette->colors, color);
+  
+  /* Set index to the position in the list */
+  color->index = BLI_listbase_count(&palette->colors) - 1;
+  palette->version++;
+  
   return color;
+}
+
+bool BKE_palette_color_move_up(Palette *palette, PaletteColor *color)
+{
+  /* Can't move up if already at the top */
+  if (color->prev == nullptr) {
+    return false;
+  }
+  
+  /* Swap positions in list */
+  void *prev = color->prev;
+  BLI_remlink(&palette->colors, color);
+  BLI_insertlinkbefore(&palette->colors, prev, color);
+  
+  /* Rebuild indices and increment version */
+  BKE_palette_color_reindex(palette);
+  palette->version++;
+  
+  return true;
+}
+
+bool BKE_palette_color_move_down(Palette *palette, PaletteColor *color)
+{
+  /* Can't move down if already at the bottom */
+  if (color->next == nullptr) {
+    return false;
+  }
+  
+  /* Swap positions in list */
+  void *next = color->next;
+  BLI_remlink(&palette->colors, color);
+  BLI_insertlinkafter(&palette->colors, next, color);
+  
+  /* Rebuild indices and increment version */
+  BKE_palette_color_reindex(palette);
+  palette->version++;
+  
+  return true;
+}
+
+PaletteColor *BKE_palette_color_get_by_index(Palette *palette, int index)
+{
+  if (index < 0) {
+    return nullptr;
+  }
+  
+  /* Use the stored index for faster lookup when possible */
+  LISTBASE_FOREACH(PaletteColor *, color, &palette->colors) {
+    if (color->index == index) {
+      return color;
+    }
+  }
+  
+  return nullptr;
+}
+
+void BKE_palette_color_reindex(Palette *palette)
+{
+  int index = 0;
+  LISTBASE_FOREACH(PaletteColor *, color, &palette->colors) {
+    color->index = index++;
+  }
 }
 
 bool BKE_palette_is_empty(const Palette *palette)

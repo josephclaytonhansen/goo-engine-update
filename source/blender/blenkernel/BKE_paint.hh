@@ -157,6 +157,24 @@ bool BKE_palette_is_empty(const Palette *palette);
  */
 void BKE_palette_color_remove(Palette *palette, PaletteColor *color);
 void BKE_palette_clear(Palette *palette);
+/**
+ * Move a color up in the palette (toward index 0).
+ * Returns true if successful, false if already at top.
+ */
+bool BKE_palette_color_move_up(Palette *palette, PaletteColor *color);
+/**
+ * Move a color down in the palette (toward end).
+ * Returns true if successful, false if already at bottom.
+ */
+bool BKE_palette_color_move_down(Palette *palette, PaletteColor *color);
+/**
+ * Get color by index. Returns nullptr if index is out of range.
+ */
+PaletteColor *BKE_palette_color_get_by_index(Palette *palette, int index);
+/**
+ * Rebuild color indices after manual list manipulation.
+ */
+void BKE_palette_color_reindex(Palette *palette);
 
 void BKE_palette_sort_hsv(tPaletteColorHSV *color_array, int totcol);
 void BKE_palette_sort_svh(tPaletteColorHSV *color_array, int totcol);
