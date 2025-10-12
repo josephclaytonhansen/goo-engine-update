@@ -1461,6 +1461,8 @@ classes = (
     RENDER_PT_eevee_volumetric_lighting,
     RENDER_PT_eevee_volumetric_shadows,
     RENDER_PT_eevee_depth_of_field,
+    RENDER_PT_eevee_shadows,
+    RENDER_PT_eevee_indirect_lighting,
     RENDER_PT_eevee_film,
 )
 
