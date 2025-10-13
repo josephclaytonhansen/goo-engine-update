@@ -230,7 +230,7 @@ class VIEW3D_HT_tool_header(Header):
             layout.prop(tool_settings, "use_gpencil_automerge_strokes", text="")
             layout.prop(tool_settings, "use_gpencil_weight_data_add", text="", icon='WPAINT_HLT')
             layout.prop(tool_settings, "use_gpencil_draw_onback", text="", icon='MOD_OPACITY')
-
+            layout.prop(tool_settings, "use_gpencil_autoclose_strokes", text="")
 
 class _draw_tool_settings_context_mode:
     @staticmethod
