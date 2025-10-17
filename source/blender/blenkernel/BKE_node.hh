@@ -1012,6 +1012,7 @@ void node_tree_remove_layer_n(bNodeTree *ntree, Scene *scene, int layer_index);
 #define SH_NODE_COLOR_PALETTE 900
 #define SH_NODE_LIGHT_INFO 901
 #define SH_NODE_TEX_HEXAGON 902
+#define SH_NODE_TWIRL 903
 
 /** \} */
 

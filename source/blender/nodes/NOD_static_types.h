@@ -131,11 +131,11 @@ DefNode(ShaderNode,     SH_NODE_SEPARATE_COLOR,     def_sh_combsep_color,   "SEP
 DefNode(ShaderNode,     SH_NODE_MIX,                def_sh_mix,             "MIX",                Mix,              "Mix",               "Mix values by a factor")
 DefNode(ShaderNode,     SH_NODE_SHADER_INFO,        def_sh_shader_info,     "SHADERINFO",         ShaderInfo,       "Shader Info",       "Separate internal lighting into multiple outputs, and allow for per-node light-groups.")
 DefNode(ShaderNode,     SH_NODE_TEX_HEXAGON,        def_sh_tex_hexagon,     "TEX_HEXAGON",        TexHexagon,       "Hex Grid Texture",  ""       )
+DefNode(ShaderNode,     SH_NODE_TWIRL,              def_sh_twirl,           "TWIRL",              Twirl,            "Twirl",             "Twirl the input vector around a center point by a specified amount")
 DefNode(ShaderNode,     SH_NODE_SCREENSPACE_INFO,   0,                      "SCREENSPACEINFO",    ScreenspaceInfo,  "Screenspace Info",  "Sample internal colour and depth buffers")
 DefNode(ShaderNode,     SH_NODE_SET_DEPTH,          0,                      "SET_DEPTH",          SetDepth,         "Set Depth",         "Pixel depth offset")
-DefNode(ShaderNode,     SH_NODE_CURVATURE,          0,                      "CURVATURE",      Curvature,        "Curvature",         ""              )
+DefNode(ShaderNode,     SH_NODE_CURVATURE,          0,                      "CURVATURE",          Curvature,        "Curvature",         ""              )
 DefNode(ShaderNode,     SH_NODE_SDF_NOISE,          0,                      "SDF_NOISE",          SdfNoise,         "Sdf Noise",          ""      )
-
 DefNode(CompositorNode, CMP_NODE_VIEWER,            def_cmp_viewer,         "VIEWER",          Viewer,           "Viewer",              "Visualize data from inside a node graph, in the image editor or as a backdrop")
 DefNode(CompositorNode, CMP_NODE_RGB,               0,                      "RGB",             RGB,              "RGB",                 "A color picker")
 DefNode(CompositorNode, CMP_NODE_VALUE,             0,                      "VALUE",           Value,            "Value",               "Input numerical values to other nodes in the node graph")
