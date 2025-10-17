@@ -102,7 +102,7 @@ void SmoothOperation::on_stroke_extended(const bContext &C, const InputSample &e
     const VArray<bool> selection_varray = VArray<bool>::ForSpan(selection_array);
 
     bool changed = false;
-    if ((sculpt_mode_flag & GP_SCULPT_FLAGMODE_APPLY_POSITION & context_type_ == 0) || context_type_ == 1) {
+    if (((sculpt_mode_flag & GP_SCULPT_FLAGMODE_APPLY_POSITION) & context_type_ == 0) || context_type_ == 1) {
       MutableSpan<float3> positions = curves.positions_for_write();
       geometry::smooth_curve_attribute(curves.curves_range(),
                                        points_by_curve,
@@ -116,7 +116,7 @@ void SmoothOperation::on_stroke_extended(const bContext &C, const InputSample &e
       params.drawing.tag_positions_changed();
       changed = true;
     }
-    if ((sculpt_mode_flag & GP_SCULPT_FLAGMODE_APPLY_STRENGTH & context_type_ == 0) || context_type_ == 2) {
+    if (((sculpt_mode_flag & GP_SCULPT_FLAGMODE_APPLY_STRENGTH) & context_type_ == 0) || context_type_ == 2) {
       MutableSpan<float> opacities = params.drawing.opacities_for_write();
       geometry::smooth_curve_attribute(curves.curves_range(),
                                        points_by_curve,
@@ -129,7 +129,7 @@ void SmoothOperation::on_stroke_extended(const bContext &C, const InputSample &e
                                        opacities);
       changed = true;
     }
-    if ((sculpt_mode_flag & GP_SCULPT_FLAGMODE_APPLY_THICKNESS & context_type_ == 0) || context_type_ == 3) {
+    if (((sculpt_mode_flag & GP_SCULPT_FLAGMODE_APPLY_THICKNESS) & context_type_ == 0) || context_type_ == 3) {
       const MutableSpan<float> radii = params.drawing.radii_for_write();
       geometry::smooth_curve_attribute(curves.curves_range(),
                                        points_by_curve,
@@ -143,7 +143,7 @@ void SmoothOperation::on_stroke_extended(const bContext &C, const InputSample &e
       curves.tag_radii_changed();
       changed = true;
     }
-    if (sculpt_mode_flag & GP_SCULPT_FLAGMODE_APPLY_UV & context_type_ == 0) {
+    if ((sculpt_mode_flag & GP_SCULPT_FLAGMODE_APPLY_UV) & context_type_ == 0) {
       bke::SpanAttributeWriter<float> rotations = attributes.lookup_or_add_for_write_span<float>(
           "rotation", bke::AttrDomain::Point);
       geometry::smooth_curve_attribute(curves.curves_range(),
