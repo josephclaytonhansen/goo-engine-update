@@ -630,6 +630,7 @@ set(GLSL_SRC
   shaders/material/gpu_shader_material_tex_voronoi.glsl
   shaders/material/gpu_shader_material_tex_hexagon.glsl
   shaders/material/gpu_shader_material_twirl.glsl
+  shaders/material/gpu_shader_material_water_ripples.glsl
   shaders/material/gpu_shader_material_tex_wave.glsl
   shaders/material/gpu_shader_material_tex_white_noise.glsl
   shaders/material/gpu_shader_material_toon.glsl

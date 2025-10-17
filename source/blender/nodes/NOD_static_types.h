@@ -132,6 +132,7 @@ DefNode(ShaderNode,     SH_NODE_MIX,                def_sh_mix,             "MIX
 DefNode(ShaderNode,     SH_NODE_SHADER_INFO,        def_sh_shader_info,     "SHADERINFO",         ShaderInfo,       "Shader Info",       "Separate internal lighting into multiple outputs, and allow for per-node light-groups.")
 DefNode(ShaderNode,     SH_NODE_TEX_HEXAGON,        def_sh_tex_hexagon,     "TEX_HEXAGON",        TexHexagon,       "Hex Grid Texture",  ""       )
 DefNode(ShaderNode,     SH_NODE_TWIRL,              def_sh_twirl,           "TWIRL",              Twirl,            "Twirl",             "Twirl the input vector around a center point by a specified amount")
+DefNode(ShaderNode,     SH_NODE_WATER_RIPPLES,      def_sh_water_ripples,   "WATER_RIPPLES",      WaterRipples,     "Water Ripples",     "Generate concentric ripples simulating water surface disturbances")
 DefNode(ShaderNode,     SH_NODE_SCREENSPACE_INFO,   0,                      "SCREENSPACEINFO",    ScreenspaceInfo,  "Screenspace Info",  "Sample internal colour and depth buffers")
 DefNode(ShaderNode,     SH_NODE_SET_DEPTH,          0,                      "SET_DEPTH",          SetDepth,         "Set Depth",         "Pixel depth offset")
 DefNode(ShaderNode,     SH_NODE_CURVATURE,          0,                      "CURVATURE",          Curvature,        "Curvature",         ""              )

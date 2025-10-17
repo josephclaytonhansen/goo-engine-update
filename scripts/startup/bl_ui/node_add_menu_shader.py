@@ -349,6 +349,7 @@ class NODE_MT_category_goo_engine(Menu):
         node_add_menu.add_node_type(layout, "ShaderNodeSdfVectorOp")
         node_add_menu.add_node_type(layout, "ShaderNodeSdfNoise")
         node_add_menu.add_node_type(layout, "ShaderNodeTwirl")
+        node_add_menu.add_node_type(layout, "ShaderNodeWaterRipples")
 
 
 class NODE_MT_category_shader_script(Menu):
