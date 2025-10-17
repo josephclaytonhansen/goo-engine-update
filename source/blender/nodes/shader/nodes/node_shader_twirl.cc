@@ -6,7 +6,7 @@ static void node_declare(NodeDeclarationBuilder &b)
 {
   b.add_input<decl::Vector>("Vector").default_value({0.0f, 0.0f, 0.0f});
   b.add_input<decl::Vector>("Center").default_value({0.5f, 0.5f, 0.0f}).min(0.0f).max(1.0f);
-  b.add_input<decl::Float>("Amount").default_value(0.0f).min(-10.0f).max(10.0f);
+  b.add_input<decl::Float>("Amount").default_value(0.0f).min(-100.0f).max(100.0f);
   b.add_output<decl::Vector>("Vector");
 }
 
