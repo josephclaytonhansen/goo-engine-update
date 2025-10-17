@@ -35,6 +35,7 @@ void register_node_type_sh_combcolor();
 void register_node_type_sh_combhsv();
 void register_node_type_sh_combrgb();
 void register_node_type_sh_combxyz();
+void register_node_type_sh_tex_hexagon();
 void register_node_type_sh_curvature();
 void register_node_type_sh_curve_float();
 void register_node_type_sh_curve_rgb();
