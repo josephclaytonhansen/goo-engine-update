@@ -122,7 +122,8 @@ class EEVEE_WORLD_PT_surface(WorldButtonsPanel, Panel):
         layout = self.layout
 
         world = context.world
-
+        
+        rd = context.scene.render
         layout.prop(world, "use_nodes", icon='NODETREE')
         layout.separator()
 
@@ -142,6 +143,8 @@ class EEVEE_WORLD_PT_surface(WorldButtonsPanel, Panel):
                 layout.label(text="No output node")
         else:
             layout.prop(world, "color")
+
+        layout.prop(rd, "film_transparent", text="Transparent")
 
 
 class EEVEE_WORLD_PT_volume(WorldButtonsPanel, Panel):

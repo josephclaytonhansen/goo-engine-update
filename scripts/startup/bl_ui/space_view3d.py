@@ -155,6 +155,7 @@ class VIEW3D_HT_tool_header(Header):
             sub.prop(ob, "use_mesh_mirror_x", text="X", toggle=True)
             sub.prop(ob, "use_mesh_mirror_y", text="Y", toggle=True)
             sub.prop(ob, "use_mesh_mirror_z", text="Z", toggle=True)
+            sub.prop(context.object.data, "use_mirror_topology", text="T", toggle=True)
             if mode_string == 'EDIT_MESH':
                 layout.prop(tool_settings, "use_mesh_automerge", text="")
             elif mode_string == 'PAINT_WEIGHT':
