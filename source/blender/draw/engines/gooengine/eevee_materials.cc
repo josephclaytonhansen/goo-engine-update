@@ -363,6 +363,12 @@ void EEVEE_materials_init(EEVEE_ViewLayerData *sldata,
     if (g_data->render_passes & EEVEE_RENDER_PASS_ENVIRONMENT) {
       Scene *scene = draw_ctx->scene;
       World *wo = scene->world;
+
+      World *world_override = draw_ctx->view_layer->world_override;
+      if (world_override) {
+        wo = world_override;
+      }
+
       if (wo && wo->use_nodes) {
         EEVEE_material_get(vedata, scene, nullptr, wo, VAR_WORLD_BACKGROUND);
       }
@@ -397,6 +403,11 @@ void EEVEE_materials_cache_init(EEVEE_ViewLayerData *sldata, EEVEE_Data *vedata)
     if (grp == nullptr) {
       Scene *scene = draw_ctx->scene;
       World *world = (scene->world) ? scene->world : EEVEE_world_default_get();
+
+      World *world_override = draw_ctx->view_layer->world_override;
+      if (world_override) {
+        world = world_override;
+      }
 
       const int options = VAR_WORLD_BACKGROUND;
       GPUMaterial *gpumat = EEVEE_material_get(vedata, scene, nullptr, world, options);
@@ -765,7 +776,9 @@ static EeveeMaterialCache material_transparent(EEVEE_Data *vedata,
 /* Return correct material or empty default material if slot is empty. */
 BLI_INLINE Material *eevee_object_material_get(Object *ob, int slot, bool holdout)
 {
-  Material *ma = BKE_object_material_get_eval(ob, slot + 1);
+  const DRWContextState *draw_ctx = DRW_context_state_get();
+  Material *material_override = draw_ctx->view_layer->mat_override;
+  Material *ma = (material_override) ? material_override : BKE_object_material_get_eval(ob, slot + 1);
   bool use_custom = BKE_material_use_custom_holdout(ma);
   if (holdout && !use_custom) {
     return BKE_material_default_holdout();
