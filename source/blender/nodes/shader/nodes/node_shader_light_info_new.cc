@@ -116,5 +116,5 @@ void register_node_type_sh_light_info(void)
   ntype.initfunc = file_ns::node_shader_init_light_info;
   ntype.draw_buttons = file_ns::node_shader_draw_light_info;
 
-  node_register_type(&ntype);
+  blender::bke::node_register_type(&ntype);
 }

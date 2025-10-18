@@ -84,5 +84,5 @@ void register_node_type_sh_water_ripples()
         node_free_standard_storage,
         node_copy_standard_storage);
 
-    node_register_type(&ntype);
+  blender::bke::node_register_type(&ntype);
 }

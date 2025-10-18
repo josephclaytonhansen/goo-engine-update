@@ -451,5 +451,5 @@ void register_node_type_sh_tex_hexagon()
       &ntype, "NodeTexHexagon", node_free_standard_storage, node_copy_standard_storage);
   ntype.build_multi_function = file_ns::build_multi_function;
 
-  node_register_type(&ntype);
+  blender::bke::node_register_type(&ntype);
 }

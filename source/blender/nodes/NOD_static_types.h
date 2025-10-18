@@ -138,6 +138,7 @@ DefNode(ShaderNode,     SH_NODE_SCREENSPACE_INFO,   0,                      "SCR
 DefNode(ShaderNode,     SH_NODE_SET_DEPTH,          0,                      "SET_DEPTH",          SetDepth,         "Set Depth",         "Pixel depth offset")
 DefNode(ShaderNode,     SH_NODE_CURVATURE,          0,                      "CURVATURE",          Curvature,        "Curvature",         ""              )
 DefNode(ShaderNode,     SH_NODE_SDF_NOISE,          0,                      "SDF_NOISE",          SdfNoise,         "Sdf Noise",          ""      )
+DefNode(ShaderNode,     SH_NODE_OKLAB_COLOR_RAMP,   def_oklab_colorramp,    "OKLAB_COLOR_RAMP",   OKLabColorRamp,   "OKLab Color Ramp",   "Color ramp with perceptually uniform OKLab interpolation")
 DefNode(CompositorNode, CMP_NODE_VIEWER,            def_cmp_viewer,         "VIEWER",          Viewer,           "Viewer",              "Visualize data from inside a node graph, in the image editor or as a backdrop")
 DefNode(CompositorNode, CMP_NODE_RGB,               0,                      "RGB",             RGB,              "RGB",                 "A color picker")
 DefNode(CompositorNode, CMP_NODE_VALUE,             0,                      "VALUE",           Value,            "Value",               "Input numerical values to other nodes in the node graph")

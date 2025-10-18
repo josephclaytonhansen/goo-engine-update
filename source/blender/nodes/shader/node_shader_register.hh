@@ -107,6 +107,7 @@ void register_node_type_sh_tex_white_noise();
 void register_node_type_sh_uvalongstroke();
 void register_node_type_sh_uvmap();
 void register_node_type_sh_valtorgb();
+void register_node_type_sh_oklab_color_ramp();
 void register_node_type_sh_value();
 void register_node_type_sh_vect_math();
 void register_node_type_sh_vect_transform();

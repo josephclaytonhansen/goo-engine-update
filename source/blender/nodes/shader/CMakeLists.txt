@@ -48,6 +48,7 @@ set(SRC
   nodes/node_shader_camera.cc
   nodes/node_shader_clamp.cc
   nodes/node_shader_color_ramp.cc
+  nodes/node_shader_oklab_color_ramp.cc
   nodes/node_shader_tex_hexagon.cc
   nodes/node_shader_twirl.cc
   nodes/node_shader_water_ripples.cc
