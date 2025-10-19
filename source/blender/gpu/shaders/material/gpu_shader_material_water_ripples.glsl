@@ -1,6 +1,4 @@
-#pragma BLENDER_REQUIRE(gpu_shader_material_common.glsl)
 #pragma BLENDER_REQUIRE(gpu_shader_common_math_utils.glsl)
-#pragma BLENDER_REQUIRE(gpu_shader_common_math_constants.glsl)
 
 /* Utility functions */
 float bias_function(float x, float b)
