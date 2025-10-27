@@ -37,16 +37,6 @@ static void sh_node_light_info_declare(NodeDeclarationBuilder &b)
   // b.add_output<decl::Float>("Light Distance"); // Temporarily removed - causes crash
 }
 
-static void node_shader_init_light_info(bNodeTree * /*ntree*/, bNode *node)
-{
-  NodeShaderLightInfo *data = MEM_cnew<NodeShaderLightInfo>(__func__);
-  
-  /* Node starts with no light object selected */
-  data->light_object = nullptr;
-  
-  node->storage = data;
-}
-
 static void node_shader_draw_light_info(uiLayout *layout, bContext * /*C*/, PointerRNA *ptr)
 {
   /* Show light object selector */
@@ -59,18 +49,18 @@ static int node_shader_gpu_light_info(GPUMaterial *mat,
                                       GPUNodeStack *in,
                                       GPUNodeStack *out)
 {
-  NodeShaderLightInfo *data = (NodeShaderLightInfo *)node->storage;
-  
+  Object *ob = (Object *)node->id;
+
   /* Always use safe defaults to avoid crashes during material compilation */
   float light_color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
   float light_power = 1.0f;
   
   /* Only try to access object data if everything is valid */
-  if (data && data->light_object != nullptr && 
-      data->light_object->type == OB_LAMP && 
-      data->light_object->data != nullptr) {
+  if (ob && ob != nullptr && 
+      ob->type == OB_LAMP && 
+      ob->data != nullptr) {
     
-    Object *light_ob = data->light_object;
+    Object *light_ob = ob;
     Light *light = (Light *)light_ob->data;
     
     /* Safely get light properties */
@@ -99,10 +89,8 @@ void register_node_type_sh_light_info(void)
 
   sh_node_type_base(&ntype, SH_NODE_LIGHT_INFO, "Light Info", NODE_CLASS_INPUT);
   ntype.declare = file_ns::sh_node_light_info_declare;
-  node_type_storage(&ntype, "NodeShaderLightInfo", node_free_standard_storage, node_copy_standard_storage);
-  ntype.gpu_fn = file_ns::node_shader_gpu_light_info;
-  ntype.initfunc = file_ns::node_shader_init_light_info;
   ntype.draw_buttons = file_ns::node_shader_draw_light_info;
+  ntype.gpu_fn = file_ns::node_shader_gpu_light_info;
 
   blender::bke::node_register_type(&ntype);
 }

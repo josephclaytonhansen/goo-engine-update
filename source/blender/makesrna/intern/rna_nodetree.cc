@@ -5889,15 +5889,14 @@ static void def_sh_light_info(StructRNA *srna)
 {
   PropertyRNA *prop;
 
-  RNA_def_struct_sdna_from(srna, "NodeShaderLightInfo", "storage");
-
   prop = RNA_def_property(srna, "light_object", PROP_POINTER, PROP_NONE);
-  RNA_def_property_pointer_sdna(prop, NULL, "light_object");
+  RNA_def_property_pointer_sdna(prop, NULL, "id");
   RNA_def_property_struct_type(prop, "Object");
   RNA_def_property_pointer_funcs(prop, nullptr, nullptr, nullptr, "rna_NodeShaderLightInfo_light_object_poll");
-  RNA_def_property_flag(prop, PROP_EDITABLE);
+  RNA_def_property_flag(prop, PROP_EDITABLE | PROP_ID_REFCOUNT);
+  RNA_def_property_override_flag(prop, PROPOVERRIDE_OVERRIDABLE_LIBRARY);
   RNA_def_property_ui_text(prop, "Light Object", "Light object to get information from");
-  RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_Node_update");
+  RNA_def_property_update(prop, NC_NODE | NA_EDITED, "rna_Node_update_relations");
 }
 
 static void def_sh_tex_magic(StructRNA *srna)
