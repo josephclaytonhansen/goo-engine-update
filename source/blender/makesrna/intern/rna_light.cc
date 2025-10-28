@@ -259,7 +259,7 @@ static void rna_def_light_shadow(StructRNA *srna, bool sun)
       prop, "Shadow Soft Size", "Light size for ray shadow sampling (Raytraced shadows)");
   RNA_def_property_update(prop, 0, "rna_Light_draw_update");
 
-  /* Goo Engine */
+  /* Fruitbat */
   prop = RNA_def_property(srna, "use_contact_shadow", PROP_BOOLEAN, PROP_NONE);
   RNA_def_property_boolean_sdna(prop, nullptr, "mode", LA_SHAD_CONTACT);
   RNA_def_property_ui_text(prop,

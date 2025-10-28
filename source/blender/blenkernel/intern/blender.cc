@@ -120,7 +120,7 @@ static void blender_version_init()
 
   const char *version_suffix = BKE_blender_version_is_lts() ? " LTS" : "";
 
-  version_cycle = " Goo Engine";
+  version_cycle = " Fruitbat";
 
   SNPRINTF(blender_version_string,
            "%d.%01d.%d%s%s",
