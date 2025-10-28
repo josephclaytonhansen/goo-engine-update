@@ -294,7 +294,13 @@ void GPU_material_free(ListBase *gpumaterial)
 {
   LISTBASE_FOREACH (LinkData *, link, gpumaterial) {
     GPUMaterial *material = static_cast<GPUMaterial *>(link->data);
-    DRW_deferred_shader_remove(material);
+    
+    if (GPU_material_flag_get(material, GPU_MATFLAG_OBJECT_INFO) && GPU_material_gooengine_get(material)) {
+      GOO_deferred_shader_remove(material);
+    } else {
+      DRW_deferred_shader_remove(material);
+    }
+
     GPU_material_free_single(material);
   }
   BLI_freelistN(gpumaterial);
@@ -1081,6 +1087,47 @@ bool GPU_material_async_try_finalize(GPUMaterial *mat)
     return true;
   }
   return false;
+}
+
+BatchHandle GPU_material_batch_compile(blender::Span<GPUMaterial *> mats)
+{
+  blender::Vector<GPUShaderCreateInfo *> infos;
+  infos.reserve(mats.size());
+
+  for (GPUMaterial *mat : mats) {
+    BLI_assert(ELEM(mat->status, GPU_MAT_QUEUED, GPU_MAT_CREATED));
+    BLI_assert(mat->pass);
+#ifndef NDEBUG
+    const char *name = mat->name;
+#else
+    const char *name = __func__;
+#endif
+    mat->do_batch_compilation = false;
+    if (GPUShaderCreateInfo *info = GPU_pass_begin_compilation(mat->pass, name)) {
+      infos.append(info);
+      mat->do_batch_compilation = true;
+    }
+  }
+
+  return GPU_shader_batch_create_from_infos(infos);
+}
+
+bool GPU_material_batch_is_ready(BatchHandle handle)
+{
+  return GPU_shader_batch_is_ready(handle);
+}
+
+void GPU_material_batch_finalize(BatchHandle &handle, blender::Span<GPUMaterial *> mats)
+{
+  blender::Vector<GPUShader *> shaders = GPU_shader_batch_finalize(handle);
+  int i = 0;
+  for (GPUMaterial *mat : mats) {
+    bool success = true;
+    if (mat->do_batch_compilation) {
+      success = GPU_pass_finalize_compilation(mat->pass, shaders[i++]);
+    }
+    gpu_material_finalize(mat, success);
+  }
 }
 
 void GPU_material_optimize(GPUMaterial *mat)
