@@ -54,6 +54,7 @@ static int node_shader_gpu_light_info(GPUMaterial *mat,
   /* Always use safe defaults to avoid crashes during material compilation */
   float light_color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
   float light_power = 1.0f;
+  float light_perceptual_power = 1.0f;
   
   /* Only try to access object data if everything is valid */
   if (ob && ob != nullptr && 
@@ -70,12 +71,24 @@ static int node_shader_gpu_light_info(GPUMaterial *mat,
     light_color[3] = 1.0f;
     
     light_power = light->energy;
+    light_perceptual_power = light->energy;
+  }
+  else {
+    /* If invalid, set to default white light with power 1.0 */
+    light_color[0] = 1.0f;
+    light_color[1] = 1.0f; 
+    light_color[2] = 1.0f;
+    light_color[3] = 1.0f;
+    
+    light_power = 1.0f;
+    light_perceptual_power = 1.0f;
   }
   
   /* Return shader call with just color and power - no distance */
   return GPU_stack_link(mat, node, "node_light_info_simple", in, out,
                         GPU_constant(light_color),      /* Light Color */
-                        GPU_constant(&light_power));    /* Light Power */
+                        GPU_constant(&light_power),     /* Light Power */
+                        GPU_constant(&light_perceptual_power)); /* Perceptual Power */
 }
 
 }  // namespace blender::nodes::node_shader_light_info_cc
