@@ -71,7 +71,7 @@ class DATA_PT_context_camera(CameraButtonsPanel, Panel):
 
 
 class DATA_PT_lens(CameraButtonsPanel, Panel):
-    bl_label = "Lens"
+    bl_label = "Camera Lens"
     bl_translation_context = i18n_contexts.id_camera
     COMPAT_ENGINES = {
         'BLENDER_RENDER',
@@ -79,6 +79,9 @@ class DATA_PT_lens(CameraButtonsPanel, Panel):
         'BLENDER_EEVEE_NEXT',
         'BLENDER_WORKBENCH',
     }
+
+    def draw_header_preset(self, _context):
+        CAMERA_PT_presets.draw_panel_header(self.layout)
 
     def draw(self, context):
         layout = self.layout
@@ -152,6 +155,21 @@ class DATA_PT_lens(CameraButtonsPanel, Panel):
         sub = col.column(align=True)
         sub.prop(cam, "clip_start", text="Clip Start")
         sub.prop(cam, "clip_end", text="End")
+        
+        # Sensor settings
+        col.separator()
+        col.prop(cam, "sensor_fit")
+
+        if cam.sensor_fit == 'AUTO':
+            col.prop(cam, "sensor_width", text="Size")
+        else:
+            sub = col.column(align=True)
+            sub.active = cam.sensor_fit == 'HORIZONTAL'
+            sub.prop(cam, "sensor_width", text="Width")
+
+            sub = col.column(align=True)
+            sub.active = cam.sensor_fit == 'VERTICAL'
+            sub.prop(cam, "sensor_height", text="Height")
 
 
 class DATA_PT_camera_stereoscopy(CameraButtonsPanel, Panel):
@@ -206,44 +224,9 @@ class DATA_PT_camera_stereoscopy(CameraButtonsPanel, Panel):
         col.prop(st, "pivot")
 
 
-class DATA_PT_camera(CameraButtonsPanel, Panel):
-    bl_label = "Camera"
-    bl_options = {'DEFAULT_CLOSED'}
-    COMPAT_ENGINES = {
-        'BLENDER_RENDER',
-        'BLENDER_EEVEE',
-        'BLENDER_EEVEE_NEXT',
-        'BLENDER_WORKBENCH',
-    }
-
-    def draw_header_preset(self, _context):
-        CAMERA_PT_presets.draw_panel_header(self.layout)
-
-    def draw(self, context):
-        layout = self.layout
-
-        cam = context.camera
-
-        layout.use_property_split = True
-
-        col = layout.column()
-        col.prop(cam, "sensor_fit")
-
-        if cam.sensor_fit == 'AUTO':
-            col.prop(cam, "sensor_width", text="Size")
-        else:
-            sub = col.column(align=True)
-            sub.active = cam.sensor_fit == 'HORIZONTAL'
-            sub.prop(cam, "sensor_width", text="Width")
-
-            sub = col.column(align=True)
-            sub.active = cam.sensor_fit == 'VERTICAL'
-            sub.prop(cam, "sensor_height", text="Height")
-
-
 class DATA_PT_camera_dof(CameraButtonsPanel, Panel):
     bl_label = "Depth of Field"
-    bl_options = {'DEFAULT_CLOSED'}
+    bl_parent_id = "DATA_PT_lens"
     COMPAT_ENGINES = {
         'BLENDER_EEVEE',
         'BLENDER_EEVEE_NEXT',
@@ -421,7 +404,7 @@ class DATA_PT_camera_background_image(CameraButtonsPanel, Panel):
 
 
 class DATA_PT_camera_display(CameraButtonsPanel, Panel):
-    bl_label = "Viewport Display"
+    bl_label = "Camera Display"
     bl_options = {'DEFAULT_CLOSED'}
     COMPAT_ENGINES = {
         'BLENDER_RENDER',
@@ -457,10 +440,69 @@ class DATA_PT_camera_display(CameraButtonsPanel, Panel):
         row.prop_decorator(cam, "passepartout_alpha")
 
 
+class DATA_PT_camera_display_safe_areas(CameraButtonsPanel, Panel):
+    bl_label = "Safe Areas"
+    bl_parent_id = "DATA_PT_camera_display"
+    COMPAT_ENGINES = {
+        'BLENDER_RENDER',
+        'BLENDER_EEVEE',
+        'BLENDER_EEVEE_NEXT',
+        'BLENDER_WORKBENCH',
+    }
+
+    def draw_header(self, context):
+        cam = context.camera
+        self.layout.prop(cam, "show_safe_areas", text="")
+
+    def draw_header_preset(self, _context):
+        CAMERA_PT_safe_areas_presets.draw_panel_header(self.layout)
+
+    def draw(self, context):
+        layout = self.layout
+        safe_data = context.scene.safe_areas
+        camera = context.camera
+
+        layout.use_property_split = True
+        layout.active = camera.show_safe_areas
+
+        col = layout.column()
+        sub = col.column()
+        sub.prop(safe_data, "title", slider=True)
+        sub.prop(safe_data, "action", slider=True)
+
+
+class DATA_PT_camera_display_safe_areas_center_cut(CameraButtonsPanel, Panel):
+    bl_label = "Center-Cut Safe Areas"
+    bl_parent_id = "DATA_PT_camera_display_safe_areas"
+    COMPAT_ENGINES = {
+        'BLENDER_RENDER',
+        'BLENDER_EEVEE',
+        'BLENDER_EEVEE_NEXT',
+        'BLENDER_WORKBENCH',
+    }
+
+    def draw_header(self, context):
+        cam = context.camera
+        layout = self.layout
+        layout.active = cam.show_safe_areas
+        layout.prop(cam, "show_safe_center", text="")
+
+    def draw(self, context):
+        layout = self.layout
+        safe_data = context.scene.safe_areas
+        camera = context.camera
+
+        layout.use_property_split = True
+        layout.active = camera.show_safe_areas and camera.show_safe_center
+
+        col = layout.column()
+        col.prop(safe_data, "title_center", slider=True)
+        col.prop(safe_data, "action_center", slider=True)
+
+
 class DATA_PT_camera_display_composition_guides(CameraButtonsPanel, Panel):
     bl_label = "Composition Guides"
     bl_parent_id = "DATA_PT_camera_display"
-    bl_options = {'DEFAULT_CLOSED'}
     COMPAT_ENGINES = {
         'BLENDER_RENDER',
         'BLENDER_EEVEE',
@@ -491,72 +533,6 @@ class DATA_PT_camera_display_composition_guides(CameraButtonsPanel, Panel):
         
         col = layout.column()
         col.prop(cam, "composition_guide_color", text="Color")
-
-
-class DATA_PT_camera_safe_areas(CameraButtonsPanel, Panel):
-    bl_label = "Safe Areas"
-    bl_options = {'DEFAULT_CLOSED'}
-    COMPAT_ENGINES = {
-        'BLENDER_RENDER',
-        'BLENDER_EEVEE',
-        'BLENDER_EEVEE_NEXT',
-        'BLENDER_WORKBENCH',
-    }
-
-    def draw_header(self, context):
-        cam = context.camera
-
-        self.layout.prop(cam, "show_safe_areas", text="")
-
-    def draw_header_preset(self, _context):
-        CAMERA_PT_safe_areas_presets.draw_panel_header(self.layout)
-
-    def draw(self, context):
-        layout = self.layout
-        safe_data = context.scene.safe_areas
-        camera = context.camera
-
-        layout.use_property_split = True
-
-        layout.active = camera.show_safe_areas
-
-        col = layout.column()
-
-        sub = col.column()
-        sub.prop(safe_data, "title", slider=True)
-        sub.prop(safe_data, "action", slider=True)
-
-
-class DATA_PT_camera_safe_areas_center_cut(CameraButtonsPanel, Panel):
-    bl_label = "Center-Cut Safe Areas"
-    bl_parent_id = "DATA_PT_camera_safe_areas"
-    bl_options = {'DEFAULT_CLOSED'}
-    COMPAT_ENGINES = {
-        'BLENDER_RENDER',
-        'BLENDER_EEVEE',
-        'BLENDER_EEVEE_NEXT',
-        'BLENDER_WORKBENCH',
-    }
-
-    def draw_header(self, context):
-        cam = context.camera
-
-        layout = self.layout
-        layout.active = cam.show_safe_areas
-        layout.prop(cam, "show_safe_center", text="")
-
-    def draw(self, context):
-        layout = self.layout
-        safe_data = context.scene.safe_areas
-        camera = context.camera
-
-        layout.use_property_split = True
-
-        layout.active = camera.show_safe_areas and camera.show_safe_center
-
-        col = layout.column()
-        col.prop(safe_data, "title_center", slider=True)
-        col.prop(safe_data, "action_center", slider=True)
 
 
 class DATA_PT_camera_animation(CameraButtonsPanel, PropertiesAnimationMixin, PropertyPanel, Panel):
@@ -610,12 +586,11 @@ classes = (
     DATA_PT_lens,
     DATA_PT_camera_dof,
     DATA_PT_camera_dof_aperture,
-    DATA_PT_camera,
     DATA_PT_camera_stereoscopy,
-    DATA_PT_camera_safe_areas,
-    DATA_PT_camera_safe_areas_center_cut,
     DATA_PT_camera_background_image,
     DATA_PT_camera_display,
+    DATA_PT_camera_display_safe_areas,
+    DATA_PT_camera_display_safe_areas_center_cut,
     DATA_PT_camera_display_composition_guides,
     DATA_PT_camera_animation,
     DATA_PT_custom_props_camera,
