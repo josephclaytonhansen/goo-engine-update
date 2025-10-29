@@ -42,3 +42,32 @@ void node_light_info_simple(vec4 light_color,
   out_perceptual_power = ((Lstar * light_power) / 255.0) * (2.489645); 
   // normalize, then use the computed white constant
 }
+void node_light_info(float r,
+                     float g,
+                     float b,
+                     float light_power,
+                     out vec4 out_light_color,
+                     out float out_light_power,
+                     out float out_perceptual_power)
+{
+  // Combine RGB components into vec4
+  vec4 light_color = vec4(r, g, b, 1.0);
+  
+  out_light_color = light_color;
+  out_light_power = light_power;
+
+  // Linearize sRGB channels
+  float vR = sRGBtoLin(r);
+  float vG = sRGBtoLin(g);
+  float vB = sRGBtoLin(b);
+
+  // Calculate luminance
+  float Y = 0.2126 * vR + 0.7152 * vG + 0.0722 * vB;
+
+  // Calculate perceptual lightness (L*)
+  float Lstar = YtoLstar(Y);
+
+  // Output perceptual lightness * light power
+  out_perceptual_power = ((Lstar * light_power) / 255.0) * (2.489645); 
+  // normalize, then use the computed white constant
+}

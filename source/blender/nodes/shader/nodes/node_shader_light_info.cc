@@ -40,9 +40,8 @@ static int node_shader_gpu_light_info(GPUMaterial *mat,
                                       GPUNodeStack *in,
                                       GPUNodeStack *out)
 {
-  /* Capture light properties NOW (during graph building on main thread)
-   * and store them as GPU uniforms. This avoids accessing the Light object
-   * from the background compilation thread. */
+  /* Access light properties and create uniforms that point directly to the Light's memory.
+   * This allows animated light properties to update automatically without recompiling the shader. */
   Object *ob = (Object *)node->id;
   
   /* Always use safe defaults. */
@@ -50,7 +49,6 @@ static int node_shader_gpu_light_info(GPUMaterial *mat,
   static float default_power = 1.0f;
   static float default_perceptual_power = 1.0f;
   
-  GPUNodeLink *color_link;
   GPUNodeLink *power_link;
   GPUNodeLink *perceptual_power_link;
   
@@ -58,31 +56,48 @@ static int node_shader_gpu_light_info(GPUMaterial *mat,
   if (ob && ob->type == OB_LAMP && ob->data != nullptr) {
     Light *light = (Light *)ob->data;
     
-    /* Capture the light properties as GPU uniforms (thread-safe). */
-    float color[4] = {light->r, light->g, light->b, 1.0f};
-    float power = light->energy;
-    float perceptual_power = light->energy;
+    /* For animated light properties to work, we need to point the uniforms directly
+     * to the Light's memory. Since r, g, b are consecutive floats in the Light struct,
+     * we can create individual uniforms for each component and combine them. */
     
-    /* Use GPU_uniform to capture these values safely for later compilation. */
-    color_link = GPU_uniform(color);
-    power_link = GPU_uniform(&power);
-    perceptual_power_link = GPU_uniform(&perceptual_power);
+    /* Mark the material as needing per-object info updates.
+     * This ensures that uniforms are re-uploaded each frame during animation playback. */
+    GPU_material_flag_set(mat, GPU_MATFLAG_OBJECT_INFO);
+    
+    /* Create uniforms pointing directly to each RGB component */
+    GPUNodeLink *r_link = GPU_uniform(&light->r);
+    GPUNodeLink *g_link = GPU_uniform(&light->g);
+    GPUNodeLink *b_link = GPU_uniform(&light->b);
+    
+    /* For power, point directly to the Light's energy field */
+    power_link = GPU_uniform(&light->energy);
+    perceptual_power_link = GPU_uniform(&light->energy);
+    
+    /* Use combine_rgb to build the final vec4 color from the three uniforms.
+     * We can't pass the result of GPU_link to GPU_stack_link, so we use 
+     * GPU_stack_link with combine_rgb directly. */
+    return GPU_stack_link(mat, node, "node_light_info", in, out,
+                          r_link,                    /* Red */
+                          g_link,                    /* Green */
+                          b_link,                    /* Blue */
+                          power_link,                /* Light Power */
+                          perceptual_power_link);    /* Perceptual Power */
   }
   else {
     /* Use default values */
-    color_link = GPU_uniform(default_color);
+    GPUNodeLink *color_link = GPU_uniform(default_color);
     power_link = GPU_uniform(&default_power);
     perceptual_power_link = GPU_uniform(&default_perceptual_power);
+    
+    /* Pass the default uniforms to the GPU stack. */
+    return GPU_stack_link(mat, node, "node_light_info_simple", in, out,
+                          color_link,                /* Light Color */
+                          power_link,                /* Light Power */
+                          perceptual_power_link);    /* Perceptual Power */
   }
-  
-  /* Pass the captured uniforms to the GPU stack. */
-  return GPU_stack_link(mat, node, "node_light_info_simple", in, out,
-                        color_link,              /* Light Color */
-                        power_link,              /* Light Power */
-                        perceptual_power_link);  /* Perceptual Power */
 }
 
-}  // namespace blender::nodes::node_shader_light_info_cc
+}
 
 void register_node_type_sh_light_info(void)
 {
