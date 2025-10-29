@@ -550,7 +550,7 @@ static void drawviewborder(Scene *scene, Depsgraph *depsgraph, ARegion *region, 
   x2 = viewborder.xmax;
   y2 = viewborder.ymax;
 
-  GPU_line_width(1.0f);
+  GPU_line_width(U.viewport_line_width);
 
   /* apply offsets so the real 3D camera shows through */
 
@@ -631,7 +631,7 @@ static void drawviewborder(Scene *scene, Depsgraph *depsgraph, ARegion *region, 
 
     immUniform1i("colors_len", 0); /* "simple" mode */
     immUniform1f("dash_width", 6.0f);
-    immUniform1f("udash_factor", 0.5f);
+    immUniform1f("udash_factor", 1.0f);
 
     /* outer line not to confuse with object selection */
     if (v3d->flag2 & V3D_LOCK_CAMERA) {
@@ -639,7 +639,7 @@ static void drawviewborder(Scene *scene, Depsgraph *depsgraph, ARegion *region, 
       imm_draw_box_wire_2d(shdr_pos, x1i - 1, y1i - 1, x2i + 1, y2i + 1);
     }
 
-    immUniformThemeColor3(TH_VIEW_OVERLAY);
+    immUniformColor4fv(ca->composition_guide_color);
     imm_draw_box_wire_2d(shdr_pos, x1i, y1i, x2i, y2i);
   }
 
@@ -659,7 +659,7 @@ static void drawviewborder(Scene *scene, Depsgraph *depsgraph, ARegion *region, 
   /* safety border */
   if (ca && (v3d->flag2 & V3D_SHOW_CAMERA_GUIDES)) {
     GPU_blend(GPU_BLEND_ALPHA);
-    immUniformThemeColorAlpha(TH_VIEW_OVERLAY, 0.75f);
+    immUniformColor4fv(ca->composition_guide_color);
 
     if (ca->dtx & CAM_DTX_CENTER) {
       float x3, y3;
@@ -797,11 +797,20 @@ static void drawviewborder(Scene *scene, Depsgraph *depsgraph, ARegion *region, 
 
 static void drawrenderborder(ARegion *region, View3D *v3d)
 {
+  Camera *ca = nullptr;
+  RegionView3D *rv3d = static_cast<RegionView3D *>(region->regiondata);
+
+  if (v3d->camera == nullptr) {
+    return;
+  }
+  if (v3d->camera->type == OB_CAMERA) {
+    ca = static_cast<Camera *>(v3d->camera->data);
+  }
   /* use the same program for everything */
   uint shdr_pos = GPU_vertformat_attr_add(
       immVertexFormat(), "pos", GPU_COMP_F32, 2, GPU_FETCH_FLOAT);
 
-  GPU_line_width(1.0f);
+  GPU_line_width(U.viewport_line_width);
 
   immBindBuiltinProgram(GPU_SHADER_3D_LINE_DASHED_UNIFORM_COLOR);
 
@@ -810,9 +819,9 @@ static void drawrenderborder(ARegion *region, View3D *v3d)
   immUniform2f("viewport_size", viewport_size[2], viewport_size[3]);
 
   immUniform1i("colors_len", 0); /* "simple" mode */
-  immUniform4f("color", 1.0f, 0.25f, 0.25f, 1.0f);
+  immUniformColor4fv(ca->composition_guide_color);
   immUniform1f("dash_width", 6.0f);
-  immUniform1f("udash_factor", 0.5f);
+  immUniform1f("udash_factor", 1.0f);
 
   imm_draw_box_wire_2d(shdr_pos,
                        v3d->render_border.xmin * region->winx,
@@ -955,7 +964,7 @@ float ED_view3d_grid_view_scale(const Scene *scene,
 
 static void draw_view_axis(RegionView3D *rv3d, const rcti *rect)
 {
-  const float k = U.rvisize * U.pixelsize; /* axis size */
+  const float k = U.rvisize * U.viewport_line_width; /* axis size */
   /* axis alpha offset (rvibright has range 0-10) */
   const int bright = -20 * (10 - U.rvibright);
 
@@ -989,7 +998,7 @@ static void draw_view_axis(RegionView3D *rv3d, const rcti *rect)
   }
 
   /* draw axis lines */
-  GPU_line_width(2.0f);
+  GPU_line_width(U.viewport_line_width);
   GPU_line_smooth(true);
   GPU_blend(GPU_BLEND_ALPHA);
 

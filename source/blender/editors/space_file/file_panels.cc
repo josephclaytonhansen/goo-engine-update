@@ -192,7 +192,8 @@ static void file_panel_execution_buttons_draw(const bContext *C, Panel *panel)
 
   {
     uiLayout *sub = uiLayoutRow(row, false);
-    uiLayoutSetOperatorContext(sub, WM_OP_EXEC_REGION_WIN);
+    /* Use INVOKE so the overwrite confirmation dialog can be shown */
+    uiLayoutSetOperatorContext(sub, WM_OP_INVOKE_DEFAULT);
 
     if (windows_layout) {
       file_panel_execution_execute_button(sub, params->title);

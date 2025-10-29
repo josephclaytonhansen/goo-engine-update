@@ -2123,6 +2123,25 @@ static int file_exec(bContext *C, wmOperator * /*op*/)
   return OPERATOR_FINISHED;
 }
 
+static int file_exec_invoke(bContext *C, wmOperator *op, const wmEvent * /*event*/)
+{
+  SpaceFile *sfile = CTX_wm_space_file(C);
+
+  /* Check if we're about to overwrite an existing file */
+  if (file_draw_check_exists(sfile)) {
+    return WM_operator_confirm_ex(C,
+                                  op,
+                                  IFACE_("Overwrite File?"),
+                                  IFACE_("This will overwrite the existing file."),
+                                  IFACE_("Overwrite"),
+                                  ALERT_ICON_WARNING,
+                                  false);
+  }
+
+  /* No file exists or not checking for overwrite, execute directly */
+  return file_exec(C, op);
+}
+
 void FILE_OT_execute(wmOperatorType *ot)
 {
   /* identifiers */
@@ -2131,6 +2150,7 @@ void FILE_OT_execute(wmOperatorType *ot)
   ot->idname = "FILE_OT_execute";
 
   /* api callbacks */
+  ot->invoke = file_exec_invoke;
   ot->exec = file_exec;
   /* Important since handler is on window level.
    *

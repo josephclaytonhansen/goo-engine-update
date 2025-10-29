@@ -222,6 +222,7 @@ class DOPESHEET_HT_editor_buttons:
     def draw_header(cls, context, layout):
         st = context.space_data
         tool_settings = context.tool_settings
+        scene = context.scene
 
         if st.mode in {'ACTION', 'SHAPEKEY'}:
             # TODO: These buttons need some tidying up -
@@ -237,6 +238,33 @@ class DOPESHEET_HT_editor_buttons:
             if context.object:
                 layout.separator_spacer()
                 cls._draw_action_selector(context, layout)
+            
+            # Frame step controls
+            row = layout.row(align=True)
+            row.operator("screen.frame_offset", text="", icon='TRIA_LEFT').delta = -1
+            
+            # Frame number display
+            sub = row.row()
+            if scene.show_subframe:
+                sub.scale_x = 1.15
+                sub.prop(scene, "frame_float", text="")
+            else:
+                sub.scale_x = 0.95
+                sub.prop(scene, "frame_current", text="")
+            
+            row.operator("screen.frame_offset", text="", icon='TRIA_RIGHT').delta = 1
+
+            # Frame range controls
+            row = layout.row(align=True)
+            row.prop(scene, "use_preview_range", text="", toggle=True)
+            sub = row.row(align=True)
+            sub.scale_x = 0.8
+            if not scene.use_preview_range:
+                sub.prop(scene, "frame_start", text="Start")
+                sub.prop(scene, "frame_end", text="End")
+            else:
+                sub.prop(scene, "frame_preview_start", text="Start")
+                sub.prop(scene, "frame_preview_end", text="End")
 
         # Layer management
         if st.mode == 'GPENCIL':

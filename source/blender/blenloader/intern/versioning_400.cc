@@ -1094,6 +1094,18 @@ void do_versions_after_linking_400(FileData *fd, Main *bmain)
     }
   }
 
+  if (!MAIN_VERSION_FILE_ATLEAST(bmain, 400, 22)) {
+    const bTheme *btheme = static_cast<bTheme *>(U.themes.first);
+    const uchar *col = btheme->space_view3d.view_overlay;
+    LISTBASE_FOREACH (Camera *, camera, &bmain->cameras) {
+      copy_v4_fl4(camera->composition_guide_color,
+                  col[0] / 255.0f,
+                  col[1] / 255.0f,
+                  col[2] / 255.0f,
+                  1.0f);
+    }
+  }
+
   if (!MAIN_VERSION_FILE_ATLEAST(bmain, 400, 24)) {
     FOREACH_NODETREE_BEGIN (bmain, ntree, id) {
       if (ntree->type == NTREE_SHADER) {

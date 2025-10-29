@@ -865,6 +865,11 @@ void RNA_def_camera(BlenderRNA *brna)
       prop, "Harmonious Triangle B", "Display harmony B composition guide inside the camera view");
   RNA_def_property_update(prop, NC_CAMERA | ND_DRAW_RENDER_VIEWPORT, nullptr);
 
+  prop = RNA_def_property(srna, "composition_guide_color", PROP_FLOAT, PROP_COLOR);
+  RNA_def_property_ui_text(prop, "Composition Guide Color", "Color and alpha for compositional guide overlays");
+  RNA_def_property_update(prop, NC_CAMERA | ND_DRAW_RENDER_VIEWPORT, nullptr);
+
+
   /* Panoramic settings. */
   prop = RNA_def_property(srna, "panorama_type", PROP_ENUM, PROP_NONE);
   RNA_def_property_enum_items(prop, panorama_type_items);
