@@ -87,10 +87,15 @@ typedef struct Camera {
   float sensor_x, sensor_y;
   float shiftx, shifty;
   float dof_distance DNA_DEPRECATED;
+  
+  /** Camera-specific resolution override. */
+  int resolution_x, resolution_y;
+  /** Percentage scale for camera resolution. */
+  float resolution_percentage;
 
   char sensor_fit;
   char panorama_type;
-  char _pad[2];
+  char _pad[6];
 
   /* Fish-eye properties. */
   float fisheye_fov;
